@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
 
   PARTNERS: {
     BASE: "/api/partners",
+    DETAIL: (id: number | string) => `/api/partners/${id}`,
   },
 
   QUESTION_PACKAGES: {
@@ -59,7 +60,7 @@ export const API_ENDPOINTS = {
   },
 
   PAYMENTS_ADMIN: {
-  BASE: "/api/payments",
-  DETAIL: (id: number | string) => `/api/payments/${id}`,
-},
+    BASE: "/api/payments",
+    DETAIL: (id: number | string) => `/api/payments/${id}`,
+  },
 } as const;

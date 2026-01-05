@@ -53,8 +53,8 @@ function toYmd(d?: Date | null) {
 }
 
 function buildPages(page: number, lastPage: number) {
-  const total = lastPage
-  const current = page
+  const total = Math.max(1, lastPage)
+  const current = Math.min(Math.max(1, page), total)
   const windowSize = 1
 
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1) as Array<number | "ellipsis">
@@ -99,7 +99,6 @@ export default function AdminPaymentsPage() {
     const from = toYmd(range?.from)
     const to = toYmd(range?.to)
     const s = status || undefined
-
     return { q, status: s, from, to, per_page: perPage, page }
   }, [qText, status, range, perPage, page])
 
@@ -204,14 +203,14 @@ export default function AdminPaymentsPage() {
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[52px]">No</TableHead>
-              <TableHead className="w-[90px]">ID</TableHead>
-              <TableHead className="w-[190px]">User</TableHead>
-              <TableHead className="w-[150px]">Order</TableHead>
-              <TableHead className="w-[130px]">Amount</TableHead>
-              <TableHead className="w-[140px]">Status</TableHead>
-              <TableHead className="w-[140px]">Paid At</TableHead>
-              <TableHead className="w-[110px] text-right">Detail</TableHead>
+              <TableHead className="w-13">No</TableHead>
+              <TableHead className="w-22.5">ID</TableHead>
+              <TableHead className="w-47.5">User</TableHead>
+              <TableHead className="w-37.5">Order</TableHead>
+              <TableHead className="w-32.5">Amount</TableHead>
+              <TableHead className="w-35">Status</TableHead>
+              <TableHead className="w-35">Paid At</TableHead>
+              <TableHead className="w-27.5 text-right">Detail</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -231,7 +230,10 @@ export default function AdminPaymentsPage() {
 
                   <TableCell className="whitespace-nowrap">{it.id}</TableCell>
 
-                  <TableCell className="truncate" title={it.user ? `${it.user.name} (${it.user.email})` : "-"}>
+                  <TableCell
+                    className="truncate"
+                    title={it.user ? `${it.user.name} (${it.user.email})` : "-"}
+                  >
                     {it.user ? (
                       <div className="space-y-0.5">
                         <div className="font-medium truncate">{it.user.name}</div>

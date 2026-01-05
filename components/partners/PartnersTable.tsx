@@ -177,7 +177,7 @@ export function PartnersTable() {
                   </TableCell>
                   <TableCell>
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/dashboard/admin/partners/${it.id}`}>Detail</Link>
+                      <Link href={`/dashboard/admin/mitra/${it.id}`}>Detail</Link>
                     </Button>
                   </TableCell>
                 </TableRow>

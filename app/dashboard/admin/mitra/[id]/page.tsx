@@ -1,240 +1,349 @@
-// "use client";
+"use client"
 
-// import * as React from "react";
-// import { useParams, useRouter } from "next/navigation";
-// import { toast } from "sonner";
-// import { z } from "zod";
-// import { useForm } from "react-hook-form";
-// import { zodResolver } from "@hookform/resolvers/zod";
-// import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link"
+import * as React from "react"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 
-// import { schedulesService } from "@/lib/services/schedules.service";
-// import type { ScheduleDetail } from "@/lib/types/schedules";
-// import { API_ENDPOINTS } from "@/lib/api/endpoints";
-// import { getApiErrorMessage } from "@/lib/api/errors";
-// import { formatRupiah, hhmm } from "@/lib/utils/format";
-// import { formatDateTime } from "@/lib/utils/datetime";
-// import { StatusBadge } from "@/lib/utils/status";
+import { partnersService } from "@/lib/services/partners.service"
+import type { PartnerDetailResponse, PartnerScheduleItem } from "@/lib/types/partners"
+import { API_ENDPOINTS } from "@/lib/api/endpoints"
+import { formatRupiah, hhmm } from "@/lib/utils/format"
+import { StatusBadge } from "@/lib/utils/status"
 
-// import { Badge } from "@/components/ui/badge";
-// import { Button } from "@/components/ui/button";
-// import { Card } from "@/components/ui/card";
-// import { Separator } from "@/components/ui/separator";
-// import { Input } from "@/components/ui/input";
-// import { Label } from "@/components/ui/label";
-// import {
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow,
-// } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
-// /* ================= VALIDATION ================= */
+function ActiveBadge({ active }: { active?: boolean | null }) {
+  if (active === false) return <Badge variant="secondary">Nonaktif</Badge>
+  return <Badge variant="default">Aktif</Badge>
+}
 
-// const addSchema = z.object({
-//   user_id: z
-//     .number()
-//     .int("User ID harus bilangan bulat")
-//     .positive("User ID harus > 0"),
-// });
+function buildPages(current: number, last: number) {
+  const total = Math.max(1, last)
+  const cur = Math.min(Math.max(1, current), total)
+  const windowSize = 1
 
-// type AddForm = z.infer<typeof addSchema>;
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
 
-// /* ================= PAGE ================= */
+  const start = Math.max(2, cur - windowSize)
+  const end = Math.min(total - 1, cur + windowSize)
 
-// export default function AdminScheduleDetailPage() {
-//   const { id } = useParams<{ id: string }>();
-//   const router = useRouter();
-//   const qc = useQueryClient();
+  const result: Array<number | "ellipsis"> = [1]
+  if (start > 2) result.push("ellipsis")
+  for (let p = start; p <= end; p++) result.push(p)
+  if (end < total - 1) result.push("ellipsis")
+  result.push(total)
 
-//   const scheduleId = Number(id);
+  return result
+}
 
-//   /* ===== DETAIL ===== */
-//   const detailQuery = useQuery({
-//     queryKey: [API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId)],
-//     queryFn: () => schedulesService.detail(scheduleId),
-//     enabled: Number.isFinite(scheduleId),
-//   });
+export default function AdminPartnerDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const sp = useSearchParams()
 
-//   /* ===== FORM ===== */
-//   const form = useForm<AddForm>({
-//     resolver: zodResolver(addSchema),
-//     defaultValues: {
-//       user_id: undefined,
-//     },
-//   });
+  const partnerId = Number(id)
+  const pageRaw = Number(sp.get("page") || "1")
+  const perPageRaw = Number(sp.get("per_page") || "20")
 
-//   /* ===== ADD PARTICIPANT ===== */
-//   const addMut = useMutation({
-//     mutationFn: (v: AddForm) =>
-//       schedulesService.addParticipant(scheduleId, { user_id: v.user_id }),
+  const params = React.useMemo(() => {
+    return {
+      page: Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1,
+      per_page: Number.isFinite(perPageRaw) && perPageRaw > 0 ? perPageRaw : 20,
+    }
+  }, [pageRaw, perPageRaw])
 
-//     onSuccess: (res) => {
-//       toast.success(res.message ?? "Peserta ditambahkan");
-//       qc.invalidateQueries({
-//         queryKey: [API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId)],
-//       });
-//       form.reset();
-//     },
+  const q = useQuery<PartnerDetailResponse>({
+    queryKey: [API_ENDPOINTS.PARTNERS.DETAIL(partnerId), params],
+    queryFn: () => partnersService.detail(partnerId, params),
+    enabled: Number.isFinite(partnerId),
+    placeholderData: keepPreviousData,
+  })
 
-//     onError: (e) => toast.error(getApiErrorMessage(e)),
-//   });
+  const data = q.data
+  const partner = data?.partner ?? null
+  const schedulesRes = data?.schedules ?? null
+  const schedules: PartnerScheduleItem[] = schedulesRes?.data ?? []
 
-//   /* ===== REMOVE PARTICIPANT ===== */
-//   const delMut = useMutation({
-//     mutationFn: (userId: number) =>
-//       schedulesService.removeParticipant(scheduleId, userId),
+  const lastPage = schedulesRes?.last_page ?? 1
+  const canPrev = params.page > 1
+  const canNext = params.page < lastPage
 
-//     onSuccess: (res) => {
-//       toast.success(res.message ?? "Peserta dihapus");
-//       qc.invalidateQueries({
-//         queryKey: [API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId)],
-//       });
-//     },
+  const pages = React.useMemo(() => buildPages(params.page, lastPage), [params.page, lastPage])
 
-//     onError: (e) => toast.error(getApiErrorMessage(e)),
-//   });
+  const hrefFor = (p: number) => {
+    const usp = new URLSearchParams()
+    if (params.per_page !== 20) usp.set("per_page", String(params.per_page))
+    if (p !== 1) usp.set("page", String(p))
+    const qs = usp.toString()
+    return qs ? `/dashboard/admin/mitra/${partnerId}?${qs}` : `/dashboard/admin/mitra/${partnerId}`
+  }
 
-//   /* ===== STATE HANDLING ===== */
-//   if (detailQuery.isLoading) {
-//     return <p className="text-sm text-muted-foreground">Loading...</p>;
-//   }
+  const onChangePerPage = (v: number) => {
+    const u = new URLSearchParams(sp.toString())
+    if (v !== 20) u.set("per_page", String(v))
+    else u.delete("per_page")
+    u.delete("page")
+    const qs = u.toString()
+    router.push(qs ? `/dashboard/admin/mitra/${partnerId}?${qs}` : `/dashboard/admin/mitra/${partnerId}`)
+  }
 
-//   if (detailQuery.isError || !detailQuery.data) {
-//     return <p className="text-sm text-destructive">Gagal load schedule</p>;
-//   }
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">
+            {partner ? `Mitra #${partner.id} — ${partner.name}` : "Detail Mitra"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {partner ? `Kode: ${partner.code ?? "-"} • Schedules: ${partner.schedules_count ?? 0}` : " "}
+          </p>
+        </div>
 
-//   const d: ScheduleDetail = detailQuery.data;
-//   const participants = d.participants ?? [];
-//   const packages = d.packages ?? [];
+        <Button variant="outline" onClick={() => router.back()}>
+          Kembali
+        </Button>
+      </div>
 
-//   return (
-//     <div className="space-y-4">
-//       {/* ===== HEADER ===== */}
-//       <div className="flex justify-between items-center">
-//         <div>
-//           <h1 className="text-xl font-semibold">Schedule #{d.id}</h1>
-//           <p className="text-sm text-muted-foreground">
-//             {d.date} • {hhmm(d.start_time)} - {hhmm(d.end_time)}
-//           </p>
-//         </div>
-//         <Button variant="outline" onClick={() => router.back()}>
-//           Kembali
-//         </Button>
-//       </div>
+      {q.isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      ) : q.isError || !partner ? (
+        <p className="text-sm text-destructive">Gagal load partner</p>
+      ) : (
+        <>
+          <Card className="p-4 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <ActiveBadge active={partner.is_active ?? true} />
+              {partner.code ? <Badge variant="outline">Code: {partner.code}</Badge> : null}
+              {typeof partner.schedules_count === "number" ? (
+                <Badge variant="secondary">Schedules: {partner.schedules_count}</Badge>
+              ) : null}
+            </div>
 
-//       {/* ===== INFO CARD ===== */}
-//       <Card className="p-4 space-y-3">
-//         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-//           <div>
-//             <div className="text-muted-foreground">Harga</div>
-//             <div>{formatRupiah(d.price)}</div>
-//           </div>
-//           <div>
-//             <div className="text-muted-foreground">Kapasitas</div>
-//             <div>{d.capacity}</div>
-//           </div>
-//           <div>
-//             <div className="text-muted-foreground">Peserta</div>
-//             <div>{d.current_participants}</div>
-//           </div>
-//           <div>
-//             <div className="text-muted-foreground">Partner</div>
-//             <div>{d.partner?.name ?? "-"}</div>
-//           </div>
-//           <div>
-//             <div className="text-muted-foreground">Status</div>
-//             <StatusBadge status={d.status} />
-//           </div>
-//         </div>
+            <Separator />
 
-//         <div>
-//           <div className="text-muted-foreground text-sm mb-1">Paket Soal</div>
-//           {packages.length === 0 ? (
-//             <span className="text-sm text-muted-foreground">-</span>
-//           ) : (
-//             <div className="flex flex-wrap gap-1">
-//               {packages.map((p) => (
-//                 <Badge key={p.id} variant="outline">
-//                   {p.name}
-//                 </Badge>
-//               ))}
-//             </div>
-//           )}
-//         </div>
-//       </Card>
+            <div className="grid gap-3 md:grid-cols-4 text-sm">
+              <div>
+                <div className="text-muted-foreground">PIC</div>
+                <div className="font-medium truncate" title={partner.contact_name ?? "-"}>
+                  {partner.contact_name ?? "-"}
+                </div>
+              </div>
 
-//       {/* ===== PARTICIPANTS ===== */}
-//       <Card className="p-4 space-y-4">
-//         <form
-//           className="flex gap-3 items-end"
-//           onSubmit={form.handleSubmit((v) => addMut.mutate(v))}
-//         >
-//           <div className="space-y-2">
-//             <Label>User ID</Label>
-//             <Input
-//               type="number"
-//               {...form.register("user_id", { valueAsNumber: true })}
-//             />
-//             {form.formState.errors.user_id && (
-//               <p className="text-sm text-destructive">
-//                 {form.formState.errors.user_id.message}
-//               </p>
-//             )}
-//           </div>
+              <div>
+                <div className="text-muted-foreground">Email PIC</div>
+                <div className="truncate" title={partner.contact_email ?? "-"}>
+                  {partner.contact_email ?? "-"}
+                </div>
+              </div>
 
-//           <Button type="submit" disabled={addMut.isPending}>
-//             Add Participant
-//           </Button>
-//         </form>
+              <div>
+                <div className="text-muted-foreground">Nomor PIC</div>
+                <div className="truncate" title={partner.contact_phone ?? "-"}>
+                  {partner.contact_phone ?? "-"}
+                </div>
+              </div>
 
-//         <Separator />
+              <div>
+                <div className="text-muted-foreground">Dibuat</div>
+                <div className="truncate" title={partner.created_at ?? "-"}>
+                  {partner.created_at ?? "-"}
+                </div>
+              </div>
+            </div>
+          </Card>
 
-//         <Table>
-//           <TableHeader>
-//             <TableRow>
-//               <TableHead>No</TableHead>
-//               <TableHead>ID</TableHead>
-//               <TableHead>Nama</TableHead>
-//               <TableHead>Email</TableHead>
-//               <TableHead>Registered</TableHead>
-//               <TableHead className="text-right">Aksi</TableHead>
-//             </TableRow>
-//           </TableHeader>
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-sm font-semibold">Schedules Mitra</div>
+                <div className="text-sm text-muted-foreground">
+                  Total: {schedulesRes?.total ?? 0}
+                </div>
+              </div>
 
-//           <TableBody>
-//             {participants.length === 0 ? (
-//               <TableRow>
-//                 <TableCell colSpan={6} className="text-center">
-//                   Belum ada peserta
-//                 </TableCell>
-//               </TableRow>
-//             ) : (
-//               participants.map((p, i) => (
-//                 <TableRow key={p.id}>
-//                   <TableCell>{i + 1}</TableCell>
-//                   <TableCell>{p.id}</TableCell>
-//                   <TableCell>{p.name}</TableCell>
-//                   <TableCell>{p.email}</TableCell>
-//                   <TableCell>{formatDateTime(p.registered_at)}</TableCell>
-//                   <TableCell className="text-right">
-//                     <Button
-//                       size="sm"
-//                       variant="destructive"
-//                       onClick={() => delMut.mutate(p.id)}
-//                       disabled={delMut.isPending}
-//                     >
-//                       Hapus
-//                     </Button>
-//                   </TableCell>
-//                 </TableRow>
-//               ))
-//             )}
-//           </TableBody>
-//         </Table>
-//       </Card>
-//     </div>
-//   );
-// }
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Per halaman</span>
+                <select
+                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  value={params.per_page}
+                  onChange={(e) => onChangePerPage(Number(e.target.value))}
+                >
+                  {[10, 20, 50, 100, 200].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <Separator />
+
+<div className="rounded-md border">
+  <Table className="table-fixed w-full">
+    <TableHeader>
+      <TableRow>
+        <TableHead className="w-14.5">No</TableHead>
+        <TableHead className="w-20">ID</TableHead>
+        <TableHead className="w-30">Tanggal</TableHead>
+        <TableHead className="w-30">Jam</TableHead>
+        <TableHead className="w-30">Harga</TableHead>
+        <TableHead className="w-27.5">Kapasitas</TableHead>
+        <TableHead className="w-42.5">Paket</TableHead>
+        <TableHead className="w-40">Status</TableHead>
+        <TableHead className="w-30 text-right">Detail</TableHead>
+      </TableRow>
+    </TableHeader>
+
+    <TableBody>
+      {schedules.length === 0 ? (
+        <TableRow>
+          <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+            Tidak ada schedule
+          </TableCell>
+        </TableRow>
+      ) : (
+        schedules.map((s, idx) => {
+          const no = (params.page - 1) * params.per_page + (idx + 1)
+          const packs = s.packages ?? []
+          const jam = `${hhmm(s.start_time)} - ${hhmm(s.end_time)}`
+
+          return (
+            <TableRow key={s.id}>
+              <TableCell className="whitespace-nowrap">{no}</TableCell>
+
+              <TableCell className="whitespace-nowrap">{s.id}</TableCell>
+
+              <TableCell className="truncate" title={s.date}>
+                {s.date}
+              </TableCell>
+
+              <TableCell className="whitespace-nowrap">{jam}</TableCell>
+
+              <TableCell className="whitespace-nowrap">{formatRupiah(s.price)}</TableCell>
+
+              <TableCell className="whitespace-nowrap">
+                {s.current_participants}/{s.capacity}
+              </TableCell>
+
+              <TableCell>
+                {packs.length === 0 ? (
+                  <span className="text-sm text-muted-foreground">-</span>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {packs.map((p) => (
+                      <Badge key={p.id} variant="outline">
+                        {p.name}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </TableCell>
+
+              <TableCell className="truncate" title={s.status ?? "-"}>
+                <StatusBadge status={s.status ?? "-"} />
+              </TableCell>
+
+              <TableCell className="text-right whitespace-nowrap">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/dashboard/admin/schedules/${s.id}`}>Detail</Link>
+                </Button>
+              </TableCell>
+            </TableRow>
+          )
+        })
+      )}
+    </TableBody>
+  </Table>
+</div>
+
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between pt-2">
+              <div className="text-sm text-muted-foreground">
+                {schedulesRes ? (
+                  <>
+                    Menampilkan <span className="font-medium text-foreground">{schedulesRes.from ?? 0}</span>–
+                    <span className="font-medium text-foreground">{schedulesRes.to ?? 0}</span> dari{" "}
+                    <span className="font-medium text-foreground">{schedulesRes.total ?? 0}</span>
+                  </>
+                ) : (
+                  <span />
+                )}
+              </div>
+
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href={hrefFor(Math.max(1, params.page - 1))}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (!canPrev || q.isFetching) return
+                        router.push(hrefFor(Math.max(1, params.page - 1)))
+                      }}
+                      className={!canPrev || q.isFetching ? "pointer-events-none opacity-50" : undefined}
+                    />
+                  </PaginationItem>
+
+                  {pages.map((p, i) =>
+                    p === "ellipsis" ? (
+                      <PaginationItem key={`el-${i}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          href={hrefFor(p)}
+                          isActive={p === params.page}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            if (q.isFetching) return
+                            router.push(hrefFor(p))
+                          }}
+                        >
+                          {String(p)}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href={hrefFor(Math.min(lastPage, params.page + 1))}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (!canNext || q.isFetching) return
+                        router.push(hrefFor(Math.min(lastPage, params.page + 1)))
+                      }}
+                      className={!canNext || q.isFetching ? "pointer-events-none opacity-50" : undefined}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          </Card>
+        </>
+      )}
+    </div>
+  )
+}
