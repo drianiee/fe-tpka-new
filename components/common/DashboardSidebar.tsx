@@ -28,6 +28,7 @@ function navByRole(role: UserRole): NavItem[] {
       { key: "schedules", label: "Schedules", href: "/dashboard/admin/schedules" },
       { key: "mitra", label: "Mitra", href: "/dashboard/admin/mitra" },
       { key: "packages", label: "Packages", href: "/dashboard/admin/question-packages" },
+      { key: "payments", label: "Payments", href: "/dashboard/admin/payments" },
       {
         key: "arsip",
         label: "Data arsip",
