@@ -1,20 +1,18 @@
-"use client";
+// app/dashboard/admin/operators/components/OperatorsTable.tsx
+"use client"
 
-import Link from "next/link";
-import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import Link from "next/link"
+import * as React from "react"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 
-import {
-  operatorsService,
-  type ListOperatorsParams,
-} from "@/lib/services/operators.service";
-import type { OperatorListItem } from "@/lib/types/operators";
-import type { PaginatedResponse } from "@/lib/types/pagination";
-import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { operatorsService, type ListOperatorsParams } from "@/lib/services/operators.service"
+import type { OperatorListItem } from "@/lib/types/operators"
+import type { PaginatedResponse } from "@/lib/types/pagination"
+import { API_ENDPOINTS } from "@/lib/api/endpoints"
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -22,7 +20,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   Pagination,
   PaginationContent,
@@ -31,51 +29,51 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
 
 function useDebouncedValue<T>(value: T, delay = 350) {
-  const [debounced, setDebounced] = React.useState(value);
+  const [debounced, setDebounced] = React.useState(value)
   React.useEffect(() => {
-    const t = window.setTimeout(() => setDebounced(value), delay);
-    return () => window.clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
+    const t = window.setTimeout(() => setDebounced(value), delay)
+    return () => window.clearTimeout(t)
+  }, [value, delay])
+  return debounced
 }
 
 function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="secondary">Nonaktif</Badge>;
-  return <Badge variant="default">Aktif</Badge>;
+  if (active === false) return <Badge variant="muted">Nonaktif</Badge>
+  return <Badge variant="success">Aktif</Badge>
 }
 
 function buildPages(current: number, last: number) {
-  const total = Math.max(1, last);
-  const cur = Math.min(Math.max(1, current), total);
-  const windowSize = 1;
+  const total = Math.max(1, last)
+  const cur = Math.min(Math.max(1, current), total)
+  const windowSize = 1
 
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
 
-  const start = Math.max(2, cur - windowSize);
-  const end = Math.min(total - 1, cur + windowSize);
+  const start = Math.max(2, cur - windowSize)
+  const end = Math.min(total - 1, cur + windowSize)
 
-  const result: Array<number | "ellipsis"> = [1];
-  if (start > 2) result.push("ellipsis");
-  for (let p = start; p <= end; p++) result.push(p);
-  if (end < total - 1) result.push("ellipsis");
-  result.push(total);
+  const result: Array<number | "ellipsis"> = [1]
+  if (start > 2) result.push("ellipsis")
+  for (let p = start; p <= end; p++) result.push(p)
+  if (end < total - 1) result.push("ellipsis")
+  result.push(total)
 
-  return result;
+  return result
 }
 
 export function OperatorsTable() {
-  const [qText, setQText] = React.useState("");
-  const [perPage, setPerPage] = React.useState(20);
-  const [page, setPage] = React.useState(1);
+  const [qText, setQText] = React.useState("")
+  const [perPage, setPerPage] = React.useState(20)
+  const [page, setPage] = React.useState(1)
 
-  const qDebounced = useDebouncedValue(qText, 350);
+  const qDebounced = useDebouncedValue(qText, 350)
 
   React.useEffect(() => {
-    setPage(1);
-  }, [qDebounced, perPage]);
+    setPage(1)
+  }, [qDebounced, perPage])
 
   const params: ListOperatorsParams = React.useMemo(
     () => ({
@@ -84,33 +82,31 @@ export function OperatorsTable() {
       page,
     }),
     [qDebounced, perPage, page]
-  );
+  )
 
   const qOperators = useQuery<PaginatedResponse<OperatorListItem>>({
     queryKey: [API_ENDPOINTS.ADMIN.OPERATORS, params],
     queryFn: () => operatorsService.list(params),
-  });
+    placeholderData: keepPreviousData,
+  })
 
-  const res = qOperators.data;
-  const rows = res?.data ?? [];
-  const lastPage = res?.last_page ?? 1;
-  const canPrev = page > 1;
-  const canNext = page < lastPage;
-  const pages = React.useMemo(
-    () => buildPages(page, lastPage),
-    [page, lastPage]
-  );
+  const res = qOperators.data
+  const rows = res?.data ?? []
+  const lastPage = res?.last_page ?? 1
+  const canPrev = page > 1
+  const canNext = page < lastPage
+  const pages = React.useMemo(() => buildPages(page, lastPage), [page, lastPage])
 
   const hrefFor = (p: number) => {
-    const sp = new URLSearchParams();
-    if (qDebounced.trim()) sp.set("q", qDebounced.trim());
-    if (perPage !== 20) sp.set("per_page", String(perPage));
-    if (p !== 1) sp.set("page", String(p));
-    const qs = sp.toString();
-    return qs
-      ? `/dashboard/admin/operators?${qs}`
-      : `/dashboard/admin/operators`;
-  };
+    const sp = new URLSearchParams()
+    if (qDebounced.trim()) sp.set("q", qDebounced.trim())
+    if (perPage !== 20) sp.set("per_page", String(perPage))
+    if (p !== 1) sp.set("page", String(p))
+    const qs = sp.toString()
+    return qs ? `/dashboard/admin/operators?${qs}` : `/dashboard/admin/operators`
+  }
+
+  const busy = qOperators.isFetching
 
   return (
     <div className="space-y-3">
@@ -124,9 +120,10 @@ export function OperatorsTable() {
           <Button
             type="button"
             variant="outline"
+            disabled={busy}
             onClick={() => {
-              setQText("");
-              setPage(1);
+              setQText("")
+              setPage(1)
             }}
           >
             Reset
@@ -139,6 +136,7 @@ export function OperatorsTable() {
             className="h-9 rounded-md border bg-background px-3 text-sm"
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
+            disabled={busy}
           >
             {[10, 20, 50, 100, 200].map((n) => (
               <option key={n} value={n}>
@@ -154,21 +152,18 @@ export function OperatorsTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-15">No</TableHead>
-              <TableHead>ID</TableHead>
+              <TableHead className="w-22.5">ID</TableHead>
               <TableHead>Nama</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Detail</TableHead>
+              <TableHead className="w-27.5">Status</TableHead>
+              <TableHead className="w-27.5 text-right">Detail</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="py-10 text-center text-sm text-muted-foreground"
-                >
+                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                   {qOperators.isLoading ? "Memuat..." : "Data tidak ditemukan"}
                 </TableCell>
               </TableRow>
@@ -177,17 +172,14 @@ export function OperatorsTable() {
                 <TableRow key={it.id}>
                   <TableCell>{(page - 1) * perPage + (idx + 1)}</TableCell>
                   <TableCell>{it.id}</TableCell>
-                  <TableCell>{it.name}</TableCell>
+                  <TableCell className="font-medium">{it.name}</TableCell>
                   <TableCell>{it.email}</TableCell>
                   <TableCell>
                     <ActiveBadge active={it.is_active} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <Button asChild size="sm" variant="outline">
-                      {/* ganti route detail sesuai yang kamu buat */}
-                      <Link href={`/dashboard/admin/operators/${it.id}`}>
-                        Detail
-                      </Link>
+                      <Link href={`/dashboard/admin/operators/${it.id}`}>Detail</Link>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -202,15 +194,9 @@ export function OperatorsTable() {
           {res ? (
             <>
               Menampilkan{" "}
-              <span className="font-medium text-foreground">
-                {res.from ?? 0}
-              </span>
-              –
-              <span className="font-medium text-foreground">{res.to ?? 0}</span>{" "}
-              dari{" "}
-              <span className="font-medium text-foreground">
-                {res.total ?? 0}
-              </span>
+              <span className="font-medium text-foreground">{res.from ?? 0}</span>–
+              <span className="font-medium text-foreground">{res.to ?? 0}</span> dari{" "}
+              <span className="font-medium text-foreground">{res.total ?? 0}</span>
             </>
           ) : (
             <span />
@@ -223,15 +209,11 @@ export function OperatorsTable() {
               <PaginationPrevious
                 href={hrefFor(Math.max(1, page - 1))}
                 onClick={(e) => {
-                  e.preventDefault();
-                  if (!canPrev || qOperators.isFetching) return;
-                  setPage((p) => Math.max(1, p - 1));
+                  e.preventDefault()
+                  if (!canPrev || busy) return
+                  setPage((p) => Math.max(1, p - 1))
                 }}
-                className={
-                  !canPrev || qOperators.isFetching
-                    ? "pointer-events-none opacity-50"
-                    : undefined
-                }
+                className={!canPrev || busy ? "pointer-events-none opacity-50" : undefined}
               />
             </PaginationItem>
 
@@ -246,9 +228,9 @@ export function OperatorsTable() {
                     href={hrefFor(p)}
                     isActive={p === page}
                     onClick={(e) => {
-                      e.preventDefault();
-                      if (qOperators.isFetching) return;
-                      setPage(p);
+                      e.preventDefault()
+                      if (busy) return
+                      setPage(p)
                     }}
                   >
                     {String(p)}
@@ -261,20 +243,16 @@ export function OperatorsTable() {
               <PaginationNext
                 href={hrefFor(Math.min(lastPage, page + 1))}
                 onClick={(e) => {
-                  e.preventDefault();
-                  if (!canNext || qOperators.isFetching) return;
-                  setPage((p) => Math.min(lastPage, p + 1));
+                  e.preventDefault()
+                  if (!canNext || busy) return
+                  setPage((p) => Math.min(lastPage, p + 1))
                 }}
-                className={
-                  !canNext || qOperators.isFetching
-                    ? "pointer-events-none opacity-50"
-                    : undefined
-                }
+                className={!canNext || busy ? "pointer-events-none opacity-50" : undefined}
               />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
     </div>
-  );
+  )
 }

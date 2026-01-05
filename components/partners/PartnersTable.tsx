@@ -40,8 +40,8 @@ function useDebouncedValue<T>(value: T, delay = 350) {
 }
 
 function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="secondary">Nonaktif</Badge>
-  return <Badge variant="default">Aktif</Badge>
+  if (active === false) return <Badge variant="muted">Nonaktif</Badge>
+  return <Badge variant="success">Aktif</Badge>
 }
 
 function buildPages(current: number, last: number) {

@@ -9,7 +9,6 @@ import { partnersService } from "@/lib/services/partners.service"
 import type { PartnerDetailResponse, PartnerScheduleItem } from "@/lib/types/partners"
 import { API_ENDPOINTS } from "@/lib/api/endpoints"
 import { formatRupiah, hhmm } from "@/lib/utils/format"
-import { StatusBadge } from "@/lib/utils/status"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,8 +33,23 @@ import {
 } from "@/components/ui/pagination"
 
 function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="secondary">Nonaktif</Badge>
-  return <Badge variant="default">Aktif</Badge>
+  if (active === false) return <Badge variant="muted">Nonaktif</Badge>
+  return <Badge variant="success">Aktif</Badge>
+}
+
+function statusVariant(status?: string | null): "muted" | "warning" | "success" {
+  if (!status) return "muted"
+  if (status === "belum-dimulai") return "muted"
+  if (status === "sedang-berlangsung") return "warning"
+  return "success"
+}
+
+function statusLabel(status?: string | null) {
+  if (!status) return "-"
+  if (status === "belum-dimulai") return "Tes Belum Dimulai"
+  if (status === "sedang-berlangsung") return "Tes Sedang Berlangsung"
+  if (status === "telah-selesai") return "Tes Telah Selesai"
+  return status
 }
 
 function buildPages(current: number, last: number) {
@@ -177,9 +191,7 @@ export default function AdminPartnerDetailPage() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <div className="text-sm font-semibold">Schedules Mitra</div>
-                <div className="text-sm text-muted-foreground">
-                  Total: {schedulesRes?.total ?? 0}
-                </div>
+                <div className="text-sm text-muted-foreground">Total: {schedulesRes?.total ?? 0}</div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -200,83 +212,82 @@ export default function AdminPartnerDetailPage() {
 
             <Separator />
 
-<div className="rounded-md border">
-  <Table className="table-fixed w-full">
-    <TableHeader>
-      <TableRow>
-        <TableHead className="w-14.5">No</TableHead>
-        <TableHead className="w-20">ID</TableHead>
-        <TableHead className="w-30">Tanggal</TableHead>
-        <TableHead className="w-30">Jam</TableHead>
-        <TableHead className="w-30">Harga</TableHead>
-        <TableHead className="w-27.5">Kapasitas</TableHead>
-        <TableHead className="w-42.5">Paket</TableHead>
-        <TableHead className="w-40">Status</TableHead>
-        <TableHead className="w-30 text-right">Detail</TableHead>
-      </TableRow>
-    </TableHeader>
+            <div className="rounded-md border">
+              <Table className="table-fixed w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-14.5">No</TableHead>
+                    <TableHead className="w-20">ID</TableHead>
+                    <TableHead className="w-30">Tanggal</TableHead>
+                    <TableHead className="w-30">Jam</TableHead>
+                    <TableHead className="w-30">Harga</TableHead>
+                    <TableHead className="w-27.5">Kapasitas</TableHead>
+                    <TableHead className="w-42.5">Paket</TableHead>
+                    <TableHead className="w-40">Status</TableHead>
+                    <TableHead className="w-30 text-right">Detail</TableHead>
+                  </TableRow>
+                </TableHeader>
 
-    <TableBody>
-      {schedules.length === 0 ? (
-        <TableRow>
-          <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
-            Tidak ada schedule
-          </TableCell>
-        </TableRow>
-      ) : (
-        schedules.map((s, idx) => {
-          const no = (params.page - 1) * params.per_page + (idx + 1)
-          const packs = s.packages ?? []
-          const jam = `${hhmm(s.start_time)} - ${hhmm(s.end_time)}`
+                <TableBody>
+                  {schedules.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                        Tidak ada schedule
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    schedules.map((s, idx) => {
+                      const no = (params.page - 1) * params.per_page + (idx + 1)
+                      const packs = s.packages ?? []
+                      const jam = `${hhmm(s.start_time)} - ${hhmm(s.end_time)}`
 
-          return (
-            <TableRow key={s.id}>
-              <TableCell className="whitespace-nowrap">{no}</TableCell>
+                      return (
+                        <TableRow key={s.id}>
+                          <TableCell className="whitespace-nowrap">{no}</TableCell>
+                          <TableCell className="whitespace-nowrap">{s.id}</TableCell>
 
-              <TableCell className="whitespace-nowrap">{s.id}</TableCell>
+                          <TableCell className="truncate" title={s.date}>
+                            {s.date}
+                          </TableCell>
 
-              <TableCell className="truncate" title={s.date}>
-                {s.date}
-              </TableCell>
+                          <TableCell className="whitespace-nowrap">{jam}</TableCell>
 
-              <TableCell className="whitespace-nowrap">{jam}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatRupiah(s.price)}</TableCell>
 
-              <TableCell className="whitespace-nowrap">{formatRupiah(s.price)}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {s.current_participants}/{s.capacity}
+                          </TableCell>
 
-              <TableCell className="whitespace-nowrap">
-                {s.current_participants}/{s.capacity}
-              </TableCell>
+                          <TableCell>
+                            {packs.length === 0 ? (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {packs.map((p) => (
+                                  <Badge key={p.id} variant="outline">
+                                    {p.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </TableCell>
 
-              <TableCell>
-                {packs.length === 0 ? (
-                  <span className="text-sm text-muted-foreground">-</span>
-                ) : (
-                  <div className="flex flex-wrap gap-1">
-                    {packs.map((p) => (
-                      <Badge key={p.id} variant="outline">
-                        {p.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </TableCell>
+                          <TableCell className="truncate" title={s.status ?? "-"}>
+                            <Badge variant={statusVariant(s.status)}>{statusLabel(s.status)}</Badge>
+                          </TableCell>
 
-              <TableCell className="truncate" title={s.status ?? "-"}>
-                <StatusBadge status={s.status ?? "-"} />
-              </TableCell>
-
-              <TableCell className="text-right whitespace-nowrap">
-                <Button asChild size="sm" variant="outline">
-                  <Link href={`/dashboard/admin/schedules/${s.id}`}>Detail</Link>
-                </Button>
-              </TableCell>
-            </TableRow>
-          )
-        })
-      )}
-    </TableBody>
-  </Table>
-</div>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/dashboard/admin/schedules/${s.id}`}>Detail</Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between pt-2">
               <div className="text-sm text-muted-foreground">

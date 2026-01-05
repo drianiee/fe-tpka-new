@@ -21,15 +21,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+function ActiveBadge({ active }: { active?: boolean | null }) {
+  if (active === false) return <Badge variant="muted">Nonaktif</Badge>
+  return <Badge variant="success">Aktif</Badge>
+}
+
 export default function AdminQuestionPackageDetailPage() {
   const params = useParams()
   const router = useRouter()
   const qc = useQueryClient()
 
-  const id = Array.isArray((params)?.id)
-    ? (params).id[0]
-    : ((params)?.id as string | undefined)
-
+  const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string | undefined)
   const pkgId = Number(id)
 
   const [confirmStatusOpen, setConfirmStatusOpen] = React.useState(false)
@@ -67,9 +69,7 @@ export default function AdminQuestionPackageDetailPage() {
   })
 
   if (detailQuery.isLoading) return <p className="text-sm text-muted-foreground">Loading...</p>
-  if (detailQuery.isError || !detailQuery.data) {
-    return <p className="text-sm text-destructive">Gagal load package</p>
-  }
+  if (detailQuery.isError || !detailQuery.data) return <p className="text-sm text-destructive">Gagal load package</p>
   if (!item) return <p className="text-sm text-muted-foreground">Data tidak ditemukan</p>
 
   const nextActive = !item.is_active
@@ -101,11 +101,7 @@ export default function AdminQuestionPackageDetailPage() {
           <div>
             <div className="text-muted-foreground">Status</div>
             <div>
-              {item.is_active ? (
-                <Badge variant="secondary">Aktif</Badge>
-              ) : (
-                <Badge variant="outline">Nonaktif</Badge>
-              )}
+              <ActiveBadge active={item.is_active} />
             </div>
           </div>
           <div>
@@ -123,9 +119,7 @@ export default function AdminQuestionPackageDetailPage() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div className="text-sm font-semibold">Aksi</div>
-            <div className="text-sm text-muted-foreground">
-              Ubah status atau hapus package
-            </div>
+            <div className="text-sm text-muted-foreground">Ubah status atau hapus package</div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -165,9 +159,7 @@ export default function AdminQuestionPackageDetailPage() {
 
           <div className="text-sm">
             Apakah anda yakin ingin{" "}
-            <span className="font-semibold">
-              {nextActive ? "mengaktifkan" : "menonaktifkan"}
-            </span>{" "}
+            <span className="font-semibold">{nextActive ? "mengaktifkan" : "menonaktifkan"}</span>{" "}
             package <span className="font-semibold">{item.name}</span>?
           </div>
 
@@ -203,9 +195,7 @@ export default function AdminQuestionPackageDetailPage() {
             Apakah anda yakin ingin{" "}
             <span className="font-semibold text-destructive">menghapus</span>{" "}
             package <span className="font-semibold">{item.name}</span>?
-            <div className="mt-2 text-xs text-muted-foreground">
-              Tindakan ini tidak bisa dibatalkan.
-            </div>
+            <div className="mt-2 text-xs text-muted-foreground">Tindakan ini tidak bisa dibatalkan.</div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

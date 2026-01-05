@@ -1,22 +1,20 @@
-"use client";
+// app/dashboard/admin/peserta/[id]/components/ParticipantDetailCard.tsx
+"use client"
 
-import Link from "next/link";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
+import Link from "next/link"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
 
-import { participantsService } from "@/lib/services/participants.service";
-import { authService } from "@/lib/services/auth.service";
-import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import { getApiErrorMessage } from "@/lib/api/errors";
-import type {
-  ParticipantDetailResponse,
-  ParticipantScheduleItem,
-} from "@/lib/types/participants";
+import { participantsService } from "@/lib/services/participants.service"
+import { authService } from "@/lib/services/auth.service"
+import { API_ENDPOINTS } from "@/lib/api/endpoints"
+import { getApiErrorMessage } from "@/lib/api/errors"
+import type { ParticipantDetailResponse, ParticipantScheduleItem } from "@/lib/types/participants"
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import {
   Table,
   TableBody,
@@ -24,10 +22,44 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 
-function Pill({ text }: { text: string }) {
-  return <Badge variant="secondary">{text}</Badge>;
+function normalizeStatus(status?: string | null) {
+  return (status ?? "").trim().toLowerCase()
+}
+
+function scheduleStatusVariant(status?: string | null): "muted" | "warning" | "success" {
+  const s = normalizeStatus(status)
+  if (!s) return "muted"
+  if (s === "belum-dimulai") return "muted"
+  if (s === "sedang-berlangsung") return "warning"
+  if (s === "telah-selesai") return "success"
+  return "muted"
+}
+
+function scheduleStatusLabel(status?: string | null) {
+  const s = normalizeStatus(status)
+  if (!s) return "-"
+  if (s === "belum-dimulai") return "Tes Belum Dimulai"
+  if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung"
+  if (s === "telah-selesai") return "Tes Telah Selesai"
+  return status ?? "-"
+}
+
+function participantStatusVariant(status?: string | null): "muted" | "warning" | "success" {
+  const s = normalizeStatus(status)
+  if (!s) return "muted"
+  if (s === "peserta belum terdaftar") return "muted"
+  if (s === "peserta terdaftar") return "success"
+  return "muted"
+}
+
+function participantStatusLabel(status?: string | null) {
+  const s = normalizeStatus(status)
+  if (!s) return "-"
+  if (s === "peserta belum terdaftar") return "Peserta Belum Terdaftar"
+  if (s === "peserta terdaftar") return "Peserta Terdaftar"
+  return status ?? "-"
 }
 
 export function ParticipantDetailCard({ id }: { id: string }) {
@@ -35,27 +67,25 @@ export function ParticipantDetailCard({ id }: { id: string }) {
     queryKey: [API_ENDPOINTS.PARTICIPANTS.DETAIL(id)],
     queryFn: () => participantsService.detail(id),
     enabled: Boolean(id),
-  });
+  })
 
   const mResend = useMutation({
     mutationFn: (email: string) => authService.resendVerify({ email }),
     onSuccess: (data) => {
-      toast.success(data?.message ?? "Link verifikasi telah berhasil dikirim");
+      toast.success(data?.message ?? "Link verifikasi telah berhasil dikirim")
     },
     onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
-  });
+  })
 
   if (!id) {
     return (
       <Card className="p-4 space-y-2">
-        <div className="text-sm text-muted-foreground">
-          ID peserta tidak ditemukan.
-        </div>
+        <div className="text-sm text-muted-foreground">ID peserta tidak ditemukan.</div>
         <Button asChild variant="outline" size="sm">
           <Link href="/dashboard/admin/peserta">Kembali</Link>
         </Button>
       </Card>
-    );
+    )
   }
 
   if (qDetail.isLoading) {
@@ -63,27 +93,24 @@ export function ParticipantDetailCard({ id }: { id: string }) {
       <Card className="p-4">
         <div className="text-sm text-muted-foreground">Memuat...</div>
       </Card>
-    );
+    )
   }
 
   if (qDetail.isError || !qDetail.data) {
     return (
       <Card className="p-4 space-y-3">
-        <div className="text-sm text-muted-foreground">
-          Gagal memuat detail peserta.
-        </div>
+        <div className="text-sm text-muted-foreground">Gagal memuat detail peserta.</div>
         <Button asChild variant="outline" size="sm">
           <Link href="/dashboard/admin/peserta">Kembali</Link>
         </Button>
       </Card>
-    );
+    )
   }
 
-  const data: ParticipantDetailResponse = qDetail.data;
-  const p = data.participant;
-  const schedules: ParticipantScheduleItem[] = data.schedules ?? [];
-
-  const isVerified = Boolean(p.email_verified_at);
+  const data: ParticipantDetailResponse = qDetail.data
+  const p = data.participant
+  const schedules: ParticipantScheduleItem[] = data.schedules ?? []
+  const isVerified = Boolean(p.email_verified_at)
 
   return (
     <Card className="p-4 space-y-4">
@@ -95,9 +122,9 @@ export function ParticipantDetailCard({ id }: { id: string }) {
             <div className="text-sm text-muted-foreground">{p.email}</div>
 
             {isVerified ? (
-              <Badge variant="default">Verified</Badge>
+              <Badge variant="success">Terverifikasi</Badge>
             ) : (
-              <Badge variant="secondary">Unverified</Badge>
+              <Badge variant="muted">Belum terverifikasi</Badge>
             )}
 
             {!isVerified ? (
@@ -134,16 +161,12 @@ export function ParticipantDetailCard({ id }: { id: string }) {
 
         <div className="flex justify-between gap-3">
           <span className="text-muted-foreground">Profile completed</span>
-          <span className="font-medium">
-            {p.profile_completed_at ? "Ya" : "Belum"}
-          </span>
+          <span className="font-medium">{p.profile_completed_at ? "Ya" : "Belum"}</span>
         </div>
 
         <div className="flex justify-between gap-3">
           <span className="text-muted-foreground">Total schedules</span>
-          <span className="font-medium">
-            {data.total_schedules ?? schedules.length}
-          </span>
+          <span className="font-medium">{data.total_schedules ?? schedules.length}</span>
         </div>
       </div>
 
@@ -169,10 +192,7 @@ export function ParticipantDetailCard({ id }: { id: string }) {
             <TableBody>
               {schedules.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="py-10 text-center text-sm text-muted-foreground"
-                  >
+                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                     Tidak ada jadwal
                   </TableCell>
                 </TableRow>
@@ -185,13 +205,15 @@ export function ParticipantDetailCard({ id }: { id: string }) {
                       {s.start_time} - {s.end_time}
                     </TableCell>
                     <TableCell>
-                      <Pill text={s.status_jadwal} />
+                      <Badge variant={scheduleStatusVariant(s.status_jadwal)}>
+                        {scheduleStatusLabel(s.status_jadwal)}
+                      </Badge>
                     </TableCell>
+                    <TableCell>{s.is_partner ? s.partner?.name ?? "-" : "-"}</TableCell>
                     <TableCell>
-                      {s.is_partner ? (s.partner?.name ?? "-") : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Pill text={s.participant_status} />
+                      <Badge variant={participantStatusVariant(s.participant_status)}>
+                        {participantStatusLabel(s.participant_status)}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       {s.quiz_url ? (
@@ -212,5 +234,5 @@ export function ParticipantDetailCard({ id }: { id: string }) {
         </div>
       </div>
     </Card>
-  );
+  )
 }

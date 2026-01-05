@@ -11,7 +11,6 @@ import type { ScheduleListItem } from "@/lib/types/schedules"
 import type { PaginatedResponse } from "@/lib/types/pagination"
 import { API_ENDPOINTS } from "@/lib/api/endpoints"
 import { formatRupiah, hhmm } from "@/lib/utils/format"
-import { StatusBadge } from "@/lib/utils/status"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -50,8 +49,8 @@ function toYmd(d?: Date | null) {
 }
 
 function buildPages(page: number, lastPage: number) {
-  const total = lastPage
-  const current = page
+  const total = Math.max(1, lastPage)
+  const current = Math.min(Math.max(1, page), total)
   const windowSize = 1
 
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1) as Array<number | "ellipsis">
@@ -66,6 +65,28 @@ function buildPages(page: number, lastPage: number) {
   result.push(total)
 
   return result
+}
+
+function normalizeStatus(status?: string | null) {
+  return (status ?? "").trim().toLowerCase()
+}
+
+function statusVariant(status?: string | null): "muted" | "warning" | "success" {
+  const s = normalizeStatus(status)
+  if (!s) return "muted"
+  if (s === "belum-dimulai") return "muted"
+  if (s === "sedang-berlangsung") return "warning"
+  if (s === "telah-selesai") return "success"
+  return "muted"
+}
+
+function statusLabel(status?: string | null) {
+  const s = normalizeStatus(status)
+  if (!s) return "-"
+  if (s === "belum-dimulai") return "Tes Belum Dimulai"
+  if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung"
+  if (s === "telah-selesai") return "Tes Telah Selesai"
+  return status ?? "-"
 }
 
 export function SchedulesTable() {
@@ -136,6 +157,7 @@ export function SchedulesTable() {
             className="h-9 rounded-md border bg-background px-3 text-sm lg:w-65"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
+            disabled={busy}
           >
             {STATUS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -152,6 +174,7 @@ export function SchedulesTable() {
               className="h-9 rounded-md border bg-background px-3 text-sm"
               value={perPage}
               onChange={(e) => setPerPage(Number(e.target.value))}
+              disabled={busy}
             >
               {[10, 20, 50, 100].map((n) => (
                 <option key={n} value={n}>
@@ -178,12 +201,8 @@ export function SchedulesTable() {
             Reset
           </Button>
 
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={() => exportMutation.mutate()}
-          >
-            Export Excel
+          <Button type="button" disabled={busy} onClick={() => exportMutation.mutate()}>
+            {exportMutation.isPending ? "Exporting..." : "Export Excel"}
           </Button>
         </div>
       </div>
@@ -222,6 +241,7 @@ export function SchedulesTable() {
                   <TableCell>
                     {it.current_participants}/{it.capacity}
                   </TableCell>
+
                   <TableCell>
                     {it.packages.length === 0 ? (
                       "-"
@@ -235,9 +255,11 @@ export function SchedulesTable() {
                       </div>
                     )}
                   </TableCell>
+
                   <TableCell>
-                    <StatusBadge status={it.status} />
+                    <Badge variant={statusVariant(it.status)}>{statusLabel(it.status)}</Badge>
                   </TableCell>
+
                   <TableCell>
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/dashboard/admin/schedules/${it.id}`}>Detail</Link>

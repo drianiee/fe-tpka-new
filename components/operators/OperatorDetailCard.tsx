@@ -1,19 +1,20 @@
-"use client";
+// app/dashboard/admin/operators/[id]/components/OperatorDetailCard.tsx
+"use client"
 
-import Link from "next/link";
-import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import Link from "next/link"
+import * as React from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
-import { operatorsService } from "@/lib/services/operators.service";
-import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import { getApiErrorMessage } from "@/lib/api/errors";
-import type { OperatorDetailResponse } from "@/lib/types/operators";
+import { operatorsService } from "@/lib/services/operators.service"
+import { API_ENDPOINTS } from "@/lib/api/endpoints"
+import { getApiErrorMessage } from "@/lib/api/errors"
+import type { OperatorDetailResponse } from "@/lib/types/operators"
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,55 +25,50 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"
 
 function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="secondary">Nonaktif</Badge>;
-  return <Badge variant="default">Aktif</Badge>;
+  if (active === false) return <Badge variant="muted">Nonaktif</Badge>
+  return <Badge variant="success">Aktif</Badge>
 }
 
 export function OperatorDetailCard({ id }: { id: string }) {
-  const qc = useQueryClient();
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const qc = useQueryClient()
+  const [confirmOpen, setConfirmOpen] = React.useState(false)
 
   const qDetail = useQuery({
     queryKey: [API_ENDPOINTS.ADMIN.OPERATOR_DETAIL(id)],
     queryFn: () => operatorsService.detail(id),
     enabled: Boolean(id),
-  });
+  })
 
-  const operator = qDetail.data?.operator;
+  const operator = qDetail.data?.operator
 
   const mStatus = useMutation({
-    mutationFn: (nextActive: boolean) =>
-      operatorsService.updateStatus(id, nextActive),
+    mutationFn: (nextActive: boolean) => operatorsService.updateStatus(id, nextActive),
     onSuccess: (data) => {
-      toast.success(data.message || "Status operator berhasil diupdate.");
+      toast.success(data.message || "Status operator berhasil diupdate.")
 
       qc.setQueryData<OperatorDetailResponse>(
         [API_ENDPOINTS.ADMIN.OPERATOR_DETAIL(id)],
         { operator: data.operator }
-      );
+      )
 
-      qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ADMIN.OPERATORS] });
-
-      // kalau dialog terbuka, tutup setelah sukses
-      setConfirmOpen(false);
+      qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ADMIN.OPERATORS] })
+      setConfirmOpen(false)
     },
     onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
-  });
+  })
 
   if (!id) {
     return (
       <Card className="p-4 space-y-2">
-        <div className="text-sm text-muted-foreground">
-          ID operator tidak ditemukan.
-        </div>
+        <div className="text-sm text-muted-foreground">ID operator tidak ditemukan.</div>
         <Button asChild variant="outline" size="sm">
           <Link href="/dashboard/admin/operators">Kembali</Link>
         </Button>
       </Card>
-    );
+    )
   }
 
   if (qDetail.isLoading) {
@@ -80,23 +76,21 @@ export function OperatorDetailCard({ id }: { id: string }) {
       <Card className="p-4">
         <div className="text-sm text-muted-foreground">Memuat...</div>
       </Card>
-    );
+    )
   }
 
   if (qDetail.isError || !operator) {
     return (
       <Card className="p-4 space-y-3">
-        <div className="text-sm text-muted-foreground">
-          Gagal memuat detail operator.
-        </div>
+        <div className="text-sm text-muted-foreground">Gagal memuat detail operator.</div>
         <Button asChild variant="outline" size="sm">
           <Link href="/dashboard/admin/operators">Kembali</Link>
         </Button>
       </Card>
-    );
+    )
   }
 
-  const isActive = operator.is_active === true;
+  const isActive = operator.is_active === true
 
   return (
     <Card className="p-4 space-y-4">
@@ -110,7 +104,6 @@ export function OperatorDetailCard({ id }: { id: string }) {
           <ActiveBadge active={operator.is_active} />
 
           {isActive ? (
-            // ✅ Nonaktifkan: pakai dialog konfirmasi
             <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
               <AlertDialogTrigger asChild>
                 <Button type="button" variant="outline" disabled={mStatus.isPending}>
@@ -122,20 +115,18 @@ export function OperatorDetailCard({ id }: { id: string }) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Nonaktifkan operator?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Operator yang nonaktif tidak bisa login. Kamu yakin ingin
-                    menonaktifkan <span className="font-medium">{operator.name}</span>?
+                    Operator yang nonaktif tidak bisa login. Kamu yakin ingin menonaktifkan{" "}
+                    <span className="font-medium">{operator.name}</span>?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
 
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={mStatus.isPending}>
-                    Batal
-                  </AlertDialogCancel>
+                  <AlertDialogCancel disabled={mStatus.isPending}>Batal</AlertDialogCancel>
                   <AlertDialogAction
                     disabled={mStatus.isPending}
                     onClick={(e) => {
-                      e.preventDefault();
-                      mStatus.mutate(false);
+                      e.preventDefault()
+                      mStatus.mutate(false)
                     }}
                   >
                     {mStatus.isPending ? "Menyimpan..." : "Ya, nonaktifkan"}
@@ -144,7 +135,6 @@ export function OperatorDetailCard({ id }: { id: string }) {
               </AlertDialogContent>
             </AlertDialog>
           ) : (
-            // ✅ Aktifkan: langsung tanpa dialog
             <Button
               type="button"
               variant="default"
@@ -172,9 +162,7 @@ export function OperatorDetailCard({ id }: { id: string }) {
 
         <div className="flex justify-between gap-3">
           <span className="text-muted-foreground">Verified</span>
-          <span className="font-medium">
-            {operator.email_verified_at ? "Ya" : "Belum"}
-          </span>
+          <span className="font-medium">{operator.email_verified_at ? "Ya" : "Belum"}</span>
         </div>
       </div>
 
@@ -182,5 +170,5 @@ export function OperatorDetailCard({ id }: { id: string }) {
         <Link href="/dashboard/admin/operators">Kembali</Link>
       </Button>
     </Card>
-  );
+  )
 }

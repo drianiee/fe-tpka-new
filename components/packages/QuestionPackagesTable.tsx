@@ -24,6 +24,11 @@ function contains(hay: string, needle: string) {
   return hay.toLowerCase().includes(needle.toLowerCase())
 }
 
+function ActiveBadge({ active }: { active?: boolean | null }) {
+  if (active === false) return <Badge variant="muted">Nonaktif</Badge>
+  return <Badge variant="success">Aktif</Badge>
+}
+
 export function QuestionPackagesTable() {
   const { qPkgs } = useQuestionPackagesQuery()
 
@@ -117,11 +122,7 @@ export function QuestionPackagesTable() {
                   <TableCell className="font-medium">{it.name}</TableCell>
                   <TableCell>{it.moodle_group_name}</TableCell>
                   <TableCell>
-                    {it.is_active ? (
-                      <Badge variant="secondary">Aktif</Badge>
-                    ) : (
-                      <Badge variant="outline">Nonaktif</Badge>
-                    )}
+                    <ActiveBadge active={it.is_active} />
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild size="sm" variant="outline">
@@ -137,8 +138,7 @@ export function QuestionPackagesTable() {
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="text-sm text-muted-foreground">
-          Menampilkan{" "}
-          <span className="font-medium text-foreground">{rows.length}</span> data
+          Menampilkan <span className="font-medium text-foreground">{rows.length}</span> data
         </div>
         <div />
       </div>

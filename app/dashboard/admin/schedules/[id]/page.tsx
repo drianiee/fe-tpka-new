@@ -13,7 +13,6 @@ import type { ScheduleDetail, ScheduleParticipant } from "@/lib/types/schedules"
 import { API_ENDPOINTS } from "@/lib/api/endpoints"
 import { getApiErrorMessage } from "@/lib/api/errors"
 import { formatRupiah, hhmm } from "@/lib/utils/format"
-import { StatusBadge } from "@/lib/utils/status"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -59,6 +58,26 @@ function importSummaryText(res: PartnerImportResponse) {
 function scoreCell(v?: number | null) {
   if (v === null || v === undefined) return "-"
   return String(v)
+}
+
+function normalizeStatus(status?: string | null) {
+  return (status ?? "").trim().toLowerCase()
+}
+
+function statusVariant(status?: string | null): "muted" | "warning" | "success" {
+  const s = normalizeStatus(status)
+  if (!s) return "muted"
+  if (s === "peserta belum terdaftar") return "muted"
+  if (s === "peserta terdaftar") return "success"
+  return "muted"
+}
+
+function statusLabel(status?: string | null) {
+  const s = normalizeStatus(status)
+  if (!s) return "-"
+  if (s === "peserta belum terdaftar") return "Peserta Belum Terdaftar"
+  if (s === "peserta terdaftar") return "Peserta Terdaftar"
+  return status ?? "-"
 }
 
 export default function AdminScheduleDetailPage() {
@@ -135,7 +154,7 @@ export default function AdminScheduleDetailPage() {
           </div>
           <div>
             <div className="text-muted-foreground">Status</div>
-            <StatusBadge status={d.status} />
+            <Badge variant={statusVariant(d.status)}>{statusLabel(d.status)}</Badge>
           </div>
         </div>
 
@@ -186,10 +205,7 @@ export default function AdminScheduleDetailPage() {
                   <DialogTitle>Import Peserta Mitra</DialogTitle>
                 </DialogHeader>
 
-                <form
-                  className="space-y-4"
-                  onSubmit={importForm.handleSubmit((v) => importMut.mutate(v.file))}
-                >
+                <form className="space-y-4" onSubmit={importForm.handleSubmit((v) => importMut.mutate(v.file))}>
                   <div className="space-y-2">
                     <Label>File XLSX</Label>
 
@@ -209,9 +225,7 @@ export default function AdminScheduleDetailPage() {
                     />
 
                     {importForm.formState.errors.file ? (
-                      <p className="text-sm text-destructive">
-                        {importForm.formState.errors.file.message}
-                      </p>
+                      <p className="text-sm text-destructive">{importForm.formState.errors.file.message}</p>
                     ) : null}
                   </div>
 
@@ -281,8 +295,10 @@ export default function AdminScheduleDetailPage() {
                         {p.email}
                       </TableCell>
 
-                      <TableCell className="truncate capitalize" title={p.status}>
-                        {p.status}
+                      <TableCell className="truncate" title={p.status}>
+                        <Badge variant={statusVariant(p.status)} className="capitalize">
+                          {statusLabel(p.status)}
+                        </Badge>
                       </TableCell>
 
                       <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.verbal)}</TableCell>

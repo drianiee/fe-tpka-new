@@ -1,17 +1,18 @@
-"use client";
+// app/dashboard/admin/peserta/components/ParticipantsTable.tsx
+"use client"
 
-import Link from "next/link";
-import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import Link from "next/link"
+import * as React from "react"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 
-import { participantsService, type ListParticipantsParams } from "@/lib/services/participants.service";
-import type { ParticipantListItem } from "@/lib/types/participants";
-import type { PaginatedResponse } from "@/lib/types/pagination";
-import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { participantsService, type ListParticipantsParams } from "@/lib/services/participants.service"
+import type { ParticipantListItem } from "@/lib/types/participants"
+import type { PaginatedResponse } from "@/lib/types/pagination"
+import { API_ENDPOINTS } from "@/lib/api/endpoints"
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -19,7 +20,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   Pagination,
   PaginationContent,
@@ -28,51 +29,51 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
 
 function useDebouncedValue<T>(value: T, delay = 350) {
-  const [debounced, setDebounced] = React.useState(value);
+  const [debounced, setDebounced] = React.useState(value)
   React.useEffect(() => {
-    const t = window.setTimeout(() => setDebounced(value), delay);
-    return () => window.clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
+    const t = window.setTimeout(() => setDebounced(value), delay)
+    return () => window.clearTimeout(t)
+  }, [value, delay])
+  return debounced
 }
 
 function VerifiedBadge({ verifiedAt }: { verifiedAt?: string | null }) {
-  if (verifiedAt) return <Badge variant="default">Verified</Badge>;
-  return <Badge variant="secondary">Unverified</Badge>;
+  if (verifiedAt) return <Badge variant="success">Terverifikasi</Badge>
+  return <Badge variant="muted">Belum terverifikasi</Badge>
 }
 
 function buildPages(current: number, last: number) {
-  const total = Math.max(1, last);
-  const cur = Math.min(Math.max(1, current), total);
-  const windowSize = 1;
+  const total = Math.max(1, last)
+  const cur = Math.min(Math.max(1, current), total)
+  const windowSize = 1
 
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
 
-  const start = Math.max(2, cur - windowSize);
-  const end = Math.min(total - 1, cur + windowSize);
+  const start = Math.max(2, cur - windowSize)
+  const end = Math.min(total - 1, cur + windowSize)
 
-  const result: Array<number | "ellipsis"> = [1];
-  if (start > 2) result.push("ellipsis");
-  for (let p = start; p <= end; p++) result.push(p);
-  if (end < total - 1) result.push("ellipsis");
-  result.push(total);
+  const result: Array<number | "ellipsis"> = [1]
+  if (start > 2) result.push("ellipsis")
+  for (let p = start; p <= end; p++) result.push(p)
+  if (end < total - 1) result.push("ellipsis")
+  result.push(total)
 
-  return result;
+  return result
 }
 
 export function ParticipantsTable() {
-  const [qText, setQText] = React.useState("");
-  const [perPage, setPerPage] = React.useState(20);
-  const [page, setPage] = React.useState(1);
+  const [qText, setQText] = React.useState("")
+  const [perPage, setPerPage] = React.useState(20)
+  const [page, setPage] = React.useState(1)
 
-  const qDebounced = useDebouncedValue(qText, 350);
+  const qDebounced = useDebouncedValue(qText, 350)
 
   React.useEffect(() => {
-    setPage(1);
-  }, [qDebounced, perPage]);
+    setPage(1)
+  }, [qDebounced, perPage])
 
   const params: ListParticipantsParams = React.useMemo(
     () => ({
@@ -81,28 +82,31 @@ export function ParticipantsTable() {
       page,
     }),
     [qDebounced, perPage, page]
-  );
+  )
 
   const qParticipants = useQuery<PaginatedResponse<ParticipantListItem>>({
     queryKey: [API_ENDPOINTS.PARTICIPANTS.BASE, params],
     queryFn: () => participantsService.list(params),
-  });
+    placeholderData: keepPreviousData,
+  })
 
-  const res = qParticipants.data;
-  const rows = res?.data ?? [];
-  const lastPage = res?.last_page ?? 1;
-  const canPrev = page > 1;
-  const canNext = page < lastPage;
-  const pages = React.useMemo(() => buildPages(page, lastPage), [page, lastPage]);
+  const res = qParticipants.data
+  const rows = res?.data ?? []
+  const lastPage = res?.last_page ?? 1
+  const canPrev = page > 1
+  const canNext = page < lastPage
+  const pages = React.useMemo(() => buildPages(page, lastPage), [page, lastPage])
 
   const hrefFor = (p: number) => {
-    const sp = new URLSearchParams();
-    if (qDebounced.trim()) sp.set("q", qDebounced.trim());
-    if (perPage !== 20) sp.set("per_page", String(perPage));
-    if (p !== 1) sp.set("page", String(p));
-    const qs = sp.toString();
-    return qs ? `/dashboard/admin/peserta?${qs}` : `/dashboard/admin/peserta`;
-  };
+    const sp = new URLSearchParams()
+    if (qDebounced.trim()) sp.set("q", qDebounced.trim())
+    if (perPage !== 20) sp.set("per_page", String(perPage))
+    if (p !== 1) sp.set("page", String(p))
+    const qs = sp.toString()
+    return qs ? `/dashboard/admin/peserta?${qs}` : `/dashboard/admin/peserta`
+  }
+
+  const busy = qParticipants.isFetching
 
   return (
     <div className="space-y-3">
@@ -116,9 +120,10 @@ export function ParticipantsTable() {
           <Button
             type="button"
             variant="outline"
+            disabled={busy}
             onClick={() => {
-              setQText("");
-              setPage(1);
+              setQText("")
+              setPage(1)
             }}
           >
             Reset
@@ -131,6 +136,7 @@ export function ParticipantsTable() {
             className="h-9 rounded-md border bg-background px-3 text-sm"
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
+            disabled={busy}
           >
             {[10, 20, 50, 100, 200].map((n) => (
               <option key={n} value={n}>
@@ -146,11 +152,11 @@ export function ParticipantsTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-15">No</TableHead>
-              <TableHead>ID</TableHead>
+              <TableHead className="w-22.5">ID</TableHead>
               <TableHead>Nama</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Verifikasi</TableHead>
-              <TableHead>Detail</TableHead>
+              <TableHead className="w-27.5">Verifikasi</TableHead>
+              <TableHead className="w-27.5 text-right">Detail</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -166,12 +172,12 @@ export function ParticipantsTable() {
                 <TableRow key={it.id}>
                   <TableCell>{(page - 1) * perPage + (idx + 1)}</TableCell>
                   <TableCell>{it.id}</TableCell>
-                  <TableCell>{it.name}</TableCell>
+                  <TableCell className="font-medium">{it.name}</TableCell>
                   <TableCell>{it.email}</TableCell>
                   <TableCell>
                     <VerifiedBadge verifiedAt={it.email_verified_at ?? null} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/dashboard/admin/peserta/${it.id}`}>Detail</Link>
                     </Button>
@@ -202,11 +208,11 @@ export function ParticipantsTable() {
               <PaginationPrevious
                 href={hrefFor(Math.max(1, page - 1))}
                 onClick={(e) => {
-                  e.preventDefault();
-                  if (!canPrev || qParticipants.isFetching) return;
-                  setPage((p) => Math.max(1, p - 1));
+                  e.preventDefault()
+                  if (!canPrev || busy) return
+                  setPage((p) => Math.max(1, p - 1))
                 }}
-                className={!canPrev || qParticipants.isFetching ? "pointer-events-none opacity-50" : undefined}
+                className={!canPrev || busy ? "pointer-events-none opacity-50" : undefined}
               />
             </PaginationItem>
 
@@ -221,9 +227,9 @@ export function ParticipantsTable() {
                     href={hrefFor(p)}
                     isActive={p === page}
                     onClick={(e) => {
-                      e.preventDefault();
-                      if (qParticipants.isFetching) return;
-                      setPage(p);
+                      e.preventDefault()
+                      if (busy) return
+                      setPage(p)
                     }}
                   >
                     {String(p)}
@@ -236,16 +242,16 @@ export function ParticipantsTable() {
               <PaginationNext
                 href={hrefFor(Math.min(lastPage, page + 1))}
                 onClick={(e) => {
-                  e.preventDefault();
-                  if (!canNext || qParticipants.isFetching) return;
-                  setPage((p) => Math.min(lastPage, p + 1));
+                  e.preventDefault()
+                  if (!canNext || busy) return
+                  setPage((p) => Math.min(lastPage, p + 1))
                 }}
-                className={!canNext || qParticipants.isFetching ? "pointer-events-none opacity-50" : undefined}
+                className={!canNext || busy ? "pointer-events-none opacity-50" : undefined}
               />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
     </div>
-  );
+  )
 }

@@ -1,3 +1,4 @@
+// app/dashboard/admin/payments/page.tsx (AdminPaymentsPage)
 "use client"
 
 import * as React from "react"
@@ -57,7 +58,8 @@ function buildPages(page: number, lastPage: number) {
   const current = Math.min(Math.max(1, page), total)
   const windowSize = 1
 
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1) as Array<number | "ellipsis">
+  if (total <= 7)
+    return Array.from({ length: total }, (_, i) => i + 1) as Array<number | "ellipsis">
 
   const start = Math.max(2, current - windowSize)
   const end = Math.min(total - 1, current + windowSize)
@@ -75,9 +77,11 @@ function StatusPill({ s }: { s: string }) {
   const v = (s || "").toLowerCase()
   const variant =
     v === "settlement" || v === "capture"
-      ? "secondary"
+      ? "success"
       : v === "pending"
-      ? "outline"
+      ? "warning"
+      : v === "-" || !v
+      ? "muted"
       : "destructive"
 
   return <Badge variant={variant}>{s || "-"}</Badge>

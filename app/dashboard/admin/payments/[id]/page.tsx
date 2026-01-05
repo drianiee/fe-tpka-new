@@ -1,3 +1,4 @@
+// app/dashboard/admin/payments/[id]/page.tsx (AdminPaymentDetailPage)
 "use client"
 
 import * as React from "react"
@@ -22,6 +23,14 @@ function kv(v: unknown) {
   } catch {
     return String(v)
   }
+}
+
+function statusVariant(s?: string | null) {
+  const v = (s || "").toLowerCase()
+  if (!v || v === "-") return "muted" as const
+  if (v === "settlement" || v === "capture") return "success" as const
+  if (v === "pending") return "warning" as const
+  return "destructive" as const
 }
 
 export default function AdminPaymentDetailPage() {
@@ -57,10 +66,12 @@ export default function AdminPaymentDetailPage() {
 
       <Card className="p-4 space-y-3">
         <div className="flex flex-wrap gap-2 items-center">
-          <Badge variant="outline">Status: {p.transaction_status ?? "-"}</Badge>
-          <Badge variant="outline">Payment: {p.payment_type ?? "-"}</Badge>
-          <Badge variant="outline">Fraud: {p.fraud_status ?? "-"}</Badge>
-          <Badge variant="secondary">Amount: {formatRupiah(String(p.amount ?? 0))}</Badge>
+          <Badge variant={statusVariant(p.transaction_status)}>
+            Status: {p.transaction_status ?? "-"}
+          </Badge>
+          <Badge variant="muted">Payment: {p.payment_type ?? "-"}</Badge>
+          <Badge variant="muted">Fraud: {p.fraud_status ?? "-"}</Badge>
+          <Badge variant="success">Amount: {formatRupiah(String(p.amount ?? 0))}</Badge>
         </div>
 
         <Separator />
@@ -151,7 +162,9 @@ export default function AdminPaymentDetailPage() {
               <div className="text-muted-foreground">
                 {p.schedule.date} • {p.schedule.start_time} - {p.schedule.end_time}
               </div>
-              <div className="text-muted-foreground">Price: {formatRupiah(String(p.schedule.price ?? 0))}</div>
+              <div className="text-muted-foreground">
+                Price: {formatRupiah(String(p.schedule.price ?? 0))}
+              </div>
               <div className="text-muted-foreground">Partner: {p.schedule.partner?.name ?? "-"}</div>
               <div className="text-muted-foreground">
                 Moodle: {p.schedule.moodle_course_id ?? "-"} / {p.schedule.moodle_quiz_id ?? "-"} /{" "}
