@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { schedulesService, type PartnerImportResponse } from "@/lib/services/schedules.service"
-import type { ScheduleDetail } from "@/lib/types/schedules"
+import type { ScheduleDetail, ScheduleParticipant } from "@/lib/types/schedules"
 import { API_ENDPOINTS } from "@/lib/api/endpoints"
 import { getApiErrorMessage } from "@/lib/api/errors"
 import { formatRupiah, hhmm } from "@/lib/utils/format"
@@ -56,6 +56,11 @@ function importSummaryText(res: PartnerImportResponse) {
   return parts.join(" • ")
 }
 
+function scoreCell(v?: number | null) {
+  if (v === null || v === undefined) return "-"
+  return String(v)
+}
+
 export default function AdminScheduleDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -76,15 +81,6 @@ export default function AdminScheduleDetailPage() {
     mode: "onSubmit",
   })
 
-  const delMut = useMutation({
-    mutationFn: (userId: number) => schedulesService.removeParticipant(scheduleId, userId),
-    onSuccess: (res) => {
-      toast.success(res.message ?? "Peserta dihapus")
-      qc.invalidateQueries({ queryKey: [API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId)] })
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e)),
-  })
-
   const importMut = useMutation({
     mutationFn: (file: File) => schedulesService.partnerImport(scheduleId, file),
     onSuccess: (res) => {
@@ -101,7 +97,7 @@ export default function AdminScheduleDetailPage() {
   if (detailQuery.isError || !detailQuery.data) return <p className="text-sm text-destructive">Gagal load schedule</p>
 
   const d: ScheduleDetail = detailQuery.data
-  const participants = d.participants ?? []
+  const participants: ScheduleParticipant[] = d.participants ?? []
   const packages = d.packages ?? []
   const isPartnerSchedule = Boolean(d.partner?.id)
 
@@ -240,48 +236,79 @@ export default function AdminScheduleDetailPage() {
 
         <Separator />
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>No</TableHead>
-              <TableHead>ID</TableHead>
-              <TableHead>Nama</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {participants.length === 0 ? (
+        <div className="rounded-md border">
+          <Table className="table-fixed w-full">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
-                  Belum ada peserta
-                </TableCell>
+                <TableHead className="w-11">No</TableHead>
+                <TableHead className="w-14">ID</TableHead>
+                <TableHead className="w-35">Nama</TableHead>
+                <TableHead className="w-42.5">Email</TableHead>
+                <TableHead className="w-32.5">Status</TableHead>
+
+                <TableHead className="w-14.5 text-center">Verbal</TableHead>
+                <TableHead className="w-14.5 text-center">Kuantitatif</TableHead>
+                <TableHead className="w-14.5 text-center">Logika</TableHead>
+                <TableHead className="w-14.5 text-center">Spatial</TableHead>
+                <TableHead className="w-14.5 text-center">Total</TableHead>
+
+                <TableHead className="w-30 text-right">Sertifikat</TableHead>
               </TableRow>
-            ) : (
-              participants.map((p, i) => (
-                <TableRow key={p.id}>
-                  <TableCell>{i + 1}</TableCell>
-                  <TableCell>{p.id}</TableCell>
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell>{p.email}</TableCell>
-                  <TableCell className="capitalize">{p.status}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => delMut.mutate(p.id)}
-                      disabled={delMut.isPending}
-                    >
-                      Hapus
-                    </Button>
+            </TableHeader>
+
+            <TableBody>
+              {participants.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
+                    Belum ada peserta
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                participants.map((p, i) => {
+                  const s = p.scores ?? null
+                  const certUrl = p.certificate_download_url ?? null
+
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="whitespace-nowrap">{i + 1}</TableCell>
+                      <TableCell className="whitespace-nowrap">{p.id}</TableCell>
+
+                      <TableCell className="truncate font-medium" title={p.name}>
+                        {p.name}
+                      </TableCell>
+
+                      <TableCell className="truncate" title={p.email}>
+                        {p.email}
+                      </TableCell>
+
+                      <TableCell className="truncate capitalize" title={p.status}>
+                        {p.status}
+                      </TableCell>
+
+                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.verbal)}</TableCell>
+                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.kuantitatif)}</TableCell>
+                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.logika)}</TableCell>
+                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.spasial)}</TableCell>
+                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.total)}</TableCell>
+
+                      <TableCell className="text-right whitespace-nowrap">
+                        {certUrl ? (
+                          <Button asChild size="sm" variant="outline">
+                            <a href={certUrl} target="_blank" rel="noreferrer">
+                              Download
+                            </a>
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
     </div>
   )

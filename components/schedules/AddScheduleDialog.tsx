@@ -12,7 +12,6 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 
 import { usePartnersQuery } from "@/lib/hooks/usePartnersQuery";
-import { useQuestionPackagesQuery } from "@/lib/hooks/useQuestionPackagesQuery";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -90,8 +89,6 @@ export function AddScheduleDialog() {
   const [partnerOpen, setPartnerOpen] = React.useState(false);
   const [partnerQuery, setPartnerQuery] = React.useState("");
 
-  const [pkgOpen, setPkgOpen] = React.useState(false);
-  const [pkgQuery, setPkgQuery] = React.useState("");
 
   /* ===== data ===== */
   const { qPartners, partners } = usePartnersQuery({
@@ -99,16 +96,7 @@ export function AddScheduleDialog() {
     q: partnerQuery,
   });
 
-  const { qPkgs } = useQuestionPackagesQuery({
-    enabled: open && isPartner,
-    q: pkgQuery,
-    is_active: true,
-    per_page: 50,
-    page: 1,
-  });
-
   // ambil list dari response paginated
-  const packages = qPkgs.data?.data ?? [];
 
   /* ===== reset field saat toggle non-mitra ===== */
   React.useEffect(() => {
@@ -117,7 +105,6 @@ export function AddScheduleDialog() {
       form.setValue("package_ids", []);
       form.clearErrors(["partner_id", "package_ids"]);
       setPartnerQuery("");
-      setPkgQuery("");
     }
   }, [isPartner, form]);
 
@@ -162,14 +149,6 @@ export function AddScheduleDialog() {
         form.setError("partner_id", {
           type: "manual",
           message: "Partner wajib dipilih untuk jadwal mitra",
-        });
-        hasError = true;
-      }
-
-      if (!v.package_ids || v.package_ids.length === 0) {
-        form.setError("package_ids", {
-          type: "manual",
-          message: "Minimal pilih 1 paket soal untuk jadwal mitra",
         });
         hasError = true;
       }
@@ -244,7 +223,7 @@ export function AddScheduleDialog() {
             />
           </div>
 
-          {isPartner ? (
+          {isPartner &&
             <>
               <div className="space-y-1">
                 <Label>Partner</Label>
@@ -277,45 +256,8 @@ export function AddScheduleDialog() {
                   </p>
                 )}
               </div>
-
-              <div className="space-y-1">
-                <Label>Paket Soal</Label>
-                <Controller
-                  control={form.control}
-                  name="package_ids"
-                  render={({ field }) => (
-                    <SearchableCombobox
-                      multiple
-                      value={field.value}
-                      onChange={(val) => {
-                        field.onChange(val);
-                        form.clearErrors("package_ids");
-                      }}
-                      options={packages.map((p) => ({
-                        id: p.id,
-                        label: p.name,
-                      }))}
-                      open={pkgOpen}
-                      onOpenChange={setPkgOpen}
-                      search={pkgQuery}
-                      onSearchChange={setPkgQuery}
-                      loading={qPkgs.isLoading}
-                      placeholder="Pilih paket soal"
-                    />
-                  )}
-                />
-                {form.formState.errors.package_ids && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.package_ids.message as string}
-                  </p>
-                )}
-              </div>
             </>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Non-mitra: paket soal otomatis memakai semua yang aktif.
-            </p>
-          )}
+          }
 
           <div className="space-y-1">
             <Label>Kapasitas</Label>

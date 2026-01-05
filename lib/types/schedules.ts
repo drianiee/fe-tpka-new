@@ -1,4 +1,4 @@
- export type ScheduleStatus =
+export type ScheduleStatus =
   | "Tes Belum Dimulai"
   | "Tes Akan Segera Dimulai"
   | "Tes Sedang Berlangsung"
@@ -50,11 +50,22 @@ export type ScheduleParticipantStatus =
   | "peserta selesai tes"
   | string
 
+export type ScheduleParticipantScores = {
+  verbal?: number | null
+  kuantitatif?: number | null
+  logika?: number | null
+  spasial?: number | null
+  total?: number | null
+}
+
 export type ScheduleParticipant = {
   id: number
   name: string
   email: string
   status: ScheduleParticipantStatus
+
+  scores?: ScheduleParticipantScores | null
+  certificate_download_url?: string | null
 }
 
 export type ScheduleDetail = ScheduleListItem & {

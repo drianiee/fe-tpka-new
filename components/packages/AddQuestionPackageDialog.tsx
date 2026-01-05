@@ -30,48 +30,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-/* ================= VALIDATION ================= */
-
-// angka optional: boleh "", kalau diisi harus integer >= 1
-const optionalIntString = z
-  .union([z.string().regex(/^\d+$/, "Harus angka"), z.literal("")])
-  .optional()
-  .refine((v) => v === undefined || v === "" || Number(v) >= 1, {
-    message: "Minimal 1",
-  });
-
 const schema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
-
-  // ✅ wajib boolean (biar resolver cocok dengan useForm)
+  moodle_group_name: z.string().min(1, "Moodle group name wajib diisi"),
   is_active: z.boolean(),
-
-  verbal_num_questions: optionalIntString,
-  verbal_duration_minutes: optionalIntString,
-
-  quantitative_num_questions: optionalIntString,
-  quantitative_duration_minutes: optionalIntString,
-
-  logic_num_questions: optionalIntString,
-  logic_duration_minutes: optionalIntString,
-
-  spatial_num_questions: optionalIntString,
-  spatial_duration_minutes: optionalIntString,
-
-  file: z.instanceof(File).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
-
-/* ================= HELPERS ================= */
-
-function toOptionalInt(v?: string): number | undefined {
-  if (!v || v.trim() === "") return undefined;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-/* ================= COMPONENT ================= */
 
 export function AddQuestionPackageDialog() {
   const [open, setOpen] = React.useState(false);
@@ -81,18 +46,8 @@ export function AddQuestionPackageDialog() {
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
+      moodle_group_name: "",
       is_active: true,
-
-      verbal_num_questions: "",
-      verbal_duration_minutes: "",
-      quantitative_num_questions: "",
-      quantitative_duration_minutes: "",
-      logic_num_questions: "",
-      logic_duration_minutes: "",
-      spatial_num_questions: "",
-      spatial_duration_minutes: "",
-
-      file: undefined,
     },
   });
 
@@ -100,25 +55,9 @@ export function AddQuestionPackageDialog() {
     mutationFn: (v: FormValues) => {
       const payload: CreateQuestionPackageRequest = {
         name: v.name,
+        moodle_group_name: v.moodle_group_name,
         is_active: v.is_active,
-
-        verbal_num_questions: toOptionalInt(v.verbal_num_questions),
-        verbal_duration_minutes: toOptionalInt(v.verbal_duration_minutes),
-
-        quantitative_num_questions: toOptionalInt(v.quantitative_num_questions),
-        quantitative_duration_minutes: toOptionalInt(
-          v.quantitative_duration_minutes
-        ),
-
-        logic_num_questions: toOptionalInt(v.logic_num_questions),
-        logic_duration_minutes: toOptionalInt(v.logic_duration_minutes),
-
-        spatial_num_questions: toOptionalInt(v.spatial_num_questions),
-        spatial_duration_minutes: toOptionalInt(v.spatial_duration_minutes),
-
-        file: v.file ?? null,
       };
-
       return questionPackagesService.create(payload);
     },
     onSuccess: (res) => {
@@ -147,13 +86,23 @@ export function AddQuestionPackageDialog() {
         >
           <div className="space-y-1">
             <Label>Nama Paket</Label>
-            <Input
-              placeholder="Contoh: Paket TPA Bahasa Indo"
-              {...form.register("name")}
-            />
+            <Input placeholder="Contoh: Paket 2" {...form.register("name")} />
             {form.formState.errors.name && (
               <p className="text-sm text-destructive">
                 {form.formState.errors.name.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label>Moodle Group Name</Label>
+            <Input
+              placeholder="Contoh: Paket 2"
+              {...form.register("moodle_group_name")}
+            />
+            {form.formState.errors.moodle_group_name && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.moodle_group_name.message}
               </p>
             )}
           </div>
@@ -178,120 +127,6 @@ export function AddQuestionPackageDialog() {
                 </Select>
               )}
             />
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-1">
-              <Label>Verbal - Jumlah Soal</Label>
-              <Input type="number" {...form.register("verbal_num_questions")} />
-              {form.formState.errors.verbal_num_questions && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.verbal_num_questions.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label>Verbal - Durasi (menit)</Label>
-              <Input
-                type="number"
-                {...form.register("verbal_duration_minutes")}
-              />
-              {form.formState.errors.verbal_duration_minutes && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.verbal_duration_minutes.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label>Quantitative - Jumlah Soal</Label>
-              <Input
-                type="number"
-                {...form.register("quantitative_num_questions")}
-              />
-              {form.formState.errors.quantitative_num_questions && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.quantitative_num_questions.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label>Quantitative - Durasi (menit)</Label>
-              <Input
-                type="number"
-                {...form.register("quantitative_duration_minutes")}
-              />
-              {form.formState.errors.quantitative_duration_minutes && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.quantitative_duration_minutes.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label>Logic - Jumlah Soal</Label>
-              <Input type="number" {...form.register("logic_num_questions")} />
-              {form.formState.errors.logic_num_questions && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.logic_num_questions.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label>Logic - Durasi (menit)</Label>
-              <Input
-                type="number"
-                {...form.register("logic_duration_minutes")}
-              />
-              {form.formState.errors.logic_duration_minutes && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.logic_duration_minutes.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label>Spatial - Jumlah Soal</Label>
-              <Input type="number" {...form.register("spatial_num_questions")} />
-              {form.formState.errors.spatial_num_questions && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.spatial_num_questions.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label>Spatial - Durasi (menit)</Label>
-              <Input
-                type="number"
-                {...form.register("spatial_duration_minutes")}
-              />
-              {form.formState.errors.spatial_duration_minutes && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.spatial_duration_minutes.message}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label>File (optional)</Label>
-            <Controller
-              control={form.control}
-              name="file"
-              render={({ field }) => (
-                <Input
-                  type="file"
-                  onChange={(e) =>
-                    field.onChange(e.target.files?.[0] ?? undefined)
-                  }
-                />
-              )}
-            />
-            <p className="text-xs text-muted-foreground">Max 100MB (backend).</p>
           </div>
 
           <Button className="w-full" disabled={createMut.isPending}>
