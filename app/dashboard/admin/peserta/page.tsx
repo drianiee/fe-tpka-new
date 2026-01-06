@@ -1,19 +1,17 @@
+// app/dashboard/admin/peserta/page.tsx
 "use client";
 
-import { Separator } from "@/components/ui/separator";
 import { ParticipantsTable } from "@/components/participants/ParticipantsTable";
+import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
 export default function AdminParticipantsPage() {
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Peserta</h1>
-        <p className="text-sm text-muted-foreground">Kelola dan lihat data peserta</p>
-      </div>
-
-      <Separator />
-
+    <PageHeaderLayout
+      title="Peserta"
+      description="Kelola dan lihat data peserta"
+      showBack={false}
+    >
       <ParticipantsTable />
-    </div>
+    </PageHeaderLayout>
   );
 }

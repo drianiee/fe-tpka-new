@@ -1,13 +1,14 @@
+// components/operators/AddOperatorDialog.tsx
 "use client";
 
 import * as React from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { partnersService } from "@/lib/services/partners.service";
+import { usersService } from "@/lib/services/users.service";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 
@@ -18,38 +19,22 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-/* ================= VALIDATION ================= */
 
 const schema = z.object({
-  name: z.string().min(1, "Nama mitra wajib diisi"),
-  code: z.string().optional(),
-  contact_name: z.string().optional(),
-
-  // optional tapi kalau diisi harus email valid; string kosong dianggap "tidak diisi"
-  contact_email: z
-    .union([z.string().email("Email tidak valid"), z.literal("")])
-    .optional(),
-
-  contact_phone: z.string().optional(),
-
-  // ✅ wajib boolean (biar resolver cocok dengan useForm)
-  is_active: z.boolean(),
+  name: z.string().trim().min(1, "Nama wajib diisi"),
+  email: z.string().trim().min(1, "Email wajib diisi").email("Email tidak valid"),
+  password: z.string().min(6, "Password minimal 6 karakter"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-/* ================= COMPONENT ================= */
+function toTrimmed(v: string) {
+  return v.trim();
+}
 
 export function AddOperatorDialog() {
   const [open, setOpen] = React.useState(false);
@@ -59,105 +44,150 @@ export function AddOperatorDialog() {
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
-      code: "",
-      contact_name: "",
-      contact_email: "",
-      contact_phone: "",
-      is_active: true,
+      email: "",
+      password: "",
     },
+    mode: "onSubmit",
   });
 
   const createMut = useMutation({
     mutationFn: (v: FormValues) =>
-      partnersService.create({
-        name: v.name,
-        code: v.code?.trim() ? v.code.trim() : undefined,
-        contact_name: v.contact_name?.trim() ? v.contact_name.trim() : undefined,
-        contact_email:
-          v.contact_email && v.contact_email !== "" ? v.contact_email : undefined,
-        contact_phone: v.contact_phone?.trim()
-          ? v.contact_phone.trim()
-          : undefined,
-        is_active: v.is_active,
+      usersService.createOperator({
+        name: toTrimmed(v.name),
+        email: toTrimmed(v.email),
+        password: v.password,
       }),
     onSuccess: (res) => {
-      toast.success(res.message || "Partner berhasil dibuat");
-      qc.invalidateQueries({ queryKey: [API_ENDPOINTS.PARTNERS.BASE] });
+      toast.success(res.message ?? "Operator berhasil dibuat");
+      qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ADMIN.OPERATORS] });
       setOpen(false);
       form.reset();
     },
-    onError: (e) => toast.error(getApiErrorMessage(e)),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
   });
 
+  const busy = createMut.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) form.reset();
+      }}
+    >
       <DialogTrigger asChild>
-        <Button>+ Add Partner</Button>
+        <Button>+ Tambah Operator</Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Tambah Mitra</DialogTitle>
+          <DialogTitle>Tambah Operator</DialogTitle>
+          <DialogDescription>
+            Buat akun operator untuk mengelola jadwal dan peserta.
+          </DialogDescription>
         </DialogHeader>
 
         <form
-          className="space-y-4"
+          className="space-y-6"
           onSubmit={form.handleSubmit((v) => createMut.mutate(v))}
         >
-          <div className="space-y-1">
-            <Label>Nama Mitra</Label>
-            <Input placeholder="Masukkan Nama Instansi Mitra" {...form.register("name")} />
-          </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="op-name">
+                  Nama
+                </Label>
+              </div>
 
-          <div className="space-y-1">
-            <Label>Kode Mitra</Label>
-            <Input placeholder="Masukkan Kode Mitra" {...form.register("code")} />
-          </div>
+              <Input
+                id="op-name"
+                placeholder="Contoh: Operator Baru"
+                disabled={busy}
+                {...form.register("name")}
+              />
 
-          <div className="space-y-1">
-            <Label >Nama PIC</Label>
-            <Input placeholder="Masukkan Nama PIC" {...form.register("contact_name")} />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Email PIC</Label>
-            <Input
-              type="email"
-              placeholder="Contoh: andrian@mitraa.com"
-              {...form.register("contact_email")}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Nomor PIC</Label>
-            <Input placeholder="Contoh: 08123456789" {...form.register("contact_phone")} />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Status Kemitraan</Label>
-            <Controller
-              control={form.control}
-              name="is_active"
-              render={({ field }) => (
-                <Select
-                  value={field.value ? "active" : "inactive"}
-                  onValueChange={(v) => field.onChange(v === "active")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Aktif</SelectItem>
-                    <SelectItem value="inactive">Tidak Aktif</SelectItem>
-                  </SelectContent>
-                </Select>
+              {form.formState.errors.name?.message ? (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.name.message}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Nama ini akan tampil di daftar operator.
+                </p>
               )}
-            />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="op-email">
+                  Email
+                </Label>
+              </div>
+
+              <Input
+                id="op-email"
+                type="email"
+                placeholder="Contoh: opbaru@tpka.com"
+                disabled={busy}
+                {...form.register("email")}
+              />
+
+              {form.formState.errors.email?.message ? (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.email.message}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Pastikan email aktif untuk login.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="op-password">
+                  Password
+                </Label>
+              </div>
+
+              <Input
+                id="op-password"
+                type="password"
+                placeholder="Minimal 6 karakter"
+                disabled={busy}
+                {...form.register("password")}
+              />
+
+              {form.formState.errors.password?.message ? (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.password.message}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Gunakan kombinasi huruf & angka agar lebih aman.
+                </p>
+              )}
+            </div>
           </div>
 
-          <Button className="w-full" disabled={createMut.isPending}>
-            {createMut.isPending ? "Menyimpan..." : "Simpan"}
-          </Button>
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                setOpen(false);
+                form.reset();
+              }}
+            >
+              Batal
+            </Button>
+
+            <Button type="submit" disabled={busy}>
+              {busy ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

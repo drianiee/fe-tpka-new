@@ -1,139 +1,461 @@
-"use client"
+// app/dashboard/admin/schedules/[id]/page.tsx
+"use client";
 
-import * as React from "react"
-import { useParams, useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { z } from "zod"
-import { Controller, useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-
-import { schedulesService, type PartnerImportResponse } from "@/lib/services/schedules.service"
-import type { ScheduleDetail, ScheduleParticipant } from "@/lib/types/schedules"
-import { API_ENDPOINTS } from "@/lib/api/endpoints"
-import { getApiErrorMessage } from "@/lib/api/errors"
-import { formatRupiah, hhmm } from "@/lib/utils/format"
-
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import * as React from "react";
+import { useParams } from "next/navigation";
+import { toast } from "sonner";
+import { z } from "zod";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+
+import { schedulesService } from "@/lib/services/schedules.service";
+import type { PartnerImportResponse } from "@/lib/types/schedules";
+import type {
+  ScheduleDetail,
+  ScheduleParticipant,
+  ExportScheduleParticipantsResponse,
+} from "@/lib/types/schedules";
+import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { formatRupiah, hhmm } from "@/lib/utils/format";
+
+import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
+import { formatDateId } from "@/lib/utils/datetime";
+import { DialogDescription } from "@radix-ui/react-dialog";
+
+function useDebouncedValue<T>(value: T, delay = 350) {
+  const [debounced, setDebounced] = React.useState(value);
+
+  React.useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(t);
+  }, [value, delay]);
+
+  return debounced;
+}
 
 const importSchema = z.object({
   file: z
     .instanceof(File, { message: "File wajib di-upload" })
     .refine((f) => /\.(xlsx|xls)$/i.test(f.name), "File harus .xlsx / .xls"),
-})
+});
 
-type ImportForm = z.infer<typeof importSchema>
+type ImportForm = z.infer<typeof importSchema>;
 
 function importSummaryText(res: PartnerImportResponse) {
-  const s = res.summary
-  if (!s) return ""
-  const parts: string[] = []
-  if (typeof s.attached_to_schedule === "number") parts.push(`Terpasang: ${s.attached_to_schedule}`)
-  if (typeof s.created_users === "number") parts.push(`User dibuat: ${s.created_users}`)
-  if (typeof s.sent_invitations === "number") parts.push(`Invitation: ${s.sent_invitations}`)
-  if (typeof s.skipped_rows === "number") parts.push(`Skip: ${s.skipped_rows}`)
-  return parts.join(" • ")
+  const s = res.summary;
+  if (!s) return "";
+  const parts: string[] = [];
+  if (typeof s.attached_to_schedule === "number")
+    parts.push(`Terpasang: ${s.attached_to_schedule}`);
+  if (typeof s.created_users === "number")
+    parts.push(`User dibuat: ${s.created_users}`);
+  if (typeof s.sent_invitations === "number")
+    parts.push(`Invitation: ${s.sent_invitations}`);
+  if (typeof s.skipped_rows === "number") parts.push(`Skip: ${s.skipped_rows}`);
+  return parts.join(" • ");
 }
 
 function scoreCell(v?: number | null) {
-  if (v === null || v === undefined) return "-"
-  return String(v)
+  if (v === null || v === undefined) return "-";
+  return String(v);
 }
 
 function normalizeStatus(status?: string | null) {
-  return (status ?? "").trim().toLowerCase()
+  return (status ?? "").trim().toLowerCase();
 }
 
-function statusVariant(status?: string | null): "muted" | "warning" | "success" {
-  const s = normalizeStatus(status)
-  if (!s) return "muted"
-  if (s === "peserta belum terdaftar") return "muted"
-  if (s === "peserta terdaftar") return "success"
-  return "muted"
+function statusVariant(
+  status?: string | null
+): "muted" | "warning" | "success" {
+  const s = normalizeStatus(status);
+  if (!s) return "muted";
+  if (s === "peserta belum terdaftar") return "muted";
+  if (s === "peserta terdaftar") return "success";
+  if (s === "peserta mengakses tes") return "warning";
+  if (s === "peserta selesai tes") return "success";
+  return "muted";
 }
 
 function statusLabel(status?: string | null) {
-  const s = normalizeStatus(status)
-  if (!s) return "-"
-  if (s === "peserta belum terdaftar") return "Peserta Belum Terdaftar"
-  if (s === "peserta terdaftar") return "Peserta Terdaftar"
-  return status ?? "-"
+  const s = normalizeStatus(status);
+  if (!s) return "-";
+  if (s === "peserta belum terdaftar") return "Peserta Belum Terdaftar";
+  if (s === "peserta terdaftar") return "Peserta Terdaftar";
+  if (s === "peserta mengakses tes") return "Peserta Mengakses Tes";
+  if (s === "peserta selesai tes") return "Peserta Selesai Tes";
+  return status ?? "-";
+}
+
+function buildPages(page: number, lastPage: number) {
+  const total = Math.max(1, lastPage);
+  const current = Math.min(Math.max(1, page), total);
+  const windowSize = 1;
+
+  if (total <= 7)
+    return Array.from({ length: total }, (_, i) => i + 1) as Array<
+      number | "ellipsis"
+    >;
+
+  const start = Math.max(2, current - windowSize);
+  const end = Math.min(total - 1, current + windowSize);
+
+  const result: Array<number | "ellipsis"> = [1];
+  if (start > 2) result.push("ellipsis");
+  for (let p = start; p <= end; p++) result.push(p);
+  if (end < total - 1) result.push("ellipsis");
+  result.push(total);
+
+  return result;
 }
 
 export default function AdminScheduleDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const router = useRouter()
-  const qc = useQueryClient()
+  const { id } = useParams<{ id: string }>();
+  const qc = useQueryClient();
 
-  const scheduleId = Number(id)
-  const [importOpen, setImportOpen] = React.useState(false)
+  const scheduleId = Number(id);
+  const [importOpen, setImportOpen] = React.useState(false);
+
+  const [qText, setQText] = React.useState("");
+  const qDebounced = useDebouncedValue(qText, 350);
+
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(10);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [qDebounced, perPage]);
+
+  const params = React.useMemo(
+    () => ({
+      q: qDebounced.trim() || undefined,
+      per_page: perPage,
+      page,
+    }),
+    [qDebounced, perPage, page]
+  );
+  const exportParticipantsMut = useMutation({
+    mutationFn: () => schedulesService.exportParticipants(scheduleId),
+    onSuccess: (res: ExportScheduleParticipantsResponse) => {
+      toast.success(res.message ?? "Berhasil export peserta");
+      if (res.download_url)
+        window.open(res.download_url, "_blank", "noopener,noreferrer");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e)),
+  });
+
+  const columns = React.useMemo<DataTableColumn<ScheduleParticipant>[]>(() => {
+    return [
+      {
+        key: "no",
+        header: "No",
+        headerClassName: "w-11 text-center",
+        className: "whitespace-nowrap text-center",
+        cell: (_row, idx) => (page - 1) * perPage + (idx + 1),
+      },
+      {
+        key: "name",
+        header: "Nama",
+        headerClassName: "w-35",
+        className: "truncate font-medium",
+        cell: (row) => (
+          <div className="truncate" title={row.name}>
+            {row.name}
+          </div>
+        ),
+      },
+      {
+        key: "email",
+        header: "Email",
+        headerClassName: "w-42.5",
+        className: "truncate",
+        cell: (row) => (
+          <div className="truncate" title={row.email}>
+            {row.email}
+          </div>
+        ),
+      },
+      {
+        key: "status",
+        header: "Status",
+        headerClassName: "w-32.5 text-center",
+        className: "truncate text-center",
+        cell: (row) => (
+          <div className="flex justify-center">
+            <Badge variant={statusVariant(row.status)} className="capitalize">
+              {statusLabel(row.status)}
+            </Badge>
+          </div>
+        ),
+      },
+      {
+        key: "verbal",
+        header: "Verbal",
+        headerClassName: "w-14.5 text-center",
+        className: "text-center whitespace-nowrap",
+        cell: (row) => scoreCell(row.scores?.verbal),
+      },
+      {
+        key: "kuantitatif",
+        header: "Kuantitatif",
+        headerClassName: "w-14.5 text-center",
+        className: "text-center whitespace-nowrap",
+        cell: (row) => scoreCell(row.scores?.kuantitatif),
+      },
+      {
+        key: "logika",
+        header: "Logika",
+        headerClassName: "w-14.5 text-center",
+        className: "text-center whitespace-nowrap",
+        cell: (row) => scoreCell(row.scores?.logika),
+      },
+      {
+        key: "spasial",
+        header: "Spatial",
+        headerClassName: "w-14.5 text-center",
+        className: "text-center whitespace-nowrap",
+        cell: (row) => scoreCell(row.scores?.spasial),
+      },
+      {
+        key: "total",
+        header: "Total",
+        headerClassName: "w-14.5 text-center",
+        className: "text-center whitespace-nowrap",
+        cell: (row) => scoreCell(row.scores?.total),
+      },
+      {
+        key: "certificate",
+        header: "Sertifikat",
+        headerClassName: "w-30 text-center",
+        className: "text-center whitespace-nowrap",
+        cell: (row) => {
+          const certUrl = row.certificate_download_url ?? null;
+          return certUrl ? (
+            <Button asChild size="sm" variant="outline">
+              <a href={certUrl} target="_blank" rel="noreferrer">
+                Unduh
+              </a>
+            </Button>
+          ) : (
+            <span className="text-sm text-muted-foreground">-</span>
+          );
+        },
+      },
+    ];
+  }, [page, perPage]);
 
   const detailQuery = useQuery({
-    queryKey: [API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId)],
-    queryFn: () => schedulesService.detail(scheduleId),
+    queryKey: [API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId), params],
+    queryFn: () => schedulesService.detail(scheduleId, params),
     enabled: Number.isFinite(scheduleId),
-  })
+    placeholderData: keepPreviousData,
+  });
 
   const importForm = useForm<ImportForm>({
     resolver: zodResolver(importSchema),
     defaultValues: {},
     mode: "onSubmit",
-  })
+  });
 
   const importMut = useMutation({
-    mutationFn: (file: File) => schedulesService.partnerImport(scheduleId, file),
+    mutationFn: (file: File) =>
+      schedulesService.partnerImport(scheduleId, file),
     onSuccess: (res) => {
-      const sum = importSummaryText(res)
-      toast.success(sum ? `${res.message} (${sum})` : res.message ?? "Import berhasil")
-      qc.invalidateQueries({ queryKey: [API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId)] })
-      importForm.reset()
-      setImportOpen(false)
+      const sum = importSummaryText(res);
+      toast.success(
+        sum ? `${res.message} (${sum})` : res.message ?? "Import berhasil"
+      );
+
+      qc.invalidateQueries({
+        predicate: (q) =>
+          Array.isArray(q.queryKey) &&
+          q.queryKey[0] === API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId),
+      });
+
+      importForm.reset();
+      setImportOpen(false);
     },
     onError: (e) => toast.error(getApiErrorMessage(e)),
-  })
+  });
 
-  if (detailQuery.isLoading) return <p className="text-sm text-muted-foreground">Loading...</p>
-  if (detailQuery.isError || !detailQuery.data) return <p className="text-sm text-destructive">Gagal load schedule</p>
+  if (detailQuery.isLoading) {
+    return (
+      <PageHeaderLayout
+        title="Detail Jadwal"
+        description="Memuat detail jadwal..."
+      >
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </PageHeaderLayout>
+    );
+  }
 
-  const d: ScheduleDetail = detailQuery.data
-  const participants: ScheduleParticipant[] = d.participants ?? []
-  const packages = d.packages ?? []
-  const isPartnerSchedule = Boolean(d.partner?.id)
+  if (detailQuery.isError || !detailQuery.data) {
+    return (
+      <PageHeaderLayout
+        title="Detail Jadwal"
+        description="Gagal memuat detail jadwal"
+      >
+        <p className="text-sm text-destructive">Gagal load schedule</p>
+      </PageHeaderLayout>
+    );
+  }
+
+  const d: ScheduleDetail = detailQuery.data;
+
+  const participantsPage = d.participants;
+  const rows = participantsPage?.data ?? [];
+
+  const lastPage = participantsPage?.last_page ?? 1;
+  const canPrev = page > 1;
+  const canNext = page < lastPage;
+  const pages = buildPages(page, lastPage);
+
+  const busy = detailQuery.isFetching;
+
+  const packages = d.packages ?? [];
+  const isPartnerSchedule = Boolean(d.partner?.id);
+
+  const title = `Schedule #${d.id}`;
+  const description = `${formatDateId(d.date)} • ${hhmm(d.start_time)} - ${hhmm(
+    d.end_time
+  )}`;
+
+  const actions = isPartnerSchedule ? (
+    <Dialog
+      open={importOpen}
+      onOpenChange={(v) => {
+        setImportOpen(v);
+        if (!v) importForm.reset();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="excel" disabled={importMut.isPending}>
+          Import Peserta Mitra (XLSX)
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Import Peserta Mitra</DialogTitle>
+          <DialogDescription>
+            Upload file Excel untuk menambahkan peserta ke jadwal ini.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-lg border bg-muted/30 p-3">
+          <div className="text-sm font-medium">Aturan file</div>
+          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+            <li className="flex gap-2">
+              <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+              Format: <span className="font-medium text-foreground">.xlsx</span>{" "}
+              / <span className="font-medium text-foreground">.xls</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+              Kolom wajib:{" "}
+              <span className="font-medium text-foreground">name</span>,{" "}
+              <span className="font-medium text-foreground">email</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+              Baris dengan email tidak valid akan{" "}
+              <span className="font-medium text-foreground">di-skip</span>
+            </li>
+          </ul>
+        </div>
+
+        <form
+          className="mt-4 space-y-5"
+          onSubmit={importForm.handleSubmit((v) => importMut.mutate(v.file))}
+        >
+          <div className="space-y-2">
+            <Label htmlFor="partner-import-file">
+              File Excel <span className="text-destructive">*</span>
+            </Label>
+
+            <div className="rounded-lg border bg-white p-3">
+              <Controller
+                control={importForm.control}
+                name="file"
+                render={({ field }) => (
+                  <Input
+                    id="partner-import-file"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    disabled={importMut.isPending}
+                    className="cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      field.onChange(file ?? undefined);
+                    }}
+                  />
+                )}
+              />
+
+              {importForm.formState.errors.file?.message ? (
+                <p className="mt-2 text-sm text-destructive">
+                  {importForm.formState.errors.file.message}
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Pastikan header kolom sesuai agar proses import berjalan
+                  lancar.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setImportOpen(false)}
+              disabled={importMut.isPending}
+            >
+              Batal
+            </Button>
+
+            <Button type="submit" disabled={importMut.isPending}>
+              {importMut.isPending ? "Mengimpor..." : "Import"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  ) : null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-semibold">Schedule #{d.id}</h1>
-          <p className="text-sm text-muted-foreground">
-            {d.date} • {hhmm(d.start_time)} - {hhmm(d.end_time)}
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          Kembali
-        </Button>
-      </div>
-
+    <PageHeaderLayout title={title} description={description} actions={actions}>
       <Card className="p-4 space-y-3">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
           <div>
@@ -154,7 +476,9 @@ export default function AdminScheduleDetailPage() {
           </div>
           <div>
             <div className="text-muted-foreground">Status</div>
-            <Badge variant={statusVariant(d.status)}>{statusLabel(d.status)}</Badge>
+            <Badge variant={statusVariant(d.status)}>
+              {statusLabel(d.status)}
+            </Badge>
           </div>
         </div>
 
@@ -174,9 +498,15 @@ export default function AdminScheduleDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {d.moodle_course_id ? <Badge variant="secondary">Course: {d.moodle_course_id}</Badge> : null}
-          {d.moodle_quiz_id ? <Badge variant="secondary">Quiz: {d.moodle_quiz_id}</Badge> : null}
-          {d.moodle_quiz_cmid ? <Badge variant="secondary">CMID: {d.moodle_quiz_cmid}</Badge> : null}
+          {d.moodle_course_id ? (
+            <Badge variant="secondary">Course: {d.moodle_course_id}</Badge>
+          ) : null}
+          {d.moodle_quiz_id ? (
+            <Badge variant="secondary">Quiz: {d.moodle_quiz_id}</Badge>
+          ) : null}
+          {d.moodle_quiz_cmid ? (
+            <Badge variant="secondary">CMID: {d.moodle_quiz_cmid}</Badge>
+          ) : null}
           {d.quiz_url ? (
             <Button asChild size="sm" variant="outline">
               <a href={d.quiz_url} target="_blank" rel="noreferrer">
@@ -187,145 +517,144 @@ export default function AdminScheduleDetailPage() {
         </div>
       </Card>
 
-      <Card className="p-4 space-y-4">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <div className="text-sm font-semibold">Peserta</div>
-            <div className="text-sm text-muted-foreground">Total: {participants.length}</div>
+      <div className="rounded-xl border overflow-hidden flex flex-col mt-4">
+        <div className="p-4 space-y-2">
+          <div className="flex flex-col sm:flex-row gap-3 lg:items-center">
+            <div className="flex-1">
+              <Input
+                value={qText}
+                onChange={(e) => setQText(e.target.value)}
+                placeholder="Cari peserta (nama / email)…"
+                className="w-full"
+              />
+            </div>
+            <Button
+              variant="excel"
+              onClick={() => exportParticipantsMut.mutate()}
+              disabled={exportParticipantsMut.isPending}
+            >
+              {exportParticipantsMut.isPending
+                ? "Exporting..."
+                : "Export Peserta (XLSX)"}
+            </Button>
           </div>
 
-          {isPartnerSchedule ? (
-            <Dialog open={importOpen} onOpenChange={setImportOpen}>
-              <DialogTrigger asChild>
-                <Button variant="secondary">Import Peserta Mitra (XLSX)</Button>
-              </DialogTrigger>
-
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Import Peserta Mitra</DialogTitle>
-                </DialogHeader>
-
-                <form className="space-y-4" onSubmit={importForm.handleSubmit((v) => importMut.mutate(v.file))}>
-                  <div className="space-y-2">
-                    <Label>File XLSX</Label>
-
-                    <Controller
-                      control={importForm.control}
-                      name="file"
-                      render={({ field }) => (
-                        <Input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) field.onChange(file)
-                          }}
-                        />
-                      )}
-                    />
-
-                    {importForm.formState.errors.file ? (
-                      <p className="text-sm text-destructive">{importForm.formState.errors.file.message}</p>
-                    ) : null}
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setImportOpen(false)}
-                      disabled={importMut.isPending}
-                    >
-                      Batal
-                    </Button>
-                    <Button type="submit" disabled={importMut.isPending}>
-                      {importMut.isPending ? "Importing..." : "Import"}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          ) : null}
+          <div className="text-xs text-muted-foreground">
+            {participantsPage && (
+              <>
+                Menampilkan{" "}
+                <span className="font-medium text-foreground">
+                  {participantsPage.from ?? 0}
+                </span>
+                –
+                <span className="font-medium text-foreground">
+                  {participantsPage.to ?? 0}
+                </span>{" "}
+                dari{" "}
+                <span className="font-medium text-foreground">
+                  {participantsPage.total ?? 0}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
-        <Separator />
+        <div className="flex-1 min-h-0 overflow-auto border-t">
+          <DataTable
+            columns={columns}
+            rows={rows}
+            getRowKey={(r) => r.id}
+            loading={detailQuery.isFetching}
+            emptyText="Data tidak ditemukan"
+            stickyHeader
+          />
+        </div>
 
-        <div className="rounded-md border">
-          <Table className="table-fixed w-full">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-11">No</TableHead>
-                <TableHead className="w-14">ID</TableHead>
-                <TableHead className="w-35">Nama</TableHead>
-                <TableHead className="w-42.5">Email</TableHead>
-                <TableHead className="w-32.5">Status</TableHead>
+        <div className="border-t bg-white">
+          <div className="p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-sm text-muted-foreground">Per halaman</span>
+              <select
+                className="h-9 rounded-md border bg-background px-3 text-sm"
+                value={perPage}
+                onChange={(e) => setPerPage(Number(e.target.value))}
+                disabled={busy}
+              >
+                {[10, 20, 50, 100, 200].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <TableHead className="w-14.5 text-center">Verbal</TableHead>
-                <TableHead className="w-14.5 text-center">Kuantitatif</TableHead>
-                <TableHead className="w-14.5 text-center">Logika</TableHead>
-                <TableHead className="w-14.5 text-center">Spatial</TableHead>
-                <TableHead className="w-14.5 text-center">Total</TableHead>
+            <Pagination className="ml-auto w-full justify-end">
+              <PaginationContent className="justify-end w-auto flex-nowrap">
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!canPrev || busy) return;
+                      setPage((p) => Math.max(1, p - 1));
+                    }}
+                    className={
+                      !canPrev || busy
+                        ? "pointer-events-none opacity-50"
+                        : undefined
+                    }
+                  />
+                </PaginationItem>
 
-                <TableHead className="w-30 text-right">Sertifikat</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {participants.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
-                    Belum ada peserta
-                  </TableCell>
-                </TableRow>
-              ) : (
-                participants.map((p, i) => {
-                  const s = p.scores ?? null
-                  const certUrl = p.certificate_download_url ?? null
+                {pages.map((p, i) => {
+                  if (p === "ellipsis") {
+                    return (
+                      <PaginationItem key={`el-${i}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    );
+                  }
 
                   return (
-                    <TableRow key={p.id}>
-                      <TableCell className="whitespace-nowrap">{i + 1}</TableCell>
-                      <TableCell className="whitespace-nowrap">{p.id}</TableCell>
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        href="#"
+                        isActive={p === page}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (busy) return;
+                          setPage(p);
+                        }}
+                        className={
+                          busy ? "pointer-events-none opacity-50" : undefined
+                        }
+                      >
+                        {String(p)}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
 
-                      <TableCell className="truncate font-medium" title={p.name}>
-                        {p.name}
-                      </TableCell>
-
-                      <TableCell className="truncate" title={p.email}>
-                        {p.email}
-                      </TableCell>
-
-                      <TableCell className="truncate" title={p.status}>
-                        <Badge variant={statusVariant(p.status)} className="capitalize">
-                          {statusLabel(p.status)}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.verbal)}</TableCell>
-                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.kuantitatif)}</TableCell>
-                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.logika)}</TableCell>
-                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.spasial)}</TableCell>
-                      <TableCell className="text-center whitespace-nowrap">{scoreCell(s?.total)}</TableCell>
-
-                      <TableCell className="text-right whitespace-nowrap">
-                        {certUrl ? (
-                          <Button asChild size="sm" variant="outline">
-                            <a href={certUrl} target="_blank" rel="noreferrer">
-                              Download
-                            </a>
-                          </Button>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!canNext || busy) return;
+                      setPage((p) => p + 1);
+                    }}
+                    className={
+                      !canNext || busy
+                        ? "pointer-events-none opacity-50"
+                        : undefined
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         </div>
-      </Card>
-    </div>
-  )
+      </div>
+    </PageHeaderLayout>
+  );
 }

@@ -1,147 +1,372 @@
-"use client"
+// components/packages/QuestionPackagesTable.tsx
+"use client";
 
-import Link from "next/link"
-import * as React from "react"
+import Link from "next/link";
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Filter } from "lucide-react";
 
-import { useQuestionPackagesQuery } from "@/lib/hooks/useQuestionPackagesQuery"
-import type { QuestionPackage } from "@/lib/types/question-packages"
+import { questionPackagesService } from "@/lib/services/questionPackages.service";
+import type { QuestionPackage } from "@/lib/types/question-packages";
+import type { PaginatedResponse } from "@/lib/types/pagination";
+import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
-type ActiveFilter = "all" | "active" | "inactive"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-function contains(hay: string, needle: string) {
-  return hay.toLowerCase().includes(needle.toLowerCase())
+type StatusOption = { label: string; value: string };
+
+const STATUS_OPTIONS: StatusOption[] = [
+  { label: "Semua Status", value: "" },
+  { label: "Aktif", value: "active" },
+  { label: "Nonaktif", value: "inactive" },
+];
+
+function useDebouncedValue<T>(value: T, delay = 350) {
+  const [debounced, setDebounced] = React.useState(value);
+  React.useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+function buildPages(page: number, lastPage: number) {
+  const total = Math.max(1, lastPage);
+  const current = Math.min(Math.max(1, page), total);
+  const windowSize = 1;
+
+  if (total <= 7)
+    return Array.from({ length: total }, (_, i) => i + 1) as Array<
+      number | "ellipsis"
+    >;
+
+  const start = Math.max(2, current - windowSize);
+  const end = Math.min(total - 1, current + windowSize);
+
+  const result: Array<number | "ellipsis"> = [1];
+  if (start > 2) result.push("ellipsis");
+  for (let p = start; p <= end; p++) result.push(p);
+  if (end < total - 1) result.push("ellipsis");
+  result.push(total);
+
+  return result;
 }
 
 function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="muted">Nonaktif</Badge>
-  return <Badge variant="success">Aktif</Badge>
+  if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
+  return <Badge variant="success">Aktif</Badge>;
 }
 
 export function QuestionPackagesTable() {
-  const { qPkgs } = useQuestionPackagesQuery()
+  const router = useRouter();
 
-  const [qText, setQText] = React.useState("")
-  const [active, setActive] = React.useState<ActiveFilter>("all")
+  const [qText, setQText] = React.useState("");
+  const [status, setStatus] = React.useState<string>("");
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(10);
+
+  const qDebounced = useDebouncedValue(qText, 350);
 
   React.useEffect(() => {
-    // kalau nanti kamu nambah pagination client-side, reset page di sini
-  }, [qText, active])
+    setPage(1);
+  }, [qDebounced, status, perPage]);
 
-  const rows = React.useMemo(() => {
-    const allRows = qPkgs.data?.data ?? []
-    let r = [...allRows]
+  const params = React.useMemo(() => {
+    const q = qDebounced.trim() || undefined;
+    const is_active =
+      status === "active" ? true : status === "inactive" ? false : undefined;
 
-    if (active !== "all") {
-      const isActive = active === "active"
-      r = r.filter((x) => x.is_active === isActive)
-    }
+    return {
+      q,
+      is_active,
+      per_page: perPage,
+      page,
+    };
+  }, [qDebounced, status, perPage, page]);
 
-    const q = qText.trim()
-    if (q) {
-      r = r.filter((x) => contains(x.name, q) || contains(x.moodle_group_name, q))
-    }
+  const query = useQuery<PaginatedResponse<QuestionPackage>>({
+    queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.BASE, params],
+    queryFn: () => questionPackagesService.list(params),
+    placeholderData: keepPreviousData,
+  });
 
-    r.sort((a, b) => a.id - b.id)
-    return r
-  }, [qPkgs.data, qText, active])
+  const res = query.data;
+  const rows = res?.data ?? [];
+  const lastPage = res?.last_page ?? 1;
+  const canPrev = page > 1;
+  const canNext = page < lastPage;
+  const pages = buildPages(page, lastPage);
+  const busy = query.isFetching;
 
-  const busy = qPkgs.isFetching
+  const resetAll = React.useCallback(() => {
+    setQText("");
+    setStatus("");
+    setPerPage(10);
+    setPage(1);
+  }, []);
+
+  const statusLabelText =
+    STATUS_OPTIONS.find((o) => o.value === status)?.label ?? "Semua Status";
+
+  const columns = React.useMemo<DataTableColumn<QuestionPackage>[]>(() => {
+    return [
+      {
+        key: "no",
+        header: "No",
+        headerClassName: "w-16 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (_row, idx) => (page - 1) * perPage + (idx + 1),
+      },
+      {
+        key: "name",
+        header: "Nama",
+        headerClassName: "min-w-[200px]",
+        className: "py-4 px-2",
+        cell: (row) => (
+          <div className="truncate max-w-50">{row.name}</div>
+        ),
+      },
+      {
+        key: "moodle_group_name",
+        header: "Moodle Group",
+        headerClassName: "text-center min-w-[200px]",
+        className: "py-4 px-2 text-center",
+        cell: (row) => (
+          <div className="truncate max-w-50 mx-auto">
+            {row.moodle_group_name}
+          </div>
+        ),
+      },
+      {
+        key: "status",
+        header: "Status",
+        headerClassName: "w-32 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (row) => (
+          <div className="flex justify-center">
+            <ActiveBadge active={row.is_active} />
+          </div>
+        ),
+      },
+      {
+        key: "action",
+        header: "Aksi",
+        headerClassName: "w-32 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (row) => (
+          <div className="flex justify-center">
+            <Button asChild size="sm" variant="outline">
+              <Link
+                href={`/dashboard/admin/question-packages/${row.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                Detail
+              </Link>
+            </Button>
+          </div>
+        ),
+      },
+    ];
+  }, [page, perPage]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-          <Input
-            value={qText}
-            onChange={(e) => setQText(e.target.value)}
-            placeholder="Cari paket (nama / moodle group)"
-            className="lg:w-65"
-          />
+    <div className="h-full min-h-0 rounded-xl border overflow-hidden flex flex-col">
+      <div className="p-4 space-y-2">
+        <div className="flex flex-col sm:flex-row gap-3 lg:items-center">
+          <div className="flex-1">
+            <Input
+              value={qText}
+              onChange={(e) => setQText(e.target.value)}
+              placeholder="Cari paket (nama / moodle group)…"
+              disabled={busy}
+              className="w-full"
+            />
+          </div>
 
-          <select
-            className="h-9 rounded-md border bg-background px-3 text-sm lg:w-65"
-            value={active}
-            onChange={(e) => setActive(e.target.value as ActiveFilter)}
-          >
-            <option value="all">Semua Status</option>
-            <option value="active">Aktif</option>
-            <option value="inactive">Nonaktif</option>
-          </select>
+          <div className="flex gap-3 items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={busy}
+                  aria-label="Filter status"
+                  title={statusLabelText}
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                <DropdownMenuRadioGroup
+                  value={status}
+                  onValueChange={setStatus}
+                >
+                  {STATUS_OPTIONS.map((o) => (
+                    <DropdownMenuRadioItem
+                      key={o.value}
+                      value={o.value}
+                      disabled={busy}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      {o.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={resetAll}
+            >
+              Reset
+            </Button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            onClick={() => {
-              setQText("")
-              setActive("all")
-            }}
-          >
-            Reset
-          </Button>
+        <div className="text-xs text-muted-foreground">
+          {res && (
+            <>
+              Menampilkan{" "}
+              <span className="font-medium text-foreground">
+                {res.from ?? 0}
+              </span>
+              –
+              <span className="font-medium text-foreground">{res.to ?? 0}</span>{" "}
+              dari{" "}
+              <span className="font-medium text-foreground">
+                {res.total ?? 0}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16">No</TableHead>
-              <TableHead>Nama</TableHead>
-              <TableHead>Moodle Group</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Detail</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                  {qPkgs.isLoading ? "Memuat..." : "Data tidak ditemukan"}
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((it: QuestionPackage, idx: number) => (
-                <TableRow key={it.id}>
-                  <TableCell>{idx + 1}</TableCell>
-                  <TableCell className="font-medium">{it.name}</TableCell>
-                  <TableCell>{it.moodle_group_name}</TableCell>
-                  <TableCell>
-                    <ActiveBadge active={it.is_active} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/dashboard/admin/question-packages/${it.id}`}>Detail</Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      <div className="flex-1 min-h-0 overflow-auto border-t">
+        <DataTable
+          columns={columns}
+          rows={rows}
+          getRowKey={(r) => r.id}
+          loading={query.isLoading}
+          emptyText="Data tidak ditemukan"
+          stickyHeader
+          onRowClick={(row) =>
+            router.push(`/dashboard/admin/question-packages/${row.id}`)
+          }
+          getRowClassName={() => "cursor-pointer hover:bg-muted/50"}
+        />
       </div>
 
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="text-sm text-muted-foreground">
-          Menampilkan <span className="font-medium text-foreground">{rows.length}</span> data
+      <div className="border-t bg-white">
+        <div className="p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-muted-foreground">Per halaman</span>
+            <select
+              className="h-9 rounded-md border bg-background px-3 text-sm"
+              value={perPage}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+              disabled={busy}
+            >
+              {[10, 20, 50, 100, 200].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Pagination className="ml-auto w-full justify-end">
+            <PaginationContent className="justify-end w-auto flex-nowrap">
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!canPrev || busy) return;
+                    setPage((p) => Math.max(1, p - 1));
+                  }}
+                  className={
+                    !canPrev || busy
+                      ? "pointer-events-none opacity-50"
+                      : undefined
+                  }
+                />
+              </PaginationItem>
+
+              {pages.map((p, i) => {
+                if (p === "ellipsis") {
+                  return (
+                    <PaginationItem key={`el-${i}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  );
+                }
+
+                return (
+                  <PaginationItem key={p}>
+                    <PaginationLink
+                      href="#"
+                      isActive={p === page}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (busy) return;
+                        setPage(p);
+                      }}
+                    >
+                      {String(p)}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!canNext || busy) return;
+                    setPage((p) => p + 1);
+                  }}
+                  className={
+                    !canNext || busy
+                      ? "pointer-events-none opacity-50"
+                      : undefined
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
-        <div />
       </div>
     </div>
-  )
+  );
 }

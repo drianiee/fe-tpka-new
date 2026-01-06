@@ -5,10 +5,9 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Button } from "@/components/ui/button"
+import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout"
 
 import type { User } from "@/lib/types/auth"
 import { authService } from "@/lib/services/auth.service"
@@ -27,6 +26,15 @@ function verifyLabel(emailVerifiedAt?: string | null) {
 
 function verifyVariant(emailVerifiedAt?: string | null): "success" | "muted" {
   return emailVerifiedAt ? "success" : "muted"
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-1 py-3 sm:grid-cols-[220px_1fr] sm:gap-3">
+      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="wrap-break-word text-sm font-medium text-foreground">{value}</div>
+    </div>
+  )
 }
 
 export default function AccountPage() {
@@ -64,55 +72,44 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Akun Saya</h1>
-        <p className="text-sm text-muted-foreground">Informasi profil akun yang sedang login</p>
-      </div>
-
-      <Card className="p-4 space-y-4">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+    <PageHeaderLayout
+      title="Akun Saya"
+      description="Informasi profil akun yang sedang login"
+      showBack={false}
+    >
+      <div className="rounded-lg border bg-white">
+        <div className="p-5 sm:p-6">
           <div className="space-y-1">
             <div className="text-lg font-semibold">{user.name}</div>
             <div className="text-sm text-muted-foreground">{user.email}</div>
 
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2 pt-2">
               <Badge variant="secondary">Akses: {roleLabel(user.role)}</Badge>
-              <Badge variant={verifyVariant(user.email_verified_at)}>{verifyLabel(user.email_verified_at)}</Badge>
+              <Badge variant={verifyVariant(user.email_verified_at)}>
+                {verifyLabel(user.email_verified_at)}
+              </Badge>
             </div>
           </div>
-
-          <Button variant="outline" onClick={() => router.back()}>
-            Kembali
-          </Button>
         </div>
 
         <Separator />
 
-        <div className="grid gap-2 text-sm">
-          <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">User ID</span>
-            <span className="font-medium">{user.id}</span>
-          </div>
+        <div className="p-5 sm:p-6">
+          <div className="text-sm font-semibold">Detail Akun</div>
 
-          <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">Role</span>
-            <span className="font-medium">{roleLabel(user.role)}</span>
-          </div>
-
-          {"profile_completed_at" in user ? (
-            <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">Profile completed</span>
-              <span className="font-medium">{user.profile_completed_at ? "Ya" : "Belum"}</span>
-            </div>
-          ) : null}
-
-          <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">Email verified</span>
-            <span className="font-medium">{user.email_verified_at ? "Ya" : "Belum"}</span>
+          <div className="mt-4 divide-y">
+            <Row label="User ID" value={user.id} />
+            <Row label="Role" value={roleLabel(user.role)} />
+            <Row label="Email verified" value={user.email_verified_at ? "Ya" : "Belum"} />
+            {"profile_completed_at" in user ? (
+              <Row
+                label="Profile completed"
+                value={user.profile_completed_at ? "Ya" : "Belum"}
+              />
+            ) : null}
           </div>
         </div>
-      </Card>
-    </div>
+      </div>
+    </PageHeaderLayout>
   )
 }

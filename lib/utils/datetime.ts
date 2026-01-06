@@ -1,6 +1,23 @@
 // lib/utils/datetime.ts
 
-export function formatDateTime(iso: string): string {
+export type IsoDateInput = string | null | undefined;
+
+export function formatDateId(iso: IsoDateInput): string {
+  if (!iso) return "-";
+
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+
+  return d.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export function formatDateTime(iso: IsoDateInput): string {
+  if (!iso) return "-";
+
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
 

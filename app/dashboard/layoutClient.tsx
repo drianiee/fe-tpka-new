@@ -169,7 +169,7 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
         </div>
 
         <main className="min-w-0">
-          <div className="mx-auto max-w-5xl p-4 md:p-8">{children}</div>
+          <div className="mx-auto max-w-6xl p-4 md:p-8">{children}</div>
         </main>
       </div>
 

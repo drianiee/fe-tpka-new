@@ -1,3 +1,4 @@
+// lib/services/questionPackages.service.ts
 import { http } from "@/lib/api/http";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
@@ -10,10 +11,17 @@ import type {
   DeleteQuestionPackageResponse,
 } from "@/lib/types/question-packages";
 
+export type ListQuestionPackagesParams = {
+  q?: string;
+  is_active?: boolean;
+  per_page?: number;
+  page?: number;
+};
+
 export const questionPackagesService = {
-  list(): Promise<ListQuestionPackagesResponse> {
+  list(params?: ListQuestionPackagesParams): Promise<ListQuestionPackagesResponse> {
     return http
-      .get(API_ENDPOINTS.QUESTION_PACKAGES.BASE)
+      .get(API_ENDPOINTS.QUESTION_PACKAGES.BASE, { params })
       .then((r) => r.data as ListQuestionPackagesResponse);
   },
 
@@ -23,9 +31,7 @@ export const questionPackagesService = {
       .then((r) => r.data as DetailQuestionPackageResponse);
   },
 
-  create(
-    payload: CreateQuestionPackageRequest
-  ): Promise<CreateQuestionPackageResponse> {
+  create(payload: CreateQuestionPackageRequest): Promise<CreateQuestionPackageResponse> {
     return http
       .post(API_ENDPOINTS.QUESTION_PACKAGES.BASE, payload)
       .then((r) => r.data as CreateQuestionPackageResponse);

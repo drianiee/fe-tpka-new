@@ -1,3 +1,6 @@
+// lib/types/question-packages.ts
+import type { PaginatedResponse } from "@/lib/types/pagination";
+
 export type QuestionPackage = {
   id: number;
   name: string;
@@ -7,9 +10,7 @@ export type QuestionPackage = {
   updated_at: string;
 };
 
-export type ListQuestionPackagesResponse = {
-  data: QuestionPackage[];
-};
+export type ListQuestionPackagesResponse = PaginatedResponse<QuestionPackage>;
 
 export type DetailQuestionPackageResponse = {
   data: QuestionPackage;

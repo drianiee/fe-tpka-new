@@ -10,6 +10,8 @@ export const API_ENDPOINTS = {
 
   DASHBOARD: {
     BASE: "/api/dashboard",
+    REVENUE_CHART: "/api/dashboard/revenue-chart",
+    PARTICIPANTS_CHART: "/api/dashboard/participants-chart",
   },
 
   SCHEDULES: {
@@ -23,10 +25,10 @@ export const API_ENDPOINTS = {
     ) => `/api/schedules/${scheduleId}/participants/${userId}`,
     PROVISION: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/provision`,
-
-    // ✅ import peserta mitra (xlsx)
     PARTNER_IMPORT: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/partner/import`,
+    PARTICIPANTS_EXPORT: (scheduleId: number | string) =>
+      `/api/schedules/${scheduleId}/participants/export`,
   },
 
   PARTNERS: {
@@ -49,9 +51,11 @@ export const API_ENDPOINTS = {
 
   ADMIN: {
     OPERATORS: "/api/admin/operators",
+    CREATE_OPERATOR: "/api/admin/users/operator",
     OPERATOR_DETAIL: (id: number | string) => `/api/admin/operators/${id}`,
     OPERATOR_STATUS: (id: number | string) =>
       `/api/admin/operators/${id}/status`,
+    OPERATOR_DELETE: (id: number | string) => `/api/admin/operators/${id}`,
   },
 
   PARTICIPANTS: {

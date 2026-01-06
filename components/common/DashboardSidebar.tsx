@@ -34,8 +34,8 @@ function navByRole(role: UserRole): NavItem[] {
       { key: "dashboard", label: "Beranda", href: "/dashboard", icon: LayoutGrid, exact: true },
       { key: "schedules", label: "Schedules", href: "/dashboard/admin/schedules", icon: CalendarCheck },
       { key: "mitra", label: "Mitra", href: "/dashboard/admin/mitra", icon: Handshake },
-      { key: "packages", label: "Packages", href: "/dashboard/admin/question-packages", icon: Package },
-      { key: "payments", label: "Payments", href: "/dashboard/admin/payments", icon: CreditCard },
+      { key: "packages", label: "Paket Soal", href: "/dashboard/admin/question-packages", icon: Package },
+      { key: "payments", label: "Pembayaran", href: "/dashboard/admin/payments", icon: CreditCard },
       {
         key: "arsip",
         label: "Data Arsip",

@@ -1,3 +1,4 @@
+// lib/types/operators.ts
 export type Operator = {
   id: number;
   name: string;
@@ -10,11 +11,10 @@ export type Operator = {
   profile_completed_at?: string | null;
   email_verified_at?: string | null;
 
-  created_at?: string;
-  updated_at?: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
-// list item = operator (simple)
 export type OperatorListItem = Operator;
 
 export type OperatorDetailResponse = {
@@ -24,4 +24,8 @@ export type OperatorDetailResponse = {
 export type UpdateOperatorStatusResponse = {
   message: string;
   operator: Operator;
+};
+
+export type DeleteOperatorResponse = {
+  message: string;
 };

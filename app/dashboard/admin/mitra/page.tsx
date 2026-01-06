@@ -1,23 +1,19 @@
+// app/dashboard/admin/partners/page.tsx
 "use client";
 
 import { AddPartnerDialog } from "@/components/partners/AddPartnerDialog";
 import { PartnersTable } from "@/components/partners/PartnersTable";
-import { Separator } from "@/components/ui/separator";
+import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
 export default function AdminMitraPage() {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-semibold">Mitra</h1>
-          <p className="text-sm text-muted-foreground">Kelola Mitra</p>
-        </div>
-        <AddPartnerDialog />
-      </div>
-
-      <Separator />
-
+    <PageHeaderLayout
+      title="Mitra"
+      description="Kelola Mitra"
+      showBack={false}
+      actions={<AddPartnerDialog />}
+    >
       <PartnersTable />
-    </div>
+    </PageHeaderLayout>
   );
 }
