@@ -32,8 +32,6 @@ export const API_ENDPOINTS = {
       `/api/schedules/${scheduleId}/partner/import`,
     PARTICIPANTS_EXPORT: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/participants/export`,
-    PARTICIPANT_REGISTER: (id: number | string) =>
-      `/participant/schedules/${id}/register`,
   },
 
   PARTNERS: {
@@ -67,7 +65,14 @@ export const API_ENDPOINTS = {
     BASE: "/api/participants",
     DETAIL: (id: number | string) => `/api/participants/${id}`,
   },
-
+  PARTICIPANT: {
+    SCHEDULES: "/api/participant/schedules",
+    SCHEDULE_REGISTER: (id: number | string) =>
+      `/api/participant/schedules/${id}/register`,
+    MY_SCHEDULES: "/api/participant/my-schedules",
+    MY_SCHEDULE_DETAIL: (id: number | string) =>
+      `/api/participant/my-schedules/${id}`,
+  },
   PAYMENTS_ADMIN: {
     BASE: "/api/payments",
     DETAIL: (id: number | string) => `/api/payments/${id}`,

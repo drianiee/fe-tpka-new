@@ -1,3 +1,5 @@
+// src/lib/types/schedules.ts
+
 import type { PaginatedResponse } from "@/lib/types/pagination";
 
 export type ScheduleStatus =
@@ -20,10 +22,10 @@ export type PartnerLite = {
 
 export type ScheduleListItem = {
   id: number;
-  date: string;
-  start_time: string;
-  end_time: string;
-  price: string;
+  date: string; // biasanya "YYYY-MM-DD HH:mm:ss"
+  start_time: string; // "HH:mm:ss"
+  end_time: string; // "HH:mm:ss"
+  price: string; // "150000.00"
 
   is_partner: boolean;
   partner_id: number | null;
