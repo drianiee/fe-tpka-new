@@ -1,4 +1,7 @@
 export const API_ENDPOINTS = {
+  LANDING: {
+    SCHEDULES: "/api/schedules/upcoming",
+  },
   AUTH: {
     LOGIN: "/api/auth/login",
     REGISTER: "/api/auth/register",
@@ -29,6 +32,8 @@ export const API_ENDPOINTS = {
       `/api/schedules/${scheduleId}/partner/import`,
     PARTICIPANTS_EXPORT: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/participants/export`,
+    PARTICIPANT_REGISTER: (id: number | string) =>
+      `/participant/schedules/${id}/register`,
   },
 
   PARTNERS: {

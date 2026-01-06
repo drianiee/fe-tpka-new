@@ -26,6 +26,7 @@ const badgeVariants = cva(
 
         success:
           "border-transparent bg-[#B9DDB1] text-[#007C29] transition-colors duration-200 hover:bg-[#A7D4A0] hover:text-[#006622] [a&]:hover:bg-[#A7D4A0]",
+        time: "border-transparent h-hug w-hug bg-[#E2E9F3] text-[#013880] [a&]:hover:bg-primary/90 h-fit",
       },
     },
     defaultVariants: {

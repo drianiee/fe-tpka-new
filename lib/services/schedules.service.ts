@@ -11,6 +11,7 @@ import type {
   ExportSchedulesResponse,
   PartnerImportResponse,
   RemoveParticipantResponse,
+  RegisterScheduleResponse,
   ScheduleDetail,
   ScheduleListItem,
 } from "@/lib/types/schedules";
@@ -73,8 +74,11 @@ export const schedulesService = {
   },
 
   exportParticipants(scheduleId: number | string): Promise<ExportScheduleParticipantsResponse> {
-    return http
-      .get(API_ENDPOINTS.SCHEDULES.PARTICIPANTS_EXPORT(scheduleId))
-      .then((r) => r.data);
+    return http.get(API_ENDPOINTS.SCHEDULES.PARTICIPANTS_EXPORT(scheduleId)).then((r) => r.data);
+  },
+
+  // ✅ participant flow: register schedule -> midtrans snap
+  registerParticipant(scheduleId: number | string): Promise<RegisterScheduleResponse> {
+    return http.post(API_ENDPOINTS.SCHEDULES.PARTICIPANT_REGISTER(scheduleId)).then((r) => r.data);
   },
 };

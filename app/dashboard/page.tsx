@@ -533,7 +533,7 @@ export default function DashboardPage() {
                       Tidak ada jadwal aktif.
                     </div>
                   ) : (
-                    <div className="max-h-[420px] overflow-y-auto pr-2 space-y-2">
+                    <div className="max-h-105 overflow-y-auto pr-2 space-y-2">
                       {latest.map((s) => (
                         <ScheduleRowCompact key={s.id} s={s} />
                       ))}

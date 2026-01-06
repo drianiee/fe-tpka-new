@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, Mail, RotateCcw, UserRound, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Mail, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,10 +37,21 @@ const registerSchema = z
     password: z
       .string()
       .min(6, "Password minimal 6 karakter")
-      .refine((v) => /[A-Z]/.test(v), "Password harus mengandung minimal 1 huruf besar")
-      .refine((v) => /[0-9]/.test(v), "Password harus mengandung minimal 1 angka")
-      .refine((v) => /[=-]/.test(v), "Password harus mengandung minimal 1 karakter khusus: = atau -"),
-    password_confirmation: z.string().min(6, "Konfirmasi password minimal 6 karakter"),
+      .refine(
+        (v) => /[A-Z]/.test(v),
+        "Password harus mengandung minimal 1 huruf besar"
+      )
+      .refine(
+        (v) => /[0-9]/.test(v),
+        "Password harus mengandung minimal 1 angka"
+      )
+      .refine(
+        (v) => /[=-]/.test(v),
+        "Password harus mengandung minimal 1 karakter khusus: = atau -"
+      ),
+    password_confirmation: z
+      .string()
+      .min(6, "Konfirmasi password minimal 6 karakter"),
   })
   .refine((v) => v.password === v.password_confirmation, {
     message: "Password dan konfirmasi tidak sama",
@@ -56,7 +67,7 @@ const completeProfileSchema = z.object({
   birth_date: z.string().min(1, "Tanggal lahir wajib diisi"),
   phone: z.string().min(8, "Nomor HP minimal 8 digit"),
   id_image: z
-    .custom<File>((v) => v instanceof File, "File identitas wajib diupload")
+    .custom<File>((v) => v instanceof File, "Identitas wajib diunggah")
     .refine((f) => f.size <= 5 * 1024 * 1024, "Maks 5MB")
     .refine(
       (f) => ["image/jpeg", "image/png", "image/jpg"].includes(f.type),
@@ -82,7 +93,9 @@ export default function RegisterPage() {
   const [completing, setCompleting] = React.useState(false);
 
   // register success state (untuk tampilan "cek email" tanpa harus pindah halaman)
-  const [registeredEmail, setRegisteredEmail] = React.useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = React.useState<string | null>(
+    null
+  );
 
   // Jika user datang dari link verifikasi, kita anggap masuk flow complete profile
   const isCompleteMode = Boolean(tokenFromUrl);
@@ -114,7 +127,10 @@ export default function RegisterPage() {
 
       const res = await authService.register(payload);
 
-      toast.success(res?.message ?? "Registrasi berhasil. Silakan cek email untuk verifikasi.");
+      toast.success(
+        res?.message ??
+          "Registrasi berhasil. Silakan cek email untuk verifikasi."
+      );
       setRegisteredEmail(payload.email);
     } catch (e: unknown) {
       toast.error(getApiErrorMessage(e));
@@ -158,7 +174,9 @@ export default function RegisterPage() {
 
   async function onCompleteSubmit(values: CompleteProfileValues) {
     if (!tokenFromUrl) {
-      toast.error("Token verifikasi tidak ditemukan. Silakan klik ulang link verifikasi dari email.");
+      toast.error(
+        "Token verifikasi tidak ditemukan. Silakan klik ulang link verifikasi dari email."
+      );
       router.replace("/login");
       return;
     }
@@ -210,12 +228,16 @@ export default function RegisterPage() {
           {isCompleteMode ? (
             <div className="space-y-6">
               <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight">Lengkapi Profil</h1>
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Lengkapi Profil
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   {emailFromUrl ? (
                     <>
                       Lengkapi profil untuk:{" "}
-                      <span className="font-medium text-foreground">{emailFromUrl}</span>
+                      <span className="font-medium text-foreground">
+                        {emailFromUrl}
+                      </span>
                     </>
                   ) : (
                     "Lengkapi profil Anda untuk melanjutkan."
@@ -224,8 +246,11 @@ export default function RegisterPage() {
               </div>
 
               <div className="rounded-2xl border bg-white p-6">
-                <form className="space-y-4" onSubmit={completeForm.handleSubmit(onCompleteSubmit)}>
-                  <div className="space-y-2">
+                <form
+                  className="space-y-4"
+                  onSubmit={completeForm.handleSubmit(onCompleteSubmit)}
+                >
+                  {/* <div className="space-y-2">
                     <Label>Jenis Identitas</Label>
                     <Controller
                       control={completeForm.control}
@@ -251,7 +276,7 @@ export default function RegisterPage() {
                         {completeForm.formState.errors.id_type.message}
                       </p>
                     ) : null}
-                  </div>
+                  </div> */}
 
                   <div className="space-y-2">
                     <Label htmlFor="birth_date">Tanggal Lahir</Label>
@@ -280,7 +305,8 @@ export default function RegisterPage() {
                       {...completeForm.register("phone")}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Gunakan nomor aktif (untuk kebutuhan informasi/konfirmasi).
+                      Gunakan nomor aktif (untuk kebutuhan
+                      informasi/konfirmasi).
                     </p>
                     {completeForm.formState.errors.phone ? (
                       <p className="text-sm text-destructive">
@@ -290,34 +316,69 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="id_image">Upload Foto Identitas</Label>
-                    <Input
-                      id="id_image"
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg"
-                      disabled={completing}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) completeForm.setValue("id_image", file, { shouldValidate: true });
-                      }}
-                    />
+                    <Label htmlFor="id_image">Unggah Identitas</Label>
+                    <div className="gap-2 flex">
+                      <Controller
+                        control={completeForm.control}
+                        name="id_type"
+                        render={({ field }) => (
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={completing}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih jenis identitas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ktp">KTP</SelectItem>
+                              <SelectItem value="ktm">KTM</SelectItem>
+                              <SelectItem value="sim">SIM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <Input
+                        id="id_image"
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                        disabled={completing}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file)
+                            completeForm.setValue("id_image", file, {
+                              shouldValidate: true,
+                            });
+                        }}
+                      />
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Format JPG/PNG, ukuran maks 5MB.
                     </p>
                     {completeForm.formState.errors.id_image ? (
                       <p className="text-sm text-destructive">
-                        {completeForm.formState.errors.id_image.message as string}
+                        {
+                          completeForm.formState.errors.id_image
+                            .message as string
+                        }
                       </p>
                     ) : null}
                   </div>
 
-                  <Button className="w-full" type="submit" disabled={completing}>
+                  <Button
+                    className="w-full"
+                    type="submit"
+                    disabled={completing}
+                  >
                     {completing ? "Menyimpan..." : "Simpan Profil"}
                   </Button>
 
                   <div className="pt-2 text-center text-sm text-muted-foreground">
                     Salah akun?{" "}
-                    <Link href="/login" className="text-foreground underline underline-offset-4">
+                    <Link
+                      href="/login"
+                      className="text-foreground underline underline-offset-4"
+                    >
                       Login
                     </Link>
                   </div>
@@ -334,10 +395,12 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <h1 className="text-xl font-semibold leading-tight">Cek email kamu</h1>
+                    <h1 className="text-xl font-semibold leading-tight">
+                      Cek email kamu
+                    </h1>
                     <p className="text-sm text-muted-foreground">
-                      Kami sudah mengirim link verifikasi. Silakan cek inbox/spam dan klik link-nya
-                      untuk mengaktifkan akun.
+                      Kami sudah mengirim link verifikasi. Silakan cek
+                      inbox/spam dan klik link-nya untuk mengaktifkan akun.
                     </p>
                   </div>
                 </div>
@@ -346,42 +409,62 @@ export default function RegisterPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Email tujuan:</span>
-                    <span className="font-medium text-foreground">{registeredEmail}</span>
+                    <span className="font-medium text-foreground">
+                      {registeredEmail}
+                    </span>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Jika email tidak masuk dalam 1–3 menit, cek folder spam/promotions.
+                    Jika email tidak masuk dalam 1–3 menit, cek folder
+                    spam/promotions.
                   </p>
                 </div>
 
                 <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                  <Button type="button" variant="outline" onClick={resetRegister}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetRegister}
+                  >
                     <RotateCcw className="mr-2 h-4 w-4" />
                     Register ulang
                   </Button>
 
-                  <Button type="button" onClick={() => router.replace("/login")}>
+                  <Button
+                    type="button"
+                    onClick={() => router.replace("/login")}
+                  >
                     Ke Login
                   </Button>
                 </div>
               </div>
 
               <div className="text-center text-sm text-muted-foreground">
-                Sudah klik link verifikasi? Setelah itu kamu akan diarahkan kembali untuk{" "}
-                <span className="font-medium text-foreground">lengkapi profil</span>.
+                Sudah klik link verifikasi? Setelah itu kamu akan diarahkan
+                kembali untuk{" "}
+                <span className="font-medium text-foreground">
+                  lengkapi profil
+                </span>
+                .
               </div>
             </div>
           ) : (
             /* ============ REGISTER MODE ============ */
             <div className="space-y-6">
               <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight">Buat Akun</h1>
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Buat Akun
+                </h1>
                 <p className="text-sm text-muted-foreground">
-                  Daftar sebagai peserta. Verifikasi email diperlukan untuk mengaktifkan akun.
+                  Daftar sebagai peserta. Verifikasi email diperlukan untuk
+                  mengaktifkan akun.
                 </p>
               </div>
 
               <div className="rounded-2xl border bg-white p-6">
-                <form className="space-y-4" onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
+                <form
+                  className="space-y-4"
+                  onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
+                >
                   <div className="space-y-2">
                     <Label htmlFor="name">Nama</Label>
                     <Input
@@ -390,9 +473,6 @@ export default function RegisterPage() {
                       disabled={registering}
                       {...registerForm.register("name")}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Gunakan nama asli sesuai identitas.
-                    </p>
                     {registerForm.formState.errors.name ? (
                       <p className="text-sm text-destructive">
                         {registerForm.formState.errors.name.message}
@@ -409,9 +489,6 @@ export default function RegisterPage() {
                       disabled={registering}
                       {...registerForm.register("email")}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Gunakan email yang aktif untuk menerima link verifikasi.
-                    </p>
                     {registerForm.formState.errors.email ? (
                       <p className="text-sm text-destructive">
                         {registerForm.formState.errors.email.message}
@@ -428,7 +505,9 @@ export default function RegisterPage() {
                       disabled={registering}
                       {...registerForm.register("password")}
                     />
-                    <p className="text-xs text-muted-foreground">{passwordRuleText}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {passwordRuleText}
+                    </p>
                     {registerForm.formState.errors.password ? (
                       <p className="text-sm text-destructive">
                         {registerForm.formState.errors.password.message}
@@ -437,7 +516,9 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password_confirmation">Konfirmasi Password</Label>
+                    <Label htmlFor="password_confirmation">
+                      Konfirmasi Password
+                    </Label>
                     <Input
                       id="password_confirmation"
                       type="password"
@@ -450,25 +531,35 @@ export default function RegisterPage() {
                     </p>
                     {registerForm.formState.errors.password_confirmation ? (
                       <p className="text-sm text-destructive">
-                        {registerForm.formState.errors.password_confirmation.message}
+                        {
+                          registerForm.formState.errors.password_confirmation
+                            .message
+                        }
                       </p>
                     ) : null}
                   </div>
 
-                  <Button className="w-full" disabled={registering} type="submit">
+                  <Button
+                    className="w-full"
+                    disabled={registering}
+                    type="submit"
+                  >
                     {registering ? "Memproses..." : "Register"}
                   </Button>
 
                   <div className="pt-2 text-center text-sm text-muted-foreground">
                     Sudah punya akun?{" "}
-                    <Link href="/login" className="text-foreground underline underline-offset-4">
+                    <Link
+                      href="/login"
+                      className="text-foreground underline underline-offset-4"
+                    >
                       Login
                     </Link>
                   </div>
                 </form>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              {/* <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border bg-white p-4">
                   <div className="flex items-start gap-3">
                     <div className="rounded-xl border bg-muted/30 p-2 text-muted-foreground">
@@ -496,7 +587,7 @@ export default function RegisterPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
         </div>

@@ -152,3 +152,25 @@ export type ExportScheduleParticipantsResponse = {
   total: number;
   download_url: string;
 };
+
+/**
+ * Participant register schedule (Midtrans Snap)
+ * POST /api/participant/schedules/{id}/register
+ */
+export type RegisterScheduleResponse = {
+  message: string;
+  mode: "paid" | "free";
+  data: {
+    schedule_id: number;
+    payment_id: number;
+    order_id: string;
+    snap_token: string;
+    redirect_url: string;
+    amount: number;
+    picked?: {
+      question_package_id: number;
+      package_name: string;
+      moodle_group_name: string;
+    };
+  };
+};
