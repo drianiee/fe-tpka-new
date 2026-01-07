@@ -35,7 +35,10 @@ import {
 
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
-type StatusOption = { label: string; value: ParticipantMySchedulesStatusFilter };
+type StatusOption = {
+  label: string;
+  value: ParticipantMySchedulesStatusFilter;
+};
 
 const STATUS_OPTIONS: StatusOption[] = [
   { label: "Semua", value: "all" },
@@ -52,16 +55,37 @@ function paymentStatusLabel(ps?: string | null) {
   const s = normalizeText(ps ?? "");
   if (!s) return "-";
   if (s === "pending") return "Menunggu Pembayaran";
-  if (s === "capture" || s === "settlement" || s === "paid" )
+  if (s === "capture" || s === "settlement" || s === "paid" || s === "partner")
     return "Terdaftar";
+  if (s === "expire") return "Kedaluwarsa";
+  if (s === "cancel") return "Dibatalkan";
+  if (s === "deny") return "Ditolak";
+  if (s === "failure") return "Gagal";
   return ps ?? "-";
 }
 
-function paymentBadgeVariant(_ps?: string | null): "muted" | "warning" | "success" {
-  const s = normalizeText(_ps ?? "");
+function paymentBadgeVariant(
+  ps?: string | null
+): "muted" | "warning" | "success" {
+  const s = normalizeText(ps ?? "");
   if (!s) return "muted";
   if (s === "pending") return "warning";
-  if (s === "capture" || s === "settlement" || s === "paid" || s === "partner") return "success";
+  if (s === "capture" || s === "settlement" || s === "paid" || s === "partner")
+    return "success";
+  if (s === "expire" || s === "cancel" || s === "deny" || s === "failure")
+    return "muted";
+  return "muted";
+}
+
+function statusVariant(
+  status?: string | null
+): "muted" | "warning" | "success" {
+  const s = normalizeText(status ?? "");
+  if (!s) return "muted";
+  if (s === "tes belum dimulai") return "muted";
+  if (s === "tes akan segera dimulai") return "warning";
+  if (s === "tes sedang berlangsung") return "warning";
+  if (s === "tes telah selesai") return "success";
   return "muted";
 }
 
@@ -98,10 +122,11 @@ export default function ParticipantMySchedulesPage() {
     if (!q) return src;
 
     return src.filter((r) => {
-      const text =
-        `${r.id} ${formatDateId(r.date)} ${hhmm(r.start_time)} ${hhmm(
-          r.end_time
-        )} ${paymentStatusLabel(r.payment_status)}`.toLowerCase();
+      const text = `${formatDateId(r.date)} ${hhmm(r.start_time)} ${hhmm(
+        r.end_time
+      )} ${r.status ?? ""} ${paymentStatusLabel(
+        r.payment_status
+      )}`.toLowerCase();
       return text.includes(q);
     });
   }, [query.data, qText]);
@@ -109,75 +134,83 @@ export default function ParticipantMySchedulesPage() {
   const statusLabelText =
     STATUS_OPTIONS.find((o) => o.value === status)?.label ?? "Semua";
 
-  const columns = React.useMemo<DataTableColumn<ParticipantMyScheduleListItem>[]>(
-    () => {
-      return [
-        {
-          key: "no",
-          header: "No",
-          headerClassName: "w-16 text-center",
-          className: "py-4 px-2 text-center",
-          cell: (_row, idx) => idx + 1,
-        },
-        {
-          key: "id",
-          header: "ID",
-          headerClassName: "w-20 text-center",
-          className: "py-4 px-2 text-center",
-          cell: (row) => row.id,
-        },
-        {
-          key: "date",
-          header: "Tanggal",
-          headerClassName: "w-44",
-          className: "py-4 px-2",
-          cell: (row) => formatDateId(row.date),
-        },
-        {
-          key: "time",
-          header: "Jam",
-          headerClassName: "w-44 text-center",
-          className: "py-4 px-2 text-center",
-          cell: (row) => `${hhmm(row.start_time)} - ${hhmm(row.end_time)} WIB`,
-        },
-        {
-          key: "payment",
-          header: "Status",
-          headerClassName: "w-44 text-center",
-          className: "py-4 px-2 text-center",
-          cell: (row) => (
-            <div className="flex justify-center">
-              <Badge
-                variant={paymentBadgeVariant(row.payment_status)}
-                className="truncate max-w-40"
+  const columns = React.useMemo<
+    DataTableColumn<ParticipantMyScheduleListItem>[]
+  >(() => {
+    return [
+      {
+        key: "no",
+        header: "No",
+        headerClassName: "w-16 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (_row, idx) => idx + 1,
+      },
+      {
+        key: "date",
+        header: "Tanggal",
+        headerClassName: "w-48",
+        className: "py-4 px-2",
+        cell: (row) => formatDateId(row.date),
+      },
+      {
+        key: "time",
+        header: "Jam",
+        headerClassName: "w-48 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (row) => `${hhmm(row.start_time)} - ${hhmm(row.end_time)} WIB`,
+      },
+      {
+        key: "test_status",
+        header: "Status Tes",
+        headerClassName: "w-60 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (row) => (
+          <div className="flex justify-center">
+            <Badge
+              variant={statusVariant(row.status)}
+              className="truncate max-w-56"
+            >
+              {row.status || "-"}
+            </Badge>
+          </div>
+        ),
+      },
+      {
+        key: "payment",
+        header: "Status Pembayaran",
+        headerClassName: "w-56 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (row) => (
+          <div className="flex justify-center">
+            <Badge
+              variant={paymentBadgeVariant(row.payment_status)}
+              className="truncate max-w-52"
+            >
+              {paymentStatusLabel(row.payment_status)}
+            </Badge>
+          </div>
+        ),
+      },
+      {
+        key: "action",
+        header: "Aksi",
+        headerClassName: "w-28 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (row) => (
+          <div className="flex justify-center">
+            <Button asChild size="sm" variant="outline">
+              <Link
+                href={`/dashboard/peserta/my-schedules/${row.id}`}
+                onClick={(e) => e.stopPropagation()}
               >
-                {paymentStatusLabel(row.payment_status)}
-              </Badge>
-            </div>
-          ),
-        },
-        {
-          key: "action",
-          header: "Aksi",
-          headerClassName: "w-32 text-center",
-          className: "py-4 px-2 text-center",
-          cell: (row) => (
-            <div className="flex justify-center">
-              <Button asChild size="sm" variant="outline">
-                <Link
-                  href={`/dashboard/peserta/my-schedules/${row.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Detail
-                </Link>
-              </Button>
-            </div>
-          ),
-        },
-      ];
-    },
-    []
-  );
+                Detail
+              </Link>
+            </Button>
+          </div>
+        ),
+      },
+    ];
+  }, []);
 
   return (
     <PageHeaderLayout
@@ -192,7 +225,7 @@ export default function ParticipantMySchedulesPage() {
               <Input
                 value={qText}
                 onChange={(e) => setQText(e.target.value)}
-                placeholder="Cari… (id/tanggal/jam/status)"
+                placeholder="Cari… (tanggal/jam/status)"
                 disabled={busy}
                 className="w-full"
               />

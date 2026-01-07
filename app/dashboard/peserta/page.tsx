@@ -59,8 +59,32 @@ function isFull(row: ParticipantScheduleListItem) {
   return row.current_participants >= row.capacity;
 }
 
-function statusVariant(status?: string | null): "muted" | "warning" | "success" {
-  const s = normalizeText(status ?? "");
+function isRegistered(row: ParticipantScheduleListItem) {
+  return normalizeText(row?.registration_status ?? "") === "terdaftar";
+}
+
+function isClosedByStatus(row: ParticipantScheduleListItem) {
+  const s = normalizeText(row.status ?? "");
+  return s === "tes sedang berlangsung" || s === "tes telah selesai";
+}
+
+function isLocked(row: ParticipantScheduleListItem) {
+  return isFull(row) || isRegistered(row) || isClosedByStatus(row);
+}
+
+function rowStatusText(row: ParticipantScheduleListItem) {
+  if (isFull(row)) return "Kuota penuh";
+  if (isRegistered(row)) return "Anda telah terdaftar pada jadwal ini";
+  if (isClosedByStatus(row)) return "Jadwal telah berlangsung, tidak dapat daftar";
+  return row.status || "-";
+}
+
+function statusVariantForRow(row: ParticipantScheduleListItem): "muted" | "warning" | "success" {
+  if (isFull(row)) return "muted";
+  if (isRegistered(row)) return "success";
+  if (isClosedByStatus(row)) return "muted";
+
+  const s = normalizeText(row.status ?? "");
   if (!s) return "muted";
   if (s === "tes belum dimulai") return "muted";
   if (s === "tes akan segera dimulai") return "warning";
@@ -78,19 +102,11 @@ function safeNumber(v: unknown) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function ConfirmDetailRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function ConfirmDetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-sm font-medium text-foreground text-right">
-        {value}
-      </div>
+      <div className="text-sm font-medium text-foreground text-right">{value}</div>
     </div>
   );
 }
@@ -100,8 +116,7 @@ export default function PesertaDashboardPage() {
   const [status, setStatus] = React.useState<string>("");
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const [selected, setSelected] =
-    React.useState<ParticipantScheduleListItem | null>(null);
+  const [selected, setSelected] = React.useState<ParticipantScheduleListItem | null>(null);
 
   const query = useQuery({
     queryKey: [API_ENDPOINTS.PARTICIPANT.SCHEDULES, { limit: 10 }],
@@ -143,7 +158,8 @@ export default function PesertaDashboardPage() {
   const openConfirm = React.useCallback(
     (row: ParticipantScheduleListItem) => {
       if (busy) return;
-      if (isFull(row)) return;
+      if (isLocked(row)) return;
+
       setSelected(row);
       setConfirmOpen(true);
       if (payMutation.isError) payMutation.reset();
@@ -196,12 +212,12 @@ export default function PesertaDashboardPage() {
       {
         key: "status",
         header: "Status",
-        headerClassName: "w-56 text-center",
+        headerClassName: "w-[360px] text-center",
         className: "py-4 px-2 text-center",
         cell: (row) => (
           <div className="flex justify-center">
-            <Badge variant={statusVariant(row.status)} className="truncate max-w-52">
-              {row.status || "-"}
+            <Badge variant={statusVariantForRow(row)} className="truncate max-w-85">
+              {rowStatusText(row)}
             </Badge>
           </div>
         ),
@@ -212,19 +228,20 @@ export default function PesertaDashboardPage() {
         headerClassName: "w-36 text-center",
         className: "py-4 px-2 text-center",
         cell: (row) => {
-          const full = isFull(row);
+          const locked = isLocked(row);
+
           return (
             <div className="flex justify-center">
               <Button
                 size="sm"
                 variant="outline"
-                disabled={busy || full}
+                disabled={busy || locked}
                 onClick={(e) => {
                   e.stopPropagation();
                   openConfirm(row);
                 }}
               >
-                {full ? "Penuh" : "Bayar"}
+                {isFull(row) ? "Penuh" : "Daftar"}
               </Button>
             </div>
           );
@@ -233,7 +250,7 @@ export default function PesertaDashboardPage() {
     ];
   }, [busy, openConfirm]);
 
-  const selectedFull = selected ? isFull(selected) : false;
+  const selectedLocked = selected ? isLocked(selected) : false;
 
   const picked = payMutation.data?.data?.picked;
   const snapAmount = payMutation.data?.data?.amount;
@@ -313,9 +330,7 @@ export default function PesertaDashboardPage() {
           ) : null}
 
           <div className="text-xs text-muted-foreground">
-            Menampilkan{" "}
-            <span className="font-medium text-foreground">{rows.length}</span>{" "}
-            jadwal
+            Menampilkan <span className="font-medium text-foreground">{rows.length}</span> jadwal
           </div>
         </div>
 
@@ -327,9 +342,16 @@ export default function PesertaDashboardPage() {
             loading={query.isLoading}
             emptyText="Belum ada jadwal tersedia"
             stickyHeader
-            onRowClick={(row) => openConfirm(row)}
+            onRowClick={(row) => {
+              if (busy) return;
+              if (isLocked(row)) return;
+              openConfirm(row);
+            }}
             getRowClassName={(row) =>
-              ["cursor-pointer hover:bg-muted/50", isFull(row) ? "opacity-60" : ""].join(" ")
+              [
+                isLocked(row) ? "opacity-60" : "",
+                isLocked(row) ? "cursor-not-allowed" : "cursor-pointer hover:bg-muted/50",
+              ].join(" ")
             }
           />
         </div>
@@ -368,31 +390,18 @@ export default function PesertaDashboardPage() {
 
             <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
               <ConfirmDetailRow label="Schedule ID" value={selected?.id ?? "-"} />
-              <ConfirmDetailRow
-                label="Tanggal"
-                value={selected ? formatDateId(selected.date) : "-"}
-              />
-              <ConfirmDetailRow
-                label="Jam"
-                value={selected ? `${hhmm(selected.start_time)} WIB` : "-"}
-              />
-              <ConfirmDetailRow
-                label="Harga"
-                value={selected ? formatRupiah(selected.price) : "-"}
-              />
+              <ConfirmDetailRow label="Tanggal" value={selected ? formatDateId(selected.date) : "-"} />
+              <ConfirmDetailRow label="Jam" value={selected ? `${hhmm(selected.start_time)} WIB` : "-"} />
+              <ConfirmDetailRow label="Harga" value={selected ? formatRupiah(selected.price) : "-"} />
               <ConfirmDetailRow
                 label="Kapasitas"
-                value={
-                  selected
-                    ? `${selected.current_participants}/${selected.capacity}`
-                    : "-"
-                }
+                value={selected ? `${selected.current_participants}/${selected.capacity}` : "-"}
               />
               <ConfirmDetailRow
                 label="Status"
                 value={
-                  <Badge variant={statusVariant(selected?.status ?? "")}>
-                    {selected?.status ?? "-"}
+                  <Badge variant={selected ? statusVariantForRow(selected) : "muted"}>
+                    {selected ? rowStatusText(selected) : "-"}
                   </Badge>
                 }
               />
@@ -403,10 +412,7 @@ export default function PesertaDashboardPage() {
                 <div className="text-sm font-semibold">Ringkasan Snap</div>
                 <div className="space-y-2">
                   <ConfirmDetailRow label="Order ID" value={snapOrderId ?? "-"} />
-                  <ConfirmDetailRow
-                    label="Amount"
-                    value={formatRupiah(String(snapAmount ?? 0))}
-                  />
+                  <ConfirmDetailRow label="Amount" value={formatRupiah(String(snapAmount ?? 0))} />
                   <ConfirmDetailRow
                     label="Paket"
                     value={
@@ -424,19 +430,14 @@ export default function PesertaDashboardPage() {
             <AlertDialogCancel disabled={busy}>Batal</AlertDialogCancel>
 
             <AlertDialogAction asChild>
-              <Button
-                onClick={onConfirmPay}
-                disabled={!selected || selectedFull || busy}
-              >
+              <Button onClick={onConfirmPay} disabled={!selected || selectedLocked || busy}>
                 {payMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Memproses...
                   </>
-                ) : selectedFull ? (
-                  "Kuota Penuh"
                 ) : (
-                  "Lanjut Bayar"
+                  "Lanjut ke Pembayaran"
                 )}
               </Button>
             </AlertDialogAction>

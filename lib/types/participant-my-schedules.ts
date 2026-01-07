@@ -19,11 +19,19 @@ export type ParticipantPaymentStatus =
   | "partner"
   | string;
 
+export type ParticipantRegistrationStatus =
+  | "terdaftar"
+  | "belum-terdaftar"
+  | "mengakses-tes"
+  | "selesai-tes"
+  | string;
+
 export type ParticipantMyScheduleListItem = {
   id: number;
-  date: string; // "YYYY-MM-DD HH:mm:ss"
-  start_time: string; // "HH:mm:ss"
-  end_time: string; // "HH:mm:ss"
+  date: string;
+  start_time: string;
+  end_time: string;
+  status: string; // ✅ tambahin ini
   payment_status: ParticipantPaymentStatus;
 };
 

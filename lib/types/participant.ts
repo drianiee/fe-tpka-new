@@ -14,6 +14,7 @@ export type ParticipantScheduleListItem = {
   price: string; // "150000.00"
   capacity: number;
   current_participants: number;
+  registration_status: string;
   status: ParticipantScheduleStatus;
 };
 
