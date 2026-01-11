@@ -29,10 +29,10 @@ import {
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
-function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
-  return <Badge variant="success">Aktif</Badge>;
-}
+// function ActiveBadge({ active }: { active?: boolean | null }) {
+//   if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
+//   return <Badge variant="success">Aktif</Badge>;
+// }
 
 function statusVariant(
   status?: string | null
@@ -198,7 +198,7 @@ export default function AdminPartnerDetailPage() {
           <div className="flex justify-center">
             <Badge
               variant={statusVariant(row.status)}
-              className="truncate max-w-[180px]"
+              className="truncate max-w-45"
             >
               {statusLabel(row.status)}
             </Badge>
@@ -251,7 +251,7 @@ export default function AdminPartnerDetailPage() {
       <div className="space-y-4">
         <Card className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <ActiveBadge active={partner.is_active ?? true} />
+            {/* <ActiveBadge active={partner.is_active ?? true} /> */}
             {partner.code && (
               <Badge variant="outline">Code: {partner.code}</Badge>
             )}

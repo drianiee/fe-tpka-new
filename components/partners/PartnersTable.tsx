@@ -13,7 +13,7 @@ import type { PartnerListItem } from "@/lib/types/partners";
 import type { PaginatedResponse } from "@/lib/types/pagination";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,10 +36,10 @@ function useDebouncedValue<T>(value: T, delay = 350) {
   return debounced;
 }
 
-function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
-  return <Badge variant="success">Aktif</Badge>;
-}
+// function ActiveBadge({ active }: { active?: boolean | null }) {
+//   if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
+//   return <Badge variant="success">Aktif</Badge>;
+// }
 
 function buildPages(current: number, last: number) {
   const total = Math.max(1, last);
@@ -153,17 +153,17 @@ export function PartnersTable() {
         className: "py-4 px-2 text-center",
         cell: (row) => row.contact_phone ?? "-",
       },
-      {
-        key: "status",
-        header: "Status",
-        headerClassName: "w-32 text-center",
-        className: "py-4 px-2 text-center",
-        cell: (row) => (
-          <div className="flex justify-center">
-            <ActiveBadge active={row.is_active ?? true} />
-          </div>
-        ),
-      },
+      // {
+      //   key: "status",
+      //   header: "Status",
+      //   headerClassName: "w-32 text-center",
+      //   className: "py-4 px-2 text-center",
+      //   cell: (row) => (
+      //     <div className="flex justify-center">
+      //       <ActiveBadge active={row.is_active ?? true} />
+      //     </div>
+      //   ),
+      // },
       {
         key: "action",
         header: "Detail",
