@@ -59,6 +59,14 @@ export const API_ENDPOINTS = {
     OPERATOR_STATUS: (id: number | string) =>
       `/api/admin/operators/${id}/status`,
     OPERATOR_DELETE: (id: number | string) => `/api/admin/operators/${id}`,
+
+    CERTIFICATES: {
+      ROOT: "/api/admin/certificates",
+      DETAIL: (id: number | string) => `/api/admin/certificates/${id}`,
+      LAYOUT: (id: number | string) => `/api/admin/certificates/${id}/layout`,
+      ACTIVATE: (id: number | string) =>
+        `/api/admin/certificates/${id}/activate`,
+    },
   },
 
   PARTICIPANTS: {
@@ -72,6 +80,8 @@ export const API_ENDPOINTS = {
     MY_SCHEDULES: "/api/participant/my-schedules",
     MY_SCHEDULE_DETAIL: (id: number | string) =>
       `/api/participant/my-schedules/${id}`,
+    SCORES: "/api/participant/scores",
+    SCORE_DETAIL: (id: number | string) => `/api/participant/scores/${id}`,
   },
   PAYMENTS_ADMIN: {
     BASE: "/api/payments",

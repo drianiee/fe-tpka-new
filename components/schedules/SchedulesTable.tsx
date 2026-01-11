@@ -77,28 +77,39 @@ function buildPages(page: number, lastPage: number) {
 }
 
 function normalizeStatus(status?: string | null) {
-  return (status ?? "").trim().toLowerCase();
+  if (!status) return "";
+
+  const s = status.trim().toLowerCase();
+
+  if (s.includes("belum")) return "belum-dimulai";
+  if (s.includes("sedang")) return "sedang-berlangsung";
+  if (s.includes("selesai")) return "telah-selesai";
+
+  return "";
 }
+
 
 function statusVariant(
   status?: string | null
 ): "muted" | "warning" | "success" {
   const s = normalizeStatus(status);
-  if (!s) return "muted";
-  if (s === "belum-dimulai") return "muted";
+
   if (s === "sedang-berlangsung") return "warning";
   if (s === "telah-selesai") return "success";
   return "muted";
 }
 
+
 function statusLabel(status?: string | null) {
   const s = normalizeStatus(status);
-  if (!s) return "Belum Ditentukan";
+
   if (s === "belum-dimulai") return "Tes Belum Dimulai";
   if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung";
   if (s === "telah-selesai") return "Tes Telah Selesai";
-  return status ?? "Belum Ditentukan";
+
+  return "Belum Ditentukan";
 }
+
 
 export function SchedulesTable() {
   const router = useRouter();

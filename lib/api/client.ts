@@ -1,15 +1,16 @@
+// lib/api/client.ts
 import axios from "axios";
 import { getToken, clearToken } from "@/lib/utils/storage";
 
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  headers: {
-    Accept: "application/json",
-  },
-  withCredentials: false, // kita pakai Bearer token, bukan cookie SPA
+  baseURL: API_BASE_URL,
+  headers: { Accept: "application/json" },
+  withCredentials: false,
 });
 
-// attach Authorization token
 api.interceptors.request.use((config) => {
   const token = getToken();
   if (token) {
@@ -19,15 +20,10 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// handle 401 global (optional)
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    const status = err?.response?.status;
-    if (status === 401) {
-      // token invalid/expired
-      clearToken();
-    }
+    if (err?.response?.status === 401) clearToken();
     return Promise.reject(err);
   }
 );

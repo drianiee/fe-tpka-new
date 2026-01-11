@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Package,
   CreditCard,
+  Award,
 } from "lucide-react"
 
 import { Separator } from "@/components/ui/separator"
@@ -36,6 +37,7 @@ function navByRole(role: UserRole): NavItem[] {
       { key: "mitra", label: "Mitra", href: "/dashboard/admin/mitra", icon: Handshake },
       { key: "packages", label: "Paket Soal", href: "/dashboard/admin/question-packages", icon: Package },
       { key: "payments", label: "Pembayaran", href: "/dashboard/admin/payments", icon: CreditCard },
+      { key: "certificates", label: "Certificate", href: "/dashboard/admin/certificates", icon: Award },
       {
         key: "arsip",
         label: "Data Arsip",
@@ -60,7 +62,7 @@ function navByRole(role: UserRole): NavItem[] {
   return [
     { key: "dashboard", label: "Beranda", href: "/dashboard/peserta", icon: LayoutGrid, exact: true },
     { key: "my-schedules", label: "Jadwal Tes", href: "/dashboard/peserta/my-schedules", icon: CalendarCheck },
-    // { key: "payments", label: "Pembayaran", href: "/dashboard/payments", icon: CreditCard },
+    { key: "certificates", label: "Certificate", href: "/dashboard/peserta/certificates", icon: Award },
   ]
 }
 

@@ -24,6 +24,8 @@ import type {
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
+import { formatDateId } from "@/lib/utils/datetime";
+import { getToken } from "@/lib/utils/storage";
 
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
@@ -35,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -50,8 +53,6 @@ import {
 } from "@/components/ui/pagination";
 
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
-import { formatDateId } from "@/lib/utils/datetime";
-import { DialogDescription } from "@radix-ui/react-dialog";
 
 function useDebouncedValue<T>(value: T, delay = 350) {
   const [debounced, setDebounced] = React.useState(value);
@@ -78,8 +79,7 @@ function importSummaryText(res: PartnerImportResponse) {
   const parts: string[] = [];
   if (typeof s.attached_to_schedule === "number")
     parts.push(`Terpasang: ${s.attached_to_schedule}`);
-  if (typeof s.created_users === "number")
-    parts.push(`User dibuat: ${s.created_users}`);
+  if (typeof s.created_users === "number") parts.push(`User dibuat: ${s.created_users}`);
   if (typeof s.sent_invitations === "number")
     parts.push(`Invitation: ${s.sent_invitations}`);
   if (typeof s.skipped_rows === "number") parts.push(`Skip: ${s.skipped_rows}`);
@@ -90,14 +90,43 @@ function scoreCell(v?: number | null) {
   if (v === null || v === undefined) return "-";
   return String(v);
 }
+function normalizeScheduleStatus(status?: string | null) {
+  if (!status) return "";
+
+  const s = status.toLowerCase();
+
+  if (s.includes("belum")) return "belum-dimulai";
+  if (s.includes("sedang")) return "sedang-berlangsung";
+  if (s.includes("selesai")) return "selesai";
+
+  return "";
+}
+
+function scheduleStatusVariant(
+  status?: string | null
+): "muted" | "warning" | "success" {
+  const s = normalizeScheduleStatus(status);
+
+  if (s === "sedang-berlangsung") return "warning";
+  if (s === "selesai") return "success";
+  return "muted";
+}
+
+function scheduleStatusLabel(status?: string | null) {
+  const s = normalizeScheduleStatus(status);
+
+  if (s === "belum-dimulai") return "Tes Belum Dimulai";
+  if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung";
+  if (s === "selesai") return "Tes Selesai";
+
+  return "-";
+}
 
 function normalizeStatus(status?: string | null) {
   return (status ?? "").trim().toLowerCase();
 }
 
-function statusVariant(
-  status?: string | null
-): "muted" | "warning" | "success" {
+function statusVariant(status?: string | null): "muted" | "warning" | "success" {
   const s = normalizeStatus(status);
   if (!s) return "muted";
   if (s === "peserta belum terdaftar") return "muted";
@@ -122,10 +151,9 @@ function buildPages(page: number, lastPage: number) {
   const current = Math.min(Math.max(1, page), total);
   const windowSize = 1;
 
-  if (total <= 7)
-    return Array.from({ length: total }, (_, i) => i + 1) as Array<
-      number | "ellipsis"
-    >;
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1) as Array<number | "ellipsis">;
+  }
 
   const start = Math.max(2, current - windowSize);
   const end = Math.min(total - 1, current + windowSize);
@@ -137,6 +165,31 @@ function buildPages(page: number, lastPage: number) {
   result.push(total);
 
   return result;
+}
+
+// ✅ helper: buka/download file yang butuh Bearer token
+async function openWithBearer(url: string) {
+  const token = getToken();
+  if (!token) throw new Error("Token tidak ditemukan. Silakan login ulang.");
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "*/*",
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `Gagal mengunduh. HTTP ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  const objUrl = URL.createObjectURL(blob);
+  window.open(objUrl, "_blank", "noopener,noreferrer");
+
+  window.setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
 }
 
 export default function AdminScheduleDetailPage() {
@@ -164,15 +217,35 @@ export default function AdminScheduleDetailPage() {
     }),
     [qDebounced, perPage, page]
   );
+
   const exportParticipantsMut = useMutation({
     mutationFn: () => schedulesService.exportParticipants(scheduleId),
     onSuccess: (res: ExportScheduleParticipantsResponse) => {
       toast.success(res.message ?? "Berhasil export peserta");
-      if (res.download_url)
-        window.open(res.download_url, "_blank", "noopener,noreferrer");
+      if (res.download_url) window.open(res.download_url, "_blank", "noopener,noreferrer");
     },
     onError: (e) => toast.error(getApiErrorMessage(e)),
   });
+
+  const downloadCertMut = useMutation({
+    mutationFn: (url: string) => openWithBearer(url),
+    onError: (e) => toast.error(getApiErrorMessage(e)),
+  });
+
+  // ✅ per-row loading (biar nggak disable semua tombol)
+  const [downloadingUrl, setDownloadingUrl] = React.useState<string | null>(null);
+
+  const handleDownloadCert = React.useCallback(
+    async (url: string) => {
+      try {
+        setDownloadingUrl(url);
+        await downloadCertMut.mutateAsync(url);
+      } finally {
+        setDownloadingUrl(null);
+      }
+    },
+    [downloadCertMut]
+  );
 
   const columns = React.useMemo<DataTableColumn<ScheduleParticipant>[]>(() => {
     return [
@@ -260,11 +333,16 @@ export default function AdminScheduleDetailPage() {
         className: "text-center whitespace-nowrap",
         cell: (row) => {
           const certUrl = row.certificate_download_url ?? null;
+          const isRowDownloading = Boolean(certUrl && downloadingUrl === certUrl);
+
           return certUrl ? (
-            <Button asChild size="sm" variant="outline">
-              <a href={certUrl} target="_blank" rel="noreferrer">
-                Unduh
-              </a>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isRowDownloading}
+              onClick={() => handleDownloadCert(certUrl)}
+            >
+              {isRowDownloading ? "Membuka..." : "Unduh"}
             </Button>
           ) : (
             <span className="text-sm text-muted-foreground">-</span>
@@ -272,7 +350,7 @@ export default function AdminScheduleDetailPage() {
         },
       },
     ];
-  }, [page, perPage]);
+  }, [page, perPage, downloadingUrl, handleDownloadCert]);
 
   const detailQuery = useQuery({
     queryKey: [API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId), params],
@@ -288,13 +366,10 @@ export default function AdminScheduleDetailPage() {
   });
 
   const importMut = useMutation({
-    mutationFn: (file: File) =>
-      schedulesService.partnerImport(scheduleId, file),
+    mutationFn: (file: File) => schedulesService.partnerImport(scheduleId, file),
     onSuccess: (res) => {
       const sum = importSummaryText(res);
-      toast.success(
-        sum ? `${res.message} (${sum})` : res.message ?? "Import berhasil"
-      );
+      toast.success(sum ? `${res.message} (${sum})` : res.message ?? "Import berhasil");
 
       qc.invalidateQueries({
         predicate: (q) =>
@@ -310,10 +385,7 @@ export default function AdminScheduleDetailPage() {
 
   if (detailQuery.isLoading) {
     return (
-      <PageHeaderLayout
-        title="Detail Jadwal"
-        description="Memuat detail jadwal..."
-      >
+      <PageHeaderLayout title="Detail Jadwal" description="Memuat detail jadwal...">
         <p className="text-sm text-muted-foreground">Loading...</p>
       </PageHeaderLayout>
     );
@@ -321,10 +393,7 @@ export default function AdminScheduleDetailPage() {
 
   if (detailQuery.isError || !detailQuery.data) {
     return (
-      <PageHeaderLayout
-        title="Detail Jadwal"
-        description="Gagal memuat detail jadwal"
-      >
+      <PageHeaderLayout title="Detail Jadwal" description="Gagal memuat detail jadwal">
         <p className="text-sm text-destructive">Gagal load schedule</p>
       </PageHeaderLayout>
     );
@@ -346,9 +415,7 @@ export default function AdminScheduleDetailPage() {
   const isPartnerSchedule = Boolean(d.partner?.id);
 
   const title = `Schedule #${d.id}`;
-  const description = `${formatDateId(d.date)} • ${hhmm(d.start_time)} - ${hhmm(
-    d.end_time
-  )}`;
+  const description = `${formatDateId(d.date)} • ${hhmm(d.start_time)} - ${hhmm(d.end_time)}`;
 
   const actions = isPartnerSchedule ? (
     <Dialog
@@ -377,13 +444,12 @@ export default function AdminScheduleDetailPage() {
           <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
             <li className="flex gap-2">
               <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-              Format: <span className="font-medium text-foreground">.xlsx</span>{" "}
-              / <span className="font-medium text-foreground">.xls</span>
+              Format: <span className="font-medium text-foreground">.xlsx</span> /{" "}
+              <span className="font-medium text-foreground">.xls</span>
             </li>
             <li className="flex gap-2">
               <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-              Kolom wajib:{" "}
-              <span className="font-medium text-foreground">name</span>,{" "}
+              Kolom wajib: <span className="font-medium text-foreground">name</span>,{" "}
               <span className="font-medium text-foreground">email</span>
             </li>
             <li className="flex gap-2">
@@ -428,8 +494,7 @@ export default function AdminScheduleDetailPage() {
                 </p>
               ) : (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Pastikan header kolom sesuai agar proses import berjalan
-                  lancar.
+                  Pastikan header kolom sesuai agar proses import berjalan lancar.
                 </p>
               )}
             </div>
@@ -476,9 +541,9 @@ export default function AdminScheduleDetailPage() {
           </div>
           <div>
             <div className="text-muted-foreground">Status</div>
-            <Badge variant={statusVariant(d.status)}>
-              {statusLabel(d.status)}
-            </Badge>
+<Badge variant={scheduleStatusVariant(d.status)}>
+  {scheduleStatusLabel(d.status)}
+</Badge>
           </div>
         </div>
 
@@ -501,12 +566,8 @@ export default function AdminScheduleDetailPage() {
           {d.moodle_course_id ? (
             <Badge variant="secondary">Course: {d.moodle_course_id}</Badge>
           ) : null}
-          {d.moodle_quiz_id ? (
-            <Badge variant="secondary">Quiz: {d.moodle_quiz_id}</Badge>
-          ) : null}
-          {d.moodle_quiz_cmid ? (
-            <Badge variant="secondary">CMID: {d.moodle_quiz_cmid}</Badge>
-          ) : null}
+          {d.moodle_quiz_id ? <Badge variant="secondary">Quiz: {d.moodle_quiz_id}</Badge> : null}
+          {d.moodle_quiz_cmid ? <Badge variant="secondary">CMID: {d.moodle_quiz_cmid}</Badge> : null}
           {d.quiz_url ? (
             <Button asChild size="sm" variant="outline">
               <a href={d.quiz_url} target="_blank" rel="noreferrer">
@@ -528,34 +589,25 @@ export default function AdminScheduleDetailPage() {
                 className="w-full"
               />
             </div>
+
             <Button
               variant="excel"
               onClick={() => exportParticipantsMut.mutate()}
               disabled={exportParticipantsMut.isPending}
             >
-              {exportParticipantsMut.isPending
-                ? "Exporting..."
-                : "Export Peserta (XLSX)"}
+              {exportParticipantsMut.isPending ? "Exporting..." : "Export Peserta (XLSX)"}
             </Button>
           </div>
 
           <div className="text-xs text-muted-foreground">
-            {participantsPage && (
+            {participantsPage ? (
               <>
                 Menampilkan{" "}
-                <span className="font-medium text-foreground">
-                  {participantsPage.from ?? 0}
-                </span>
-                –
-                <span className="font-medium text-foreground">
-                  {participantsPage.to ?? 0}
-                </span>{" "}
-                dari{" "}
-                <span className="font-medium text-foreground">
-                  {participantsPage.total ?? 0}
-                </span>
+                <span className="font-medium text-foreground">{participantsPage.from ?? 0}</span>–
+                <span className="font-medium text-foreground">{participantsPage.to ?? 0}</span> dari{" "}
+                <span className="font-medium text-foreground">{participantsPage.total ?? 0}</span>
               </>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -598,11 +650,7 @@ export default function AdminScheduleDetailPage() {
                       if (!canPrev || busy) return;
                       setPage((p) => Math.max(1, p - 1));
                     }}
-                    className={
-                      !canPrev || busy
-                        ? "pointer-events-none opacity-50"
-                        : undefined
-                    }
+                    className={!canPrev || busy ? "pointer-events-none opacity-50" : undefined}
                   />
                 </PaginationItem>
 
@@ -625,9 +673,7 @@ export default function AdminScheduleDetailPage() {
                           if (busy) return;
                           setPage(p);
                         }}
-                        className={
-                          busy ? "pointer-events-none opacity-50" : undefined
-                        }
+                        className={busy ? "pointer-events-none opacity-50" : undefined}
                       >
                         {String(p)}
                       </PaginationLink>
@@ -643,11 +689,7 @@ export default function AdminScheduleDetailPage() {
                       if (!canNext || busy) return;
                       setPage((p) => p + 1);
                     }}
-                    className={
-                      !canNext || busy
-                        ? "pointer-events-none opacity-50"
-                        : undefined
-                    }
+                    className={!canNext || busy ? "pointer-events-none opacity-50" : undefined}
                   />
                 </PaginationItem>
               </PaginationContent>
