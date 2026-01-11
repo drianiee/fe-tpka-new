@@ -6,7 +6,7 @@ import type {
   Certificate,
   CreateCertificatePayload,
   CreateCertificateResponse,
-  SaveCertificateLayoutPayload,
+  SaveCertificateLayoutApiPayload,
   SaveCertificateLayoutResponse,
 } from "@/lib/types/certificate"
 
@@ -43,8 +43,12 @@ export const certificateService = {
     fd.append("name", payload.name)
     fd.append("period", String(payload.period))
     fd.append("year", String(payload.year))
-    fd.append("signer_name", payload.sign_name)
-    fd.append("signer_nip", payload.sign_nip)
+
+    // ✅ pastikan key sesuai backend kamu
+    // kalau backend kamu pakai sign_name & sign_nip (bukan signer_name)
+    fd.append("sign_name", payload.sign_name)
+    fd.append("sign_nip", payload.sign_nip)
+
     fd.append("letter_prefix", payload.letter_prefix)
     fd.append("template", payload.template)
     if (payload.is_active !== undefined) fd.append("is_active", String(payload.is_active))
@@ -60,10 +64,7 @@ export const certificateService = {
     return res.data as ActivateCertificateResponse
   },
 
-  async saveLayout(
-    id: number | string,
-    payload: SaveCertificateLayoutPayload
-  ): Promise<SaveCertificateLayoutResponse> {
+  async saveLayout(id: number | string, payload: SaveCertificateLayoutApiPayload): Promise<SaveCertificateLayoutResponse> {
     const res = await http.put(API_ENDPOINTS.ADMIN.CERTIFICATES.LAYOUT(id), payload)
     return res.data as SaveCertificateLayoutResponse
   },

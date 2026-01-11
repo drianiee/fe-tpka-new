@@ -2,6 +2,10 @@ export const API_ENDPOINTS = {
   LANDING: {
     SCHEDULES: "/api/schedules/upcoming",
   },
+  CERTIFICATES: {
+    VERIFY_DATA: (uuid: string | number) => `/api/certificates/data/${uuid}`,
+    VERIFY_PDF: (uuid: string | number) => `/api/certificates/pdf/${uuid}`,
+  },
   AUTH: {
     LOGIN: "/api/auth/login",
     REGISTER: "/api/auth/register",
