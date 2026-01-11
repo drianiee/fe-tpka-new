@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
+import { Trash } from "lucide-react";
 
 function ActiveBadge({ active }: { active?: boolean | null }) {
   if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
@@ -167,7 +168,7 @@ export default function AdminQuestionPackageDetailPage() {
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant={item.is_active ? "destructive" : "default"}
+                variant={item.is_active ? "outline" : "blue"}
                 disabled={busy}
                 onClick={() => setConfirmStatusOpen(true)}
               >
@@ -181,7 +182,7 @@ export default function AdminQuestionPackageDetailPage() {
                 onClick={() => setConfirmDeleteOpen(true)}
                 className="text-destructive border-destructive/40 hover:bg-destructive/10"
               >
-                Hapus Paket
+                <Trash/>
               </Button>
             </div>
           </div>
@@ -201,11 +202,11 @@ export default function AdminQuestionPackageDetailPage() {
 
             <div className="text-sm">
               Apakah anda yakin ingin{" "}
-              <span className="font-semibold">{nextActive ? "mengaktifkan" : "menonaktifkan"}</span>{" "}
+              <span className="font-semibold">{nextActive ? "mengaktifkan" : "menonaktifkan"}</span>{' '}
               paket soal <span className="font-semibold">{item.name}</span>?
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2"> 
               <Button
                 type="button"
                 variant="outline"
@@ -217,11 +218,11 @@ export default function AdminQuestionPackageDetailPage() {
 
               <Button
                 type="button"
-                variant={nextActive ? "default" : "destructive"}
+                variant={nextActive ? "blue" : "destructive"}
                 onClick={() => statusMut.mutate(nextActive)}
                 disabled={statusMut.isPending}
               >
-                {statusMut.isPending ? "Memproses..." : "Ya, lanjutkan"}
+                {statusMut.isPending ? "Memproses..." : "Nonaktifkan Paket"}
               </Button>
             </div>
           </DialogContent>
@@ -256,7 +257,7 @@ export default function AdminQuestionPackageDetailPage() {
                 onClick={() => deleteMut.mutate()}
                 disabled={deleteMut.isPending}
               >
-                {deleteMut.isPending ? "Menghapus..." : "Ya, hapus"}
+                {deleteMut.isPending ? "Menghapus..." : "Hapus Paket"}
               </Button>
             </div>
           </DialogContent>

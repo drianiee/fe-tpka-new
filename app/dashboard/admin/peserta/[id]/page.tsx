@@ -30,20 +30,18 @@ function scheduleStatusVariant(
   status?: string | null
 ): "muted" | "warning" | "success" {
   const s = normalizeStatus(status);
+
   if (!s) return "muted";
-  if (s === "belum-dimulai") return "muted";
-  if (s === "sedang-berlangsung") return "warning";
-  if (s === "telah-selesai") return "success";
+
+  if (s.includes("belum")) return "muted";          
+  if (s.includes("berlangsung")) return "warning";
+  if (s.includes("selesai")) return "success";     
+
   return "muted";
 }
 
 function scheduleStatusLabel(status?: string | null) {
-  const s = normalizeStatus(status);
-  if (!s) return "-";
-  if (s === "belum-dimulai") return "Tes Belum Dimulai";
-  if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung";
-  if (s === "telah-selesai") return "Tes Telah Selesai";
-  return status ?? "-";
+  return status?.trim() || "-";
 }
 
 function participantStatusVariant(

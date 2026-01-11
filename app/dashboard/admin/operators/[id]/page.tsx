@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Trash } from "lucide-react";
 
 function StatusBadge({ active }: { active?: boolean | null }) {
   if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
@@ -260,7 +261,7 @@ export default function AdminOperatorDetailPage() {
                         >
                           {statusMutation.isPending
                             ? "Menyimpan..."
-                            : "Ya, nonaktifkan"}
+                            : "Nonaktifkan Operator"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -269,7 +270,7 @@ export default function AdminOperatorDetailPage() {
               ) : (
                 <Button
                   type="button"
-                  variant="default"
+                  variant="blue"
                   disabled={busy}
                   onClick={() => statusMutation.mutate(true)}
                 >
@@ -279,11 +280,11 @@ export default function AdminOperatorDetailPage() {
 
               <Button
                 type="button"
-                variant="destructive"
+                variant="outline"
                 disabled={busy}
                 onClick={() => setConfirmDeleteOpen(true)}
               >
-                Hapus
+                <Trash/>
               </Button>
 
               <AlertDialog
