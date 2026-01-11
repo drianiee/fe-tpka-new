@@ -53,9 +53,19 @@ function navByRole(role: UserRole): NavItem[] {
 
   if (role === "operator") {
     return [
-      { key: "dashboard", label: "Beranda", href: "/dashboard", icon: LayoutGrid, exact: true },
-      { key: "schedules", label: "Schedules", href: "/dashboard/schedules", icon: CalendarCheck },
-      { key: "packages", label: "Packages", href: "/dashboard/packages", icon: Package },
+      { key: "dashboard", label: "Beranda", href: "/dashboard/operator", icon: LayoutGrid, exact: true },
+      { key: "schedules", label: "Schedules", href: "/dashboard/operator/schedules", icon: CalendarCheck },
+      { key: "mitra", label: "Mitra", href: "/dashboard/operator/mitra", icon: Handshake },
+      { key: "packages", label: "Paket Soal", href: "/dashboard/operator/question-packages", icon: Package },
+      { key: "payments", label: "Pembayaran", href: "/dashboard/operator/payments", icon: CreditCard },      {
+        key: "arsip",
+        label: "Data Arsip",
+        icon: Archive,
+        defaultOpen: true,
+        children: [
+          { label: "Peserta", href: "/dashboard/operator/peserta" },
+        ],
+      },
     ]
   }
 

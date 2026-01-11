@@ -283,8 +283,9 @@ export default function AdminOperatorDetailPage() {
                 variant="outline"
                 disabled={busy}
                 onClick={() => setConfirmDeleteOpen(true)}
+                className="text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
               >
-                <Trash/>
+                <Trash />
               </Button>
 
               <AlertDialog

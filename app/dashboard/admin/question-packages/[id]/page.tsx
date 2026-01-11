@@ -180,7 +180,7 @@ export default function AdminQuestionPackageDetailPage() {
                 variant="outline"
                 disabled={busy}
                 onClick={() => setConfirmDeleteOpen(true)}
-                className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash/>
               </Button>
