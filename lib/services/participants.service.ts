@@ -1,7 +1,11 @@
+// lib/services/participants.service.ts
 import { http } from "@/lib/api/http";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type { PaginatedResponse } from "@/lib/types/pagination";
-import type { ParticipantListItem, ParticipantDetailResponse } from "@/lib/types/participants";
+import type {
+  ParticipantListItem,
+  ParticipantDetailResponse,
+} from "@/lib/types/participants";
 
 export type ListParticipantsParams = {
   q?: string;

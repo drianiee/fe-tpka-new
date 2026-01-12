@@ -1,3 +1,4 @@
+// lib/services/auth.service.ts
 import { api } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
@@ -33,37 +34,22 @@ export class AuthService {
     return res.data;
   }
 
-  // Important: complete-profile pakai multipart/form-data
-  async completeProfile(
-    token: string,
-    payload: CompleteProfileRequest
-  ): Promise<CompleteProfileResponse> {
+  async completeProfile(token: string, payload: CompleteProfileRequest): Promise<CompleteProfileResponse> {
     const form = new FormData();
     form.append("id_type", payload.id_type);
     form.append("id_image", payload.id_image);
     form.append("birth_date", payload.birth_date);
     form.append("phone", payload.phone);
 
-    const res = await api.post<CompleteProfileResponse>(
-      API_ENDPOINTS.AUTH.COMPLETE_PROFILE,
-      form,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // biarkan axios set boundary otomatis
-        },
-      }
-    );
+    const res = await api.post<CompleteProfileResponse>(API_ENDPOINTS.AUTH.COMPLETE_PROFILE, form, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
     return res.data;
   }
 
-  // ✅ POST /api/auth/email/resend
   async resendVerify(payload: ResendVerifyRequest): Promise<ResendVerifyResponse> {
-    const res = await api.post<ResendVerifyResponse>(
-      API_ENDPOINTS.AUTH.RESEND_VERIFY,
-      payload
-    );
+    const res = await api.post<ResendVerifyResponse>(API_ENDPOINTS.AUTH.RESEND_VERIFY, payload);
     return res.data;
   }
 }
