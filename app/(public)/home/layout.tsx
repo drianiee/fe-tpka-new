@@ -17,9 +17,7 @@ export default function PublicLayout({
       <PublicNavbar />
 
       {/* Konten mengisi sisa viewport */}
-      <main className="overflow-hidden">
-        {children}
-      </main>
+      <main className="overflow-hidden">{children}</main>
     </div>
   );
 }

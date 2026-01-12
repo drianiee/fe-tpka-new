@@ -43,6 +43,10 @@ export const API_ENDPOINTS = {
     DETAIL: (id: number | string) => `/api/partners/${id}`,
   },
 
+  PARTNER: {
+    ONBOARDING: "/api/partner/onboarding",
+  },
+  
   QUESTION_PACKAGES: {
     BASE: "/api/question-packages",
     DETAIL: (id: number | string) => `/api/question-packages/${id}`,

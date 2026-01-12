@@ -16,6 +16,25 @@ import { getApiErrorMessage } from "@/lib/api/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+
+/* ================= UI HELPERS ================= */
+
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function fieldClass(hasError: boolean) {
+  return cx(hasError && "border-destructive focus-visible:ring-destructive/30");
+}
+
+function hintClass(hasError: boolean) {
+  return cx("text-xs", hasError ? "text-destructive" : "text-muted-foreground");
+}
+
+function fieldHint(errorMsg?: string, helper?: string) {
+  return errorMsg ? errorMsg : helper ?? "";
+}
 
 /* ================= VALIDATION ================= */
 
@@ -31,6 +50,7 @@ type FormValues = z.infer<typeof schema>;
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -64,6 +84,9 @@ export default function LoginPage() {
     formState: { errors },
   } = form;
 
+  const emailErr = errors.email?.message;
+  const passErr = errors.password?.message;
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       {/* ===== LEFT : IMAGE ===== */}
@@ -83,13 +106,26 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-6">
           {/* Header */}
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Login</h1>
+            <div className="flex gap-4 items-center">
+              <h1 className="text-2xl font-semibold tracking-tight">Login</h1>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1"
+                onClick={() => router.push("/home")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Kembali ke Landing
+              </Button>
+            </div>
             <p className="text-sm text-muted-foreground">
               Masuk untuk mengakses dashboard.
             </p>
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -97,33 +133,53 @@ export default function LoginPage() {
                 type="email"
                 placeholder="you@mail.com"
                 disabled={loading}
+                className={fieldClass(Boolean(emailErr))}
                 {...register("email")}
               />
-              <p className="text-xs text-muted-foreground">
-                Gunakan email yang terdaftar di sistem.
+              <p className={hintClass(Boolean(emailErr))}>
+                {fieldHint(emailErr, "Gunakan email yang terdaftar di sistem.")}
               </p>
-              {errors.email ? (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
-              ) : null}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                disabled={loading}
-                {...register("password")}
-              />
-              <p className="text-xs text-muted-foreground">
-                Pastikan caps lock tidak aktif.
+
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  disabled={loading}
+                  className={cx(fieldClass(Boolean(passErr)), "pr-10")}
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  disabled={loading}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className={cx(
+                    "absolute right-2 top-1/2 -translate-y-1/2",
+                    "inline-flex h-8 w-8 items-center justify-center rounded-md",
+                    "text-muted-foreground hover:text-foreground",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                    "focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                  )}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              <p className={hintClass(Boolean(passErr))}>
+                {fieldHint(passErr, "Pastikan caps lock tidak aktif.")}
               </p>
-              {errors.password ? (
-                <p className="text-sm text-destructive">
-                  {errors.password.message}
-                </p>
-              ) : null}
             </div>
 
             <Button className="w-full" type="submit" disabled={loading}>
