@@ -151,7 +151,7 @@ export default function PartnerOnboardingPage() {
       fd.append("phone", values.phone);
       fd.append("id_image", values.id_image);
 
-      const res = await http.post<OnboardingResponse>("/api/partner/onboarding", fd, {
+      const res = await http.post<OnboardingResponse>("/api/partner/onboarding/claim", fd, {
         headers: {
           "Content-Type": "multipart/form-data",
           Accept: "application/json",

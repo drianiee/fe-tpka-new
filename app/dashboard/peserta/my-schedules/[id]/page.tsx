@@ -30,7 +30,7 @@ function statusVariant(
   if (s === "tes belum dimulai") return "muted";
   if (s === "tes akan segera dimulai") return "warning";
   if (s === "tes sedang berlangsung") return "warning";
-  if (s === "tes telah selesai") return "success";
+  if (s === "tes selesai") return "success";
   return "muted";
 }
 

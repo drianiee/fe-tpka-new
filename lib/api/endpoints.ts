@@ -44,7 +44,7 @@ export const API_ENDPOINTS = {
   },
 
   PARTNER: {
-    ONBOARDING: "/api/partner/onboarding",
+    ONBOARDING: "/api/partner/onboarding/claim",
   },
   
   QUESTION_PACKAGES: {
