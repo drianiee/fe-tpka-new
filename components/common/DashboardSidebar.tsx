@@ -94,7 +94,10 @@ function computeInitialOpen(nav: NavItem[], pathname: string) {
   return acc
 }
 
-export function DashboardSidebar({ user }: { user: User }) {
+export function DashboardSidebar({
+  user,
+  onNavigate,
+}: { user: User; onNavigate?: () => void }) {
   const pathname = usePathname()
   const nav = React.useMemo(() => navByRole(user.role), [user.role])
 
@@ -150,17 +153,29 @@ export function DashboardSidebar({ user }: { user: User }) {
         {nav.map((item) => {
           const Icon = item.icon
           const hasChildren = (item.children?.length ?? 0) > 0
-          const anyChildActive = hasChildren && item.children!.some((c) => isActivePath(pathname, c.href))
-          const active = isActivePath(pathname, item.href, item.exact) || Boolean(anyChildActive)
+          const anyChildActive =
+            hasChildren && item.children!.some((c) => isActivePath(pathname, c.href))
+          const active =
+            isActivePath(pathname, item.href, item.exact) || Boolean(anyChildActive)
           const open = Boolean(openSections[item.key])
 
           if (!hasChildren) {
             return (
-              <Link key={item.key} href={item.href ?? "#"} className="block">
+              <Link
+                key={item.key}
+                href={item.href ?? "#"}
+                className="block"
+                title={item.label}
+                onClick={() => onNavigate?.()}
+              >
                 <div className={[itemBase, active ? itemActive : itemIdle].join(" ")}>
                   <div className="flex items-center gap-3">
-                    <Icon className={[iconBase, active ? iconActive : iconIdle].join(" ")} />
-                    <span className={active ? "font-medium" : undefined}>{item.label}</span>
+                    <Icon
+                      className={[iconBase, active ? iconActive : iconIdle].join(" ")}
+                    />
+                    <span className={active ? "font-medium" : undefined}>
+                      {item.label}
+                    </span>
                   </div>
                 </div>
               </Link>
@@ -173,17 +188,25 @@ export function DashboardSidebar({ user }: { user: User }) {
                 type="button"
                 onClick={() => toggleSection(item.key)}
                 className={[itemBase, active ? itemActive : itemIdle].join(" ")}
+                title={item.label}
+                aria-expanded={open}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={[iconBase, active ? iconActive : iconIdle].join(" ")} />
-                  <span className={active ? "font-medium" : undefined}>{item.label}</span>
+                  <Icon
+                    className={[iconBase, active ? iconActive : iconIdle].join(" ")}
+                  />
+                  <span className={active ? "font-medium" : undefined}>
+                    {item.label}
+                  </span>
                 </div>
 
                 <ChevronDown
                   className={[
                     "h-4 w-4 transition-transform",
                     open ? "rotate-180" : "rotate-0",
-                    active ? "text-blue-900" : "text-slate-900 group-hover:text-blue-900",
+                    active
+                      ? "text-blue-900"
+                      : "text-slate-900 group-hover:text-blue-900",
                   ].join(" ")}
                 />
               </button>
@@ -193,9 +216,20 @@ export function DashboardSidebar({ user }: { user: User }) {
                   {item.children!.map((child) => {
                     const childIsActive = isActivePath(pathname, child.href)
                     return (
-                      <Link key={child.href} href={child.href} className="block">
-                        <div className={[childBase, childIsActive ? childActive : childIdle].join(" ")}>
-                          <span className={childIsActive ? "font-medium" : undefined}>{child.label}</span>
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className="block"
+                        onClick={() => onNavigate?.()}
+                      >
+                        <div
+                          className={[childBase, childIsActive ? childActive : childIdle].join(
+                            " "
+                          )}
+                        >
+                          <span className={childIsActive ? "font-medium" : undefined}>
+                            {child.label}
+                          </span>
                         </div>
                       </Link>
                     )

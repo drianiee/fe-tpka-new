@@ -1,7 +1,6 @@
 // app/dashboard/peserta/my-schedules/page.tsx
 "use client";
 
-import Link from "next/link";
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -22,6 +21,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import {
   DropdownMenu,
@@ -98,6 +106,9 @@ export default function ParticipantMySchedulesPage() {
   const [status, setStatus] =
     React.useState<ParticipantMySchedulesStatusFilter>(initialStatus);
   const [qText, setQText] = React.useState("");
+  const [detailWarningOpen, setDetailWarningOpen] = React.useState(false);
+  const [blockedSchedule, setBlockedSchedule] =
+    React.useState<ParticipantMyScheduleListItem | null>(null);
 
   React.useEffect(() => {
     const s = (sp.get("status") as ParticipantMySchedulesStatusFilter) || "all";
@@ -131,8 +142,36 @@ export default function ParticipantMySchedulesPage() {
     });
   }, [query.data, qText]);
 
+  const isMobileDevice = React.useCallback(() => {
+    return (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches
+    );
+  }, []);
+
+  const handleDetailClick = React.useCallback(
+    (row: ParticipantMyScheduleListItem) => {
+      const statusNormalized = normalizeText(row.status ?? "");
+      if (isMobileDevice() && statusNormalized === "tes belum dimulai") {
+        setBlockedSchedule(row);
+        setDetailWarningOpen(true);
+        return;
+      }
+
+      router.push(`/dashboard/peserta/my-schedules/${row.id}`);
+    },
+    [isMobileDevice, router]
+  );
+
   const statusLabelText =
     STATUS_OPTIONS.find((o) => o.value === status)?.label ?? "Semua";
+
+  const blockedScheduleLabel = React.useMemo(() => {
+    if (!blockedSchedule) return "";
+    return `${formatDateId(blockedSchedule.date)} ${hhmm(
+      blockedSchedule.start_time
+    )} - ${hhmm(blockedSchedule.end_time)} WIB`;
+  }, [blockedSchedule]);
 
   const columns = React.useMemo<
     DataTableColumn<ParticipantMyScheduleListItem>[]
@@ -198,19 +237,19 @@ export default function ParticipantMySchedulesPage() {
         className: "py-4 px-2 text-center",
         cell: (row) => (
           <div className="flex justify-center">
-            <Button asChild size="sm" variant="outline">
-              <Link
-                href={`/dashboard/peserta/my-schedules/${row.id}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                Detail
-              </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleDetailClick(row)}
+              aria-label="Lihat detail jadwal"
+            >
+              Detail
             </Button>
           </div>
         ),
       },
     ];
-  }, []);
+  }, [handleDetailClick]);
 
   return (
     <PageHeaderLayout
@@ -312,13 +351,45 @@ export default function ParticipantMySchedulesPage() {
             loading={query.isLoading}
             emptyText="Belum ada jadwal"
             stickyHeader
-            onRowClick={(row) =>
-              router.push(`/dashboard/peserta/my-schedules/${row.id}`)
-            }
+            onRowClick={(row) => handleDetailClick(row)}
             getRowClassName={() => "cursor-pointer hover:bg-muted/50"}
           />
         </div>
       </div>
+
+      <Dialog
+        open={detailWarningOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailWarningOpen(false);
+            setBlockedSchedule(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Perangkat tidak didukung</DialogTitle>
+            <DialogDescription>
+              {blockedScheduleLabel
+                ? `Jadwal ${blockedScheduleLabel} belum bisa dibuka dari perangkat HP. Silakan lanjutkan dari laptop.`
+                : "Ujian belum bisa dibuka dari perangkat HP. Silakan lanjutkan dari laptop."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDetailWarningOpen(false);
+                setBlockedSchedule(null);
+              }}
+            >
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageHeaderLayout>
   );
 }

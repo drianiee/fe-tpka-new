@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, Menu, User as UserIcon } from "lucide-react";
 
 import { DashboardSidebar } from "@/components/common/DashboardSidebar";
 import {
@@ -65,6 +65,7 @@ export function DashboardLayoutClient({
 
   const [logoutOpen, setLogoutOpen] = React.useState(false);
   const [logoutLoading, setLogoutLoading] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     const token = getToken();
@@ -111,7 +112,17 @@ export function DashboardLayoutClient({
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-40 h-16 border-b bg-white">
-        <div className="mx-auto max-w-7xl h-full px-4 md:px-6 flex items-center justify-between">
+        {/* <div className="mx-auto max-w-7xl h-full px-4 md:px-6 flex items-center justify-between"> */}
+        <div className="mx-auto h-full px-4 md:px-20 flex items-center justify-between">
+                      <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 md:hidden"
+              aria-label="Buka menu"
+              title="Buka menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
           <Link href="/dashboard" className="flex items-center gap-3">
             <Image
               src="/blue-logo.svg"
@@ -130,6 +141,8 @@ export function DashboardLayoutClient({
                 {roleLabel(user.role)}
               </span>
             </div>
+
+
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -178,7 +191,7 @@ export function DashboardLayoutClient({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[256px_1fr]">
-        <div className="md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:overflow-hidden border-b md:border-b-0 md:border-r bg-background">
+        <div className="hidden md:block md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:overflow-hidden border-b md:border-b-0 md:border-r bg-background">
           <div className="h-full overflow-y-auto">
             <DashboardSidebar user={user} />
           </div>
@@ -188,6 +201,31 @@ export function DashboardLayoutClient({
           <div className="mx-auto max-w-6xl p-4 md:p-8">{children}</div>
         </main>
       </div>
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/50"
+            aria-hidden="true"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          <aside className="relative z-10 flex h-full w-72 flex-col overflow-y-auto bg-background shadow-xl">
+            {/* <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute top-3 right-3 rounded-full border border-slate-200 bg-white/80 p-1 text-slate-600 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+              aria-label="Tutup menu"
+            >
+              <X className="h-4 w-4" />
+            </button> */}
+
+            <div className="h-full overflow-y-auto">
+              <DashboardSidebar user={user} onNavigate={() => setMobileMenuOpen(false)} />
+            </div>
+          </aside>
+        </div>
+      )}
 
       <Dialog
         open={logoutOpen}

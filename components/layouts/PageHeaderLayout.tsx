@@ -13,6 +13,7 @@ type PageHeaderLayoutProps = {
   children: React.ReactNode
   actions?: React.ReactNode
   showBack?: boolean
+  onBack?: (() => void) | undefined
 }
 
 export function PageHeaderLayout({
@@ -21,6 +22,7 @@ export function PageHeaderLayout({
   children,
   actions,
   showBack = true,
+  onBack,
 }: PageHeaderLayoutProps) {
   const router = useRouter()
 
@@ -34,7 +36,14 @@ export function PageHeaderLayout({
               variant="outline"
               size="sm"
               className="mt-1"
-              onClick={() => router.back()}
+              onClick={() => {
+                if (onBack) {
+                  onBack()
+                  return
+                }
+
+                router.back()
+              }}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Kembali

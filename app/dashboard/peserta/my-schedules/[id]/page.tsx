@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 
@@ -23,7 +23,7 @@ function normalizeText(s: string) {
 }
 
 function statusVariant(
-  status?: string | null
+  status?: string | null,
 ): "muted" | "warning" | "success" {
   const s = normalizeText(status ?? "");
   if (!s) return "muted";
@@ -44,7 +44,7 @@ function paymentStatusLabel(ps?: string | null) {
 }
 
 function paymentBadgeVariant(
-  ps?: string | null
+  ps?: string | null,
 ): "muted" | "warning" | "success" {
   const s = normalizeText(ps ?? "");
   if (!s) return "muted";
@@ -74,6 +74,7 @@ function DetailRow({
 export default function ParticipantMyScheduleDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
+  const router = useRouter();
 
   const query = useQuery<ParticipantMyScheduleDetail>({
     queryKey: [API_ENDPOINTS.PARTICIPANT.MY_SCHEDULE_DETAIL(id ?? "none")],
@@ -91,6 +92,7 @@ export default function ParticipantMyScheduleDetailPage() {
       title={`Detail Jadwal #${id ?? "-"}`}
       description="Informasi jadwal dan akses tes (jika sudah tersedia)."
       showBack
+      onBack={() => router.push("/dashboard/peserta/my-schedules/")}
     >
       {query.isLoading ? (
         <div className="rounded-xl border bg-white p-4 text-sm text-muted-foreground">
@@ -161,18 +163,23 @@ export default function ParticipantMyScheduleDetailPage() {
                   <ExternalLink className="h-4 w-4" />
                   Mulai Tes
                 </Button>
-              {!canStart ? (
-                <div className="text-xs text-muted-foreground">
-                  Tombol{" "}
-                  <span className="font-medium text-foreground">Mulai Tes</span>{" "}
-                  akan aktif saat sudah masuk waktu tes{" "}
-                  <span className="font-medium text-foreground">{formatDateId(d.date)}</span>
-                  {" "}Pukul{" "}
-                  <span className="font-medium text-foreground">{hhmm(d.start_time)}</span>
-                </div>
-              ) : null}
+                {!canStart ? (
+                  <div className="text-xs text-muted-foreground">
+                    Tombol{" "}
+                    <span className="font-medium text-foreground">
+                      Mulai Tes
+                    </span>{" "}
+                    akan aktif saat sudah masuk waktu tes{" "}
+                    <span className="font-medium text-foreground">
+                      {formatDateId(d.date)}
+                    </span>{" "}
+                    Pukul{" "}
+                    <span className="font-medium text-foreground">
+                      {hhmm(d.start_time)}
+                    </span>
+                  </div>
+                ) : null}
               </div>
-
             </CardContent>
           </Card>
         </div>

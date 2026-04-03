@@ -66,11 +66,6 @@ export default function ParticipantCertificateDetailPage() {
     <PageHeaderLayout
       title={`Detail #${d.id}`}
       description={`${formatDateId(d.date)} • ${hhmm(d.start_time)} - ${hhmm(d.end_time)}`}
-      actions={
-        <Button asChild variant="outline">
-          <Link href="/dashboard/peserta/certificates">Kembali</Link>
-        </Button>
-      }
     >
       <div className="space-y-4">
         <Card className="p-4 space-y-3">
