@@ -9,3 +9,9 @@ services:
     env_file:
       - .env.prod
     restart: unless-stopped
+    networks:
+      - tpka_shared
+
+networks:
+  tpka_shared:
+    external: true
