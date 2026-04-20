@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.dev
     image: fe-tpka:dev
     ports:
-      - "${FE_PORT:-3000}:3000"
+      - "127.0.0.1:${FE_PORT:-3000}:3000"
     volumes:
       - ./:/app
       - fe_node_modules:/app/node_modules
