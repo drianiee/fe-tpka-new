@@ -18,7 +18,6 @@ import { certificateService } from "@/lib/services/certificate.service";
 import type {
   Certificate,
   CertificateLayoutJson,
-  CertificateTextAlign,
   CertificateFieldPlacement,
   CertificateFieldPlacementText,
   CertificateFieldPlacementQr,
@@ -33,10 +32,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 const DEFAULT_CANVAS = { width: 2000, height: 1414 };
+const FONT_FAMILY = "Arial";
 
-/** =========================
- *  API RAW TYPES (tanpa `type`)
- *  ========================= */
 type ApiTextField = {
   x: number;
   y: number;
@@ -53,50 +50,70 @@ type ApiQrField = {
 type ApiFieldValue = ApiTextField | ApiQrField;
 type ApiFieldsRecord = Record<string, ApiFieldValue>;
 
-/** =========================
- *  DEFAULT FIELDS (FE internal, ada `type`)
- *  ========================= */
 const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
   participant_name: {
     type: "text",
     x: 1000,
     y: 600,
     fontSize: 72,
-    align: "center",
+    align: "left",
   },
-  certificate_no: { type: "text", x: 220, y: 220, fontSize: 28, align: "left" },
-  exam_date: { type: "text", x: 1000, y: 720, fontSize: 34, align: "center" },
-
-  score_verbal: { type: "text", x: 1600, y: 300, fontSize: 30, align: "right" },
+  certificate_no: {
+    type: "text",
+    x: 220,
+    y: 220,
+    fontSize: 28,
+    align: "left",
+  },
+  exam_date: {
+    type: "text",
+    x: 1000,
+    y: 720,
+    fontSize: 34,
+    align: "left",
+  },
+  score_verbal: {
+    type: "text",
+    x: 1600,
+    y: 300,
+    fontSize: 30,
+    align: "left",
+  },
   score_kuantitatif: {
     type: "text",
     x: 1600,
     y: 360,
     fontSize: 30,
-    align: "right",
+    align: "left",
   },
-  score_logika: { type: "text", x: 1600, y: 420, fontSize: 30, align: "right" },
+  score_logika: {
+    type: "text",
+    x: 1600,
+    y: 420,
+    fontSize: 30,
+    align: "left",
+  },
   score_spasial: {
     type: "text",
     x: 1600,
     y: 480,
     fontSize: 30,
-    align: "right",
+    align: "left",
   },
-  score_total: { type: "text", x: 1600, y: 540, fontSize: 34, align: "right" },
-
-  qr_code: { type: "qr", x: 1700, y: 1100, size: 220 },
+  score_total: {
+    type: "text",
+    x: 1600,
+    y: 540,
+    fontSize: 34,
+    align: "left",
+  },
+  qr_code: {
+    type: "qr",
+    x: 1700,
+    y: 1100,
+    size: 220,
+  },
 };
-
-/** =========================
- *  Utils
- *  ========================= */
-function parseAlign(v: string): CertificateTextAlign {
-  const s = (v || "").trim().toLowerCase();
-  if (s === "center") return "center";
-  if (s === "right") return "right";
-  return "left";
-}
 
 function previewText(key: string) {
   switch (key) {
@@ -105,7 +122,7 @@ function previewText(key: string) {
     case "certificate_no":
       return "001/TPKA/I/2026/1/2026";
     case "exam_date":
-      return "2026-01-07";
+      return "22 april 2026";
     case "score_verbal":
       return "80";
     case "score_kuantitatif":
@@ -121,27 +138,35 @@ function previewText(key: string) {
   }
 }
 
-function estimateTextBoxWidth(text: string, fontSize: number) {
-  return Math.max(160, text.length * fontSize * 0.6);
+function measureTextWidth(text: string, fontSize: number, fontFamily = FONT_FAMILY) {
+  if (typeof document === "undefined") {
+    return Math.max(160, text.length * fontSize * 0.6);
+  }
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    return Math.max(160, text.length * fontSize * 0.6);
+  }
+
+  ctx.font = `${fontSize}px "${fontFamily}"`;
+  const metrics = ctx.measureText(text);
+  return Math.max(160, Math.ceil(metrics.width));
 }
 
-/** =========================
- *  Type guards internal (FE)
- *  ========================= */
 function isTextField(
   v: CertificateFieldPlacement
 ): v is CertificateFieldPlacementText {
   return v.type === "text";
 }
+
 function isQrField(
   v: CertificateFieldPlacement
 ): v is CertificateFieldPlacementQr {
   return v.type === "qr";
 }
 
-/** =========================
- *  Type guards API raw
- *  ========================= */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -172,9 +197,6 @@ function isApiFieldsRecord(v: unknown): v is ApiFieldsRecord {
   return true;
 }
 
-/** =========================
- *  Normalizer: API -> FE
- *  ========================= */
 function normalizeFieldsFromApi(
   fields: unknown
 ): CertificateLayoutJson["fields"] {
@@ -186,13 +208,14 @@ function normalizeFieldsFromApi(
       out[k] = { type: "qr", x: v.x, y: v.y, size: v.size };
       continue;
     }
+
     if (isApiTextField(v)) {
       out[k] = {
         type: "text",
         x: v.x,
         y: v.y,
         fontSize: v.fontSize,
-        align: parseAlign(String(v.align ?? "left")),
+        align: "left",
       };
     }
   }
@@ -200,9 +223,6 @@ function normalizeFieldsFromApi(
   return out;
 }
 
-/** =========================
- *  Serializer: FE -> API (tanpa `type`)
- *  ========================= */
 function toApiFieldsPayload(
   fields: CertificateLayoutJson["fields"]
 ): ApiFieldsRecord {
@@ -212,7 +232,7 @@ function toApiFieldsPayload(
     if (isQrField(v)) {
       out[k] = { x: v.x, y: v.y, size: v.size };
     } else {
-      out[k] = { x: v.x, y: v.y, fontSize: v.fontSize, align: v.align };
+      out[k] = { x: v.x, y: v.y, fontSize: v.fontSize, align: "left" };
     }
   }
 
@@ -231,12 +251,15 @@ export default function AdminCertificateLayoutPage() {
     staleTime: 30_000,
   });
 
+  const wrapperRef = React.useRef<HTMLDivElement | null>(null);
+
   const [canvasW, setCanvasW] = React.useState(DEFAULT_CANVAS.width);
   const [canvasH, setCanvasH] = React.useState(DEFAULT_CANVAS.height);
   const [fields, setFields] = React.useState<CertificateLayoutJson["fields"]>({
     ...DEFAULT_FIELDS,
   });
   const [selectedKey, setSelectedKey] = React.useState<string | null>(null);
+  const [availableWidth, setAvailableWidth] = React.useState(900);
 
   React.useEffect(() => {
     const cert: Certificate | undefined = certQ.data;
@@ -254,15 +277,34 @@ export default function AdminCertificateLayoutPage() {
     setCanvasW(lj.canvas?.width ?? DEFAULT_CANVAS.width);
     setCanvasH(lj.canvas?.height ?? DEFAULT_CANVAS.height);
 
-    // NOTE: backend kamu bisa simpan fields tanpa `type`, jadi kita parse dari unknown
     const rawFields = (lj as unknown as { fields?: unknown }).fields;
-    setFields(normalizeFieldsFromApi(rawFields));
+    const normalized = normalizeFieldsFromApi(rawFields);
+
+    setFields(
+      Object.keys(normalized).length > 0 ? normalized : { ...DEFAULT_FIELDS }
+    );
 
     setSelectedKey(null);
   }, [certQ.data]);
 
+  React.useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const update = () => {
+      setAvailableWidth(el.clientWidth - 32);
+    };
+
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+
+    return () => ro.disconnect();
+  }, []);
+
   const templateUrl = certQ.data?.template_url ?? null;
-  const [bgImg, bgStatus] = useImage(templateUrl ?? "", "anonymous");
+  const [bgImg] = useImage(templateUrl ?? "", "anonymous");
 
   function upsertField(key: string, val: CertificateFieldPlacement) {
     setFields((prev) => ({ ...prev, [key]: val }));
@@ -281,10 +323,12 @@ export default function AdminCertificateLayoutPage() {
   function addTextField(key: string) {
     const k = key.trim();
     if (!k) return;
+
     if (fields[k]) {
       setSelectedKey(k);
       return;
     }
+
     upsertField(k, {
       type: "text",
       x: 300,
@@ -292,6 +336,7 @@ export default function AdminCertificateLayoutPage() {
       fontSize: 48,
       align: "left",
     });
+
     setSelectedKey(k);
   }
 
@@ -301,7 +346,14 @@ export default function AdminCertificateLayoutPage() {
       setSelectedKey(k);
       return;
     }
-    upsertField(k, { type: "qr", x: 1700, y: 1100, size: 220 });
+
+    upsertField(k, {
+      type: "qr",
+      x: 1700,
+      y: 1100,
+      size: 220,
+    });
+
     setSelectedKey(k);
   }
 
@@ -315,8 +367,6 @@ export default function AdminCertificateLayoutPage() {
         fields: toApiFieldsPayload(fields),
       };
 
-      // NOTE: kalau signature saveLayout kamu minta CertificateLayoutJson,
-      // kita cast payload ini ke tipe itu. Payloadnya tetap benar (tanpa `type`).
       return certificateService.saveLayout(
         id as string,
         payload as unknown as CertificateLayoutJson
@@ -351,11 +401,13 @@ export default function AdminCertificateLayoutPage() {
     return { key: selectedKey, val: v };
   }, [fields, selectedKey]);
 
-  const previewMaxW = 900;
   const previewScale = React.useMemo(() => {
-    const s = previewMaxW / Math.max(1, canvasW);
+    const s = availableWidth / Math.max(1, canvasW);
     return Math.min(1, s);
-  }, [canvasW]);
+  }, [availableWidth, canvasW]);
+
+  const stageW = Math.round(canvasW * previewScale);
+  const stageH = Math.round(canvasH * previewScale);
 
   return (
     <PageHeaderLayout
@@ -364,7 +416,7 @@ export default function AdminCertificateLayoutPage() {
       showBack={false}
     >
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
           <Button
             variant="outline"
             onClick={() => router.push("/dashboard/admin/certificates")}
@@ -384,7 +436,7 @@ export default function AdminCertificateLayoutPage() {
               variant="outline"
               disabled={busy || !id}
               onClick={() => activateM.mutate()}
-              title="Aktifkan sertifikat ini (backend menonaktifkan yang lain)"
+              title="Aktifkan sertifikat ini"
             >
               <Power className="h-4 w-4" />
               Aktifkan
@@ -403,26 +455,23 @@ export default function AdminCertificateLayoutPage() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
-          {/* Canvas */}
-          <div className="rounded-xl border bg-white overflow-hidden">
-            <div className="p-4 flex items-center justify-between gap-3">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_360px]">
+          <div ref={wrapperRef} className="overflow-hidden rounded-xl border bg-white">
+            <div className="flex items-center justify-between gap-3 p-4">
               <div className="text-sm">
                 <div className="font-medium">Canvas</div>
                 <div className="text-xs text-muted-foreground">
                   {canvasW} × {canvasH} px • scale {previewScale.toFixed(2)}
                 </div>
-
-                <div className="text-[11px] text-muted-foreground break-all mt-1">
-                  BG:{" "}
-                  {templateUrl
-                    ? `${bgStatus} • ${templateUrl}`
-                    : "(template_url kosong)"}
-                </div>
+                {/* {templateUrl ? (
+                  <div className="text-xs text-muted-foreground break-all">
+                    BG: loaded • {templateUrl}
+                  </div>
+                ) : null} */}
               </div>
 
               {busy ? (
-                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Memproses…
                 </div>
@@ -431,45 +480,107 @@ export default function AdminCertificateLayoutPage() {
 
             <Separator />
 
-            <div className="p-4 overflow-auto">
-              <Stage
-                width={Math.round(canvasW * previewScale)}
-                height={Math.round(canvasH * previewScale)}
-                onMouseDown={(e) => {
-                  if (e.target === e.target.getStage()) setSelectedKey(null);
-                }}
-                className="rounded-lg border bg-white"
-              >
-                <Layer>
-                  <Rect
-                    x={0}
-                    y={0}
-                    width={canvasW * previewScale}
-                    height={canvasH * previewScale}
-                    fill="#ffffff"
-                    stroke="#e2e8f0"
-                    strokeWidth={2}
-                  />
-
-                  {bgImg ? (
-                    <KonvaImage
-                      image={bgImg}
+            <div className="p-4">
+              <div className="flex justify-center overflow-hidden">
+                <Stage
+                  width={stageW}
+                  height={stageH}
+                  onMouseDown={(e) => {
+                    if (e.target === e.target.getStage()) setSelectedKey(null);
+                  }}
+                  className="rounded-lg border bg-white"
+                >
+                  <Layer>
+                    <Rect
                       x={0}
                       y={0}
-                      width={canvasW * previewScale}
-                      height={canvasH * previewScale}
-                      listening={false}
+                      width={stageW}
+                      height={stageH}
+                      fill="#ffffff"
+                      stroke="#e2e8f0"
+                      strokeWidth={2}
                     />
-                  ) : null}
 
-                  {Object.entries(fields).map(([key, fp]) => {
-                    const isSel = key === selectedKey;
-                    const x = fp.x * previewScale;
-                    const y = fp.y * previewScale;
+                    {bgImg ? (
+                      <KonvaImage
+                        image={bgImg}
+                        x={0}
+                        y={0}
+                        width={stageW}
+                        height={stageH}
+                        listening={false}
+                      />
+                    ) : null}
 
-                    // ===== QR =====
-                    if (isQrField(fp)) {
-                      const size = Math.max(16, fp.size * previewScale);
+                    {Object.entries(fields).map(([key, fp]) => {
+                      const isSel = key === selectedKey;
+
+                      if (isQrField(fp)) {
+                        const x = fp.x * previewScale;
+                        const y = fp.y * previewScale;
+                        const size = Math.max(16, fp.size * previewScale);
+
+                        return (
+                          <Group
+                            key={key}
+                            x={x}
+                            y={y}
+                            draggable
+                            onClick={() => setSelectedKey(key)}
+                            onTap={() => setSelectedKey(key)}
+                            onDragEnd={(ev) => {
+                              const nx = ev.target.x() / previewScale;
+                              const ny = ev.target.y() / previewScale;
+
+                              upsertField(key, {
+                                type: "qr",
+                                x: Math.round(nx),
+                                y: Math.round(ny),
+                                size: fp.size,
+                              });
+                            }}
+                          >
+                            {isSel ? (
+                              <Rect
+                                x={-8}
+                                y={-8}
+                                width={size + 16}
+                                height={size + 16}
+                                stroke="#2563eb"
+                                strokeWidth={2}
+                                dash={[6, 4]}
+                              />
+                            ) : null}
+
+                            <Rect
+                              x={0}
+                              y={0}
+                              width={size}
+                              height={size}
+                              stroke="#0f172a"
+                              strokeWidth={2}
+                            />
+
+                            <KonvaText
+                              text="QR"
+                              x={0}
+                              y={Math.max(0, size / 2 - 14)}
+                              width={size}
+                              align="center"
+                              fontSize={Math.max(12, size * 0.18)}
+                              fontFamily={FONT_FAMILY}
+                              fill={isSel ? "#1d4ed8" : "#0f172a"}
+                            />
+                          </Group>
+                        );
+                      }
+
+                      const text = previewText(key);
+                      const fontSize = Math.max(10, fp.fontSize * previewScale);
+                      const textW = measureTextWidth(text, fontSize, FONT_FAMILY);
+
+                      const x = fp.x * previewScale;
+                      const y = fp.y * previewScale;
 
                       return (
                         <Group
@@ -483,12 +594,12 @@ export default function AdminCertificateLayoutPage() {
                             const nx = ev.target.x() / previewScale;
                             const ny = ev.target.y() / previewScale;
 
-                            // IMPORTANT: jangan spread union, construct object QR
                             upsertField(key, {
-                              type: "qr",
+                              type: "text",
                               x: Math.round(nx),
                               y: Math.round(ny),
-                              size: fp.size,
+                              fontSize: fp.fontSize,
+                              align: "left",
                             });
                           }}
                         >
@@ -496,92 +607,33 @@ export default function AdminCertificateLayoutPage() {
                             <Rect
                               x={-8}
                               y={-8}
-                              width={size + 16}
-                              height={size + 16}
+                              width={textW + 16}
+                              height={fontSize + 16}
                               stroke="#2563eb"
                               strokeWidth={2}
                               dash={[6, 4]}
                             />
                           ) : null}
 
-                          <Rect
+                          <KonvaText
+                            text={text}
                             x={0}
                             y={0}
-                            width={size}
-                            height={size}
-                            stroke="#0f172a"
-                            strokeWidth={2}
-                          />
-                          <KonvaText
-                            text="QR"
-                            x={0}
-                            y={Math.max(0, size / 2 - 14)}
-                            width={size}
-                            align="center"
-                            fontSize={Math.max(12, size * 0.18)}
+                            fontSize={fontSize}
+                            fontFamily={FONT_FAMILY}
                             fill={isSel ? "#1d4ed8" : "#0f172a"}
                           />
                         </Group>
                       );
-                    }
-
-                    // ===== TEXT =====
-                    const text = previewText(key);
-                    const fontSize = Math.max(10, fp.fontSize * previewScale);
-                    const w = estimateTextBoxWidth(text, fontSize);
-
-                    return (
-                      <Group
-                        key={key}
-                        x={x}
-                        y={y}
-                        draggable
-                        onClick={() => setSelectedKey(key)}
-                        onTap={() => setSelectedKey(key)}
-                        onDragEnd={(ev) => {
-                          const nx = ev.target.x() / previewScale;
-                          const ny = ev.target.y() / previewScale;
-
-                          // IMPORTANT: jangan spread union, construct object TEXT
-                          upsertField(key, {
-                            type: "text",
-                            x: Math.round(nx),
-                            y: Math.round(ny),
-                            fontSize: fp.fontSize,
-                            align: fp.align,
-                          });
-                        }}
-                      >
-                        {isSel ? (
-                          <Rect
-                            x={-8}
-                            y={-8}
-                            width={w + 16}
-                            height={fontSize + 16}
-                            stroke="#2563eb"
-                            strokeWidth={2}
-                            dash={[6, 4]}
-                          />
-                        ) : null}
-
-                        <KonvaText
-                          text={text}
-                          fontSize={fontSize}
-                          width={w}
-                          align={fp.align}
-                          fill={isSel ? "#1d4ed8" : "#0f172a"}
-                        />
-                      </Group>
-                    );
-                  })}
-                </Layer>
-              </Stage>
+                    })}
+                  </Layer>
+                </Stage>
+              </div>
             </div>
           </div>
 
-          {/* Inspector */}
-          <div className="rounded-xl border bg-white overflow-hidden">
-            <div className="p-4 space-y-3">
+          <div className="overflow-hidden rounded-xl border bg-white">
+            <div className="space-y-3 p-4">
               <div>
                 <div className="font-medium">Properti</div>
                 <div className="text-xs text-muted-foreground">
@@ -614,11 +666,9 @@ export default function AdminCertificateLayoutPage() {
               <Separator />
 
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">
-                  Tambah Field
-                </div>
+                <div className="text-xs text-muted-foreground">Tambah Field</div>
 
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -649,7 +699,6 @@ export default function AdminCertificateLayoutPage() {
                     Tgl Ujian
                   </Button>
 
-                  {/* ✅ Tambahin ini */}
                   <Button
                     type="button"
                     variant="outline"
@@ -712,8 +761,7 @@ export default function AdminCertificateLayoutPage() {
                 </div>
 
                 <div className="text-xs text-muted-foreground">
-                  Bebas tambah key apapun: score_verbal, score_kuantitatif,
-                  score_logika, score_spasial, dll. QR pakai key{" "}
+                  Semua field teks otomatis left. QR pakai key{" "}
                   <span className="font-medium text-foreground">qr_code</span>.
                 </div>
               </div>
@@ -723,7 +771,7 @@ export default function AdminCertificateLayoutPage() {
               {selected ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="font-medium truncate">{selected.key}</div>
+                    <div className="truncate font-medium">{selected.key}</div>
                     <Button
                       variant="outline"
                       size="sm"
@@ -735,7 +783,6 @@ export default function AdminCertificateLayoutPage() {
                     </Button>
                   </div>
 
-                  {/* X / Y (construct by type to avoid union spread) */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <div className="text-xs text-muted-foreground">X</div>
@@ -751,7 +798,7 @@ export default function AdminCertificateLayoutPage() {
                               x,
                               y: v.y,
                               fontSize: v.fontSize,
-                              align: v.align,
+                              align: "left",
                             });
                           } else {
                             upsertField(selected.key, {
@@ -780,7 +827,7 @@ export default function AdminCertificateLayoutPage() {
                               x: v.x,
                               y,
                               fontSize: v.fontSize,
-                              align: v.align,
+                              align: "left",
                             });
                           } else {
                             upsertField(selected.key, {
@@ -796,59 +843,31 @@ export default function AdminCertificateLayoutPage() {
                     </div>
                   </div>
 
-                  {/* TEXT ONLY */}
                   {isTextField(selected.val) ? (
-                    <>
-                      <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">
-                          Font Size
-                        </div>
-                        <Input
-                          value={String(selected.val.fontSize)}
-                          onChange={(e) => {
-                            const fontSize = Number(e.target.value || 0);
-                            const v = selected.val;
-                            if (!isTextField(v)) return;
-
-                            upsertField(selected.key, {
-                              type: "text",
-                              x: v.x,
-                              y: v.y,
-                              fontSize,
-                              align: v.align,
-                            });
-                          }}
-                          disabled={busy}
-                        />
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">
+                        Font Size
                       </div>
+                      <Input
+                        value={String(selected.val.fontSize)}
+                        onChange={(e) => {
+                          const fontSize = Number(e.target.value || 0);
+                          const v = selected.val;
+                          if (!isTextField(v)) return;
 
-                      <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">
-                          Align
-                        </div>
-                        <Input
-                          value={String(selected.val.align)}
-                          onChange={(e) => {
-                            const align = parseAlign(e.target.value);
-                            const v = selected.val;
-                            if (!isTextField(v)) return;
-
-                            upsertField(selected.key, {
-                              type: "text",
-                              x: v.x,
-                              y: v.y,
-                              fontSize: v.fontSize,
-                              align,
-                            });
-                          }}
-                          disabled={busy}
-                          placeholder="left / center / right"
-                        />
-                      </div>
-                    </>
+                          upsertField(selected.key, {
+                            type: "text",
+                            x: v.x,
+                            y: v.y,
+                            fontSize,
+                            align: "left",
+                          });
+                        }}
+                        disabled={busy}
+                      />
+                    </div>
                   ) : null}
 
-                  {/* QR ONLY */}
                   {isQrField(selected.val) ? (
                     <div className="space-y-1">
                       <div className="text-xs text-muted-foreground">Size</div>
