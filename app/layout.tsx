@@ -5,6 +5,11 @@ import { AppProviders } from "@/providers/AppProviders";
 export const metadata: Metadata = {
   title: "TPKA",
   description: "TPKA Frontend",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
