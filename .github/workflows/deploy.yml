@@ -4,15 +4,11 @@ on:
   push:
     branches:
       - main
-      - master
       - dev
-      - develop
   pull_request:
     branches:
       - main
-      - master
       - dev
-      - develop
   workflow_dispatch:
     inputs:
       target:
@@ -58,56 +54,54 @@ jobs:
     name: Deploy Dev
     needs: validate
     if: |
-      (github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'develop')) ||
+      (github.event_name == 'push' && github.ref_name == 'dev') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'dev')
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - linux
+      - tpka
+      - tpka-fe
     timeout-minutes: 30
     steps:
-      - name: Deploy Dev via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script_stop: true
-          script: |
-            set -euo pipefail
-            cd "${{ secrets.DEPLOY_TARGET_DIR_DEV }}"
-            git fetch --all --prune
-            git pull --rebase origin dev || git pull --rebase origin develop
-            docker compose -f docker-compose.dev.yml build
-            docker compose -f docker-compose.dev.yml up -d --remove-orphans
-            docker compose -f docker-compose.dev.yml ps
-            docker compose -f docker-compose.dev.yml logs --tail=50
-            docker image prune -f
-            docker builder prune -f
+      - name: Deploy Dev on VPS
+        env:
+          DEPLOY_TARGET_DIR_DEV: ${{ secrets.DEPLOY_TARGET_DIR_DEV }}
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_TARGET_DIR_DEV"
+          git fetch --all --prune
+          git pull --rebase origin dev
+          docker compose -f docker-compose.dev.yml build
+          docker compose -f docker-compose.dev.yml up -d --remove-orphans
+          docker compose -f docker-compose.dev.yml ps
+          docker compose -f docker-compose.dev.yml logs --tail=50
+          docker image prune -f
+          docker builder prune -f
 
   deploy-prod:
     name: Deploy Prod
     needs: validate
     if: |
-      (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master')) ||
+      (github.event_name == 'push' && github.ref_name == 'main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'prod')
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - linux
+      - tpka
+      - tpka-fe
     timeout-minutes: 30
     steps:
-      - name: Deploy Prod via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script_stop: true
-          script: |
-            set -euo pipefail
-            cd "${{ secrets.DEPLOY_TARGET_DIR_PROD }}"
-            git fetch --all --prune
-            git pull --rebase origin main || git pull --rebase origin master
-            docker compose -f docker-compose.prod.yml build
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-            docker compose -f docker-compose.prod.yml ps
-            docker compose -f docker-compose.prod.yml logs --tail=50
-            docker image prune -f
-            docker builder prune -f
+      - name: Deploy Prod on VPS
+        env:
+          DEPLOY_TARGET_DIR_PROD: ${{ secrets.DEPLOY_TARGET_DIR_PROD }}
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_TARGET_DIR_PROD"
+          git fetch --all --prune
+          git pull --rebase origin main
+          docker compose -f docker-compose.prod.yml build
+          docker compose -f docker-compose.prod.yml up -d --remove-orphans
+          docker compose -f docker-compose.prod.yml ps
+          docker compose -f docker-compose.prod.yml logs --tail=50
+          docker image prune -f
+          docker builder prune -f
