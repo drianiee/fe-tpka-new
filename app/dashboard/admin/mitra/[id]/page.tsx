@@ -71,6 +71,20 @@ function buildPages(current: number, last: number) {
 }
 
 export default function AdminPartnerDetailPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">
+          Memuat halaman...
+        </div>
+      }
+    >
+      <AdminPartnerDetailPageContent />
+    </React.Suspense>
+  );
+}
+
+function AdminPartnerDetailPageContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const sp = useSearchParams();

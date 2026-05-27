@@ -70,6 +70,20 @@ function buildPdfUrl(uuid: string, h: string) {
 }
 
 export default function CertificateVerifyPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">
+          Memuat halaman...
+        </div>
+      }
+    >
+      <CertificateVerifyPageContent />
+    </React.Suspense>
+  );
+}
+
+function CertificateVerifyPageContent() {
   const params = useParams<{ uuid: string }>()
   const search = useSearchParams()
 

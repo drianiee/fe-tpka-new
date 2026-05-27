@@ -86,7 +86,7 @@ export function AddScheduleDialog() {
         capacity: Number(v.capacity),
         is_partner: v.is_partner,
         partner_id: v.is_partner ? v.partner_id : undefined,
-        package_id: v.is_partner ? v.package_ids : undefined,
+        package_ids: v.is_partner ? v.package_ids : undefined,
       }),
     onSuccess: (res) => {
       toast.success(res.message ?? "Jadwal berhasil dibuat")

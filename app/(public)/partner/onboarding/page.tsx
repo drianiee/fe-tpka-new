@@ -108,6 +108,20 @@ type FormValues = z.infer<typeof schema>;
 /* ================= PAGE ================= */
 
 export default function PartnerOnboardingPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">
+          Memuat halaman...
+        </div>
+      }
+    >
+      <PartnerOnboardingPageContent />
+    </React.Suspense>
+  );
+}
+
+function PartnerOnboardingPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const tokenFromUrl = safeTrim(params.get("token"));

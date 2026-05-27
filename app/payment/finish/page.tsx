@@ -5,6 +5,22 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function PaymentFinishPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="h-full min-h-screen grid place-items-center bg-background">
+          <div className="rounded-xl border bg-white p-6 text-sm text-muted-foreground">
+            Memuat halaman...
+          </div>
+        </div>
+      }
+    >
+      <PaymentFinishPageContent />
+    </React.Suspense>
+  );
+}
+
+function PaymentFinishPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
 

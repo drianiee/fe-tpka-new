@@ -98,6 +98,20 @@ function statusVariant(
 }
 
 export default function ParticipantMySchedulesPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">
+          Memuat halaman...
+        </div>
+      }
+    >
+      <ParticipantMySchedulesPageContent />
+    </React.Suspense>
+  );
+}
+
+function ParticipantMySchedulesPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
 

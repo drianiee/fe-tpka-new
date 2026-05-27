@@ -86,6 +86,20 @@ const completeProfileSchema = z.object({
 type CompleteProfileValues = z.infer<typeof completeProfileSchema>;
 
 export default function RegisterPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">
+          Memuat halaman...
+        </div>
+      }
+    >
+      <RegisterPageContent />
+    </React.Suspense>
+  );
+}
+
+function RegisterPageContent() {
   const router = useRouter();
   const params = useSearchParams();
 
