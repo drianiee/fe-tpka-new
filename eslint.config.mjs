@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated/minified assets should not be linted as source code.
+    "public/**/*.min.js",
+    "public/**/*.min.mjs",
   ]),
 ]);
 

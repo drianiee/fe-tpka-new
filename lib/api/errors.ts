@@ -1,11 +1,5 @@
 import axios, { AxiosError } from "axios";
 
-type ApiErrorShape = {
-  message?: string;
-  error?: string;
-  errors?: Record<string, string[]>;
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
