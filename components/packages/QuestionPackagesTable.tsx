@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Filter } from "lucide-react";
 
@@ -83,6 +83,10 @@ function ActiveBadge({ status }: { status: QuestionPackage["status"] }) {
 
 export function QuestionPackagesTable() {
   const router = useRouter();
+  const pathname = usePathname();
+  const basePath = pathname?.includes("/dashboard/operator")
+    ? "/dashboard/operator/question-packages"
+    : "/dashboard/admin/question-packages";
 
   const [qText, setQText] = React.useState("");
   const [status, setStatus] = React.useState<string>("");
@@ -162,6 +166,20 @@ export function QuestionPackagesTable() {
         ),
       },
       {
+        key: "summary",
+        header: "Per Sesi",
+        headerClassName: "min-w-[260px]",
+        className: "py-4 px-2",
+        cell: (row) => (
+          <div className="grid grid-cols-2 gap-1 text-xs">
+            <span>Verbal: {row.summary?.verbal ?? 0}</span>
+            <span>Kuant: {row.summary?.kuantitatif ?? 0}</span>
+            <span>Logika: {row.summary?.logika ?? 0}</span>
+            <span>Spasial: {row.summary?.spasial ?? 0}</span>
+          </div>
+        ),
+      },
+      {
         key: "status",
         header: "Status",
         headerClassName: "w-32 text-center",
@@ -181,7 +199,7 @@ export function QuestionPackagesTable() {
           <div className="flex justify-center">
             <Button asChild size="sm" variant="outline">
               <Link
-                href={`/dashboard/admin/question-packages/${row.id}`}
+                href={`${basePath}/${row.id}`}
                 onClick={(e) => e.stopPropagation()}
               >
                 Detail
@@ -191,7 +209,7 @@ export function QuestionPackagesTable() {
         ),
       },
     ];
-  }, [page, perPage]);
+  }, [basePath, page, perPage]);
 
   return (
     <div className="h-full min-h-0 rounded-xl border overflow-hidden flex flex-col">
@@ -281,7 +299,7 @@ export function QuestionPackagesTable() {
           emptyText="Data tidak ditemukan"
           stickyHeader
           onRowClick={(row) =>
-            router.push(`/dashboard/admin/question-packages/${row.id}`)
+            router.push(`${basePath}/${row.id}`)
           }
           getRowClassName={() => "cursor-pointer hover:bg-muted/50"}
         />

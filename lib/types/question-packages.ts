@@ -1,6 +1,17 @@
 import type { PaginatedResponse } from "@/lib/types/pagination";
 
 export type QuestionPackageStatus = "draft" | "published" | "archived";
+export type SectionCode = "verbal" | "kuantitatif" | "logika" | "spasial";
+export type ExamSection = {
+  id: number;
+  code: SectionCode | string | null;
+  name: string;
+  description: string | null;
+  order_number: number;
+  duration_minutes: number;
+  question_count: number;
+  questions_count?: number;
+};
 export type QuestionPackage = {
   id: number;
   name: string;
@@ -9,13 +20,8 @@ export type QuestionPackage = {
   total_duration_minutes: number;
   total_questions: number;
   sections_count?: number;
-  sections?: Array<{
-    id: number;
-    name: string;
-    description: string | null;
-    duration_minutes: number;
-    question_count: number;
-  }>;
+  sections?: ExamSection[];
+  summary?: Record<string, number>;
   created_at: string;
   updated_at: string;
 };

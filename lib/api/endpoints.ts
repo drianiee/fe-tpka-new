@@ -49,6 +49,16 @@ export const API_ENDPOINTS = {
     BASE: "/api/question-packages",
     DETAIL: (id: number | string) => `/api/question-packages/${id}`,
     STATUS: (id: number | string) => `/api/question-packages/${id}/status`,
+    SECTIONS: (id: number | string) => `/api/question-packages/${id}/sections`,
+    QUESTIONS: (id: number | string) => `/api/question-packages/${id}/questions`,
+    IMPORT_TEMPLATE: (id: number | string) =>
+      `/api/question-packages/${id}/questions/import-template`,
+    IMPORT: (id: number | string) =>
+      `/api/question-packages/${id}/questions/import`,
+  },
+  QUESTIONS: {
+    DETAIL: (id: number | string) => `/api/questions/${id}`,
+    IMAGE_UPLOAD: "/api/admin/question-images",
   },
 
   PAYMENTS: {
