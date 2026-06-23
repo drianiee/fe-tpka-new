@@ -83,7 +83,7 @@ export type CreateScheduleRequest = {
   title: string;
   description?: string;
   start_at: string;
-  end_at: string;
+  end_at?: string;
   registration_start_at?: string;
   registration_end_at?: string;
   price?: number;

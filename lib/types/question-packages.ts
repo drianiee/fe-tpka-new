@@ -10,15 +10,16 @@ export type ExamSection = {
   order_number: number;
   duration_minutes: number;
   question_count: number;
+  target_question_count: number;
   questions_count?: number;
 };
 export type QuestionPackage = {
   id: number;
   name: string;
-  description: string | null;
   status: QuestionPackageStatus;
   total_duration_minutes: number;
   total_questions: number;
+  target_total_questions: number;
   sections_count?: number;
   sections?: ExamSection[];
   summary?: Record<string, number>;
@@ -27,7 +28,17 @@ export type QuestionPackage = {
 };
 export type ListQuestionPackagesResponse = PaginatedResponse<QuestionPackage>;
 export type DetailQuestionPackageResponse = { data: QuestionPackage };
-export type CreateQuestionPackageRequest = { name: string; description?: string; status: QuestionPackageStatus; total_duration_minutes: number };
+export type CreateQuestionPackageRequest = {
+  name: string;
+  status?: QuestionPackageStatus;
+  total_duration_minutes: number;
+  target_total_questions?: number;
+  sections?: Array<{
+    code: SectionCode;
+    duration_minutes: number;
+    target_question_count: number;
+  }>;
+};
 export type CreateQuestionPackageResponse = { message?: string; data: QuestionPackage };
 export type UpdateQuestionPackageStatusRequest = { status: QuestionPackageStatus };
 export type UpdateQuestionPackageStatusResponse = { message?: string; data: QuestionPackage };

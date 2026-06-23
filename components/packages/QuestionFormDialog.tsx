@@ -29,12 +29,12 @@ function emptyOptions(): QuestionOptionAdmin[] {
 function toPayload(question: QuestionAdmin | null, sections: ExamSection[]): QuestionPayload {
   return {
     exam_section_id: question?.exam_section_id ?? sections[0]?.id ?? 0,
-    order_number: question?.order_number ?? 1,
+    order_number: question?.order_number,
     question_text: question?.question_text ?? "",
     question_image: question?.question_image ?? "",
     explanation: question?.explanation ?? "",
     difficulty: question?.difficulty ?? "",
-    score: Number(question?.score ?? 1),
+    score: question?.score == null ? undefined : Number(question.score),
     is_active: question?.is_active ?? true,
     options: question?.options?.length ? LABELS.map((label, index) => {
       const option = question.options.find((item) => item.option_label === label);
@@ -98,7 +98,6 @@ export function QuestionFormDialog({
   const validate = () => {
     if (!form.exam_section_id) return "Section wajib dipilih.";
     if (!form.question_text?.trim() && !form.question_image?.trim()) return "Soal wajib punya teks atau gambar.";
-    if (form.score < 1) return "Skor minimal 1.";
     if (form.options.filter((option) => option.is_correct).length !== 1) return "Pilih tepat satu kunci jawaban.";
     for (const option of form.options) {
       if (!option.option_text?.trim() && !option.option_image?.trim()) return `Opsi ${option.option_label} wajib punya teks atau gambar.`;
@@ -150,7 +149,7 @@ export function QuestionFormDialog({
         </DialogHeader>
 
         <div className="grid gap-4">
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3">
             <div className="space-y-2">
               <Label>Section</Label>
               <Select value={String(form.exam_section_id)} onValueChange={(v) => setForm((x) => ({ ...x, exam_section_id: Number(v) }))}>
@@ -159,14 +158,6 @@ export function QuestionFormDialog({
                   {sections.map((section) => <SelectItem key={section.id} value={String(section.id)}>{section.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Nomor Urut</Label>
-              <Input type="number" min={1} value={form.order_number} onChange={(e) => setForm((x) => ({ ...x, order_number: Number(e.target.value) }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Skor</Label>
-              <Input type="number" min={1} value={form.score} onChange={(e) => setForm((x) => ({ ...x, score: Number(e.target.value) }))} />
             </div>
           </div>
 

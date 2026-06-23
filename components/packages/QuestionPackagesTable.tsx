@@ -161,7 +161,7 @@ export function QuestionPackagesTable() {
         className: "py-4 px-2 text-center",
         cell: (row) => (
           <div className="truncate max-w-50 mx-auto">
-            {row.total_questions} soal / {row.total_duration_minutes} menit
+            {row.total_questions}/{row.target_total_questions ?? 0} soal / {row.total_duration_minutes} menit
           </div>
         ),
       },
@@ -172,10 +172,10 @@ export function QuestionPackagesTable() {
         className: "py-4 px-2",
         cell: (row) => (
           <div className="grid grid-cols-2 gap-1 text-xs">
-            <span>Verbal: {row.summary?.verbal ?? 0}</span>
-            <span>Kuant: {row.summary?.kuantitatif ?? 0}</span>
-            <span>Logika: {row.summary?.logika ?? 0}</span>
-            <span>Spasial: {row.summary?.spasial ?? 0}</span>
+            <span>Verbal: {row.summary?.verbal ?? 0}/{row.sections?.find((s) => s.code === "verbal")?.target_question_count ?? 0}</span>
+            <span>Kuant: {row.summary?.kuantitatif ?? 0}/{row.sections?.find((s) => s.code === "kuantitatif")?.target_question_count ?? 0}</span>
+            <span>Logika: {row.summary?.logika ?? 0}/{row.sections?.find((s) => s.code === "logika")?.target_question_count ?? 0}</span>
+            <span>Spasial: {row.summary?.spasial ?? 0}/{row.sections?.find((s) => s.code === "spasial")?.target_question_count ?? 0}</span>
           </div>
         ),
       },

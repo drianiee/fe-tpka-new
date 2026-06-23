@@ -117,10 +117,9 @@ export function QuestionPackageDetail({ packageId, backHref }: { packageId: numb
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={item.status} />
                 <Badge variant="outline">ID: {item.id}</Badge>
-                <Badge variant="secondary">{item.total_questions} soal</Badge>
+                <Badge variant="secondary">{item.total_questions}/{item.target_total_questions ?? 0} soal</Badge>
                 <Badge variant="secondary">{item.total_duration_minutes} menit</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{item.description || "Tanpa deskripsi"}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <PackagePreviewDialog pkg={item} />
@@ -140,7 +139,7 @@ export function QuestionPackageDetail({ packageId, backHref }: { packageId: numb
               <button key={section.id} type="button" onClick={() => setActiveSectionId(section.id)} className={`rounded-xl border p-3 text-left ${activeSectionId === section.id ? "border-blue-600 bg-blue-50" : "bg-white"}`}>
                 <div className="text-sm font-semibold">{section.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{section.code}</div>
-                <div className="mt-3 text-sm">{section.question_count} soal / {section.duration_minutes} menit</div>
+                <div className="mt-3 text-sm">{section.question_count}/{section.target_question_count ?? 0} soal / {section.duration_minutes} menit</div>
               </button>
             ))}
           </div>

@@ -30,12 +30,12 @@ export type QuestionAdmin = {
 
 export type QuestionPayload = {
   exam_section_id: number;
-  order_number: number;
+  order_number?: number;
   question_text?: string | null;
   question_image?: string | null;
   explanation?: string | null;
   difficulty?: string | null;
-  score: number;
+  score?: number;
   is_active: boolean;
   options: QuestionOptionAdmin[];
 };
