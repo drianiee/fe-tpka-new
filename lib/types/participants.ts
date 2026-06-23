@@ -8,7 +8,6 @@ export type Participant = {
   email: string;
 
   email_verified_at: string | null;
-  moodle_user_id: number | null;
 
   role: ParticipantRole;
   is_active: boolean;
@@ -40,7 +39,7 @@ export type ParticipantScheduleItem = {
   end_time: string; // "HH:mm:ss"
 
   status_jadwal: string; // "Tes Belum Dimulai", "Tes Sedang Berlangsung", "Tes Selesai"
-  quiz_url: string | null;
+  attempt_id: number | null;
 
   is_partner: boolean;
   partner: { id: number; name: string } | null;

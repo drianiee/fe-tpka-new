@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { LogOut, Menu, User as UserIcon } from "lucide-react";
 
@@ -61,6 +61,7 @@ export function DashboardLayoutClient({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = React.useState<User | null>(null);
 
   const [logoutOpen, setLogoutOpen] = React.useState(false);
@@ -85,6 +86,15 @@ export function DashboardLayoutClient({
       }
     })();
   }, [router]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    const area = pathname.split("/")[2];
+    const expected = user.role === "administrator" ? "admin" : user.role;
+    if (["admin", "operator", "peserta"].includes(area) && area !== expected) {
+      router.replace(`/dashboard/${expected}`);
+    }
+  }, [pathname, router, user]);
 
   async function onConfirmLogout() {
     setLogoutLoading(true);

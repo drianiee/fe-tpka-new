@@ -246,11 +246,6 @@ export default function AccountPage() {
                   </Badge>
                 ) : null}
 
-                {"moodle_user_id" in user && (user).moodle_user_id ? (
-                  <Badge variant="outline">
-                    Moodle UID: {(user).moodle_user_id}
-                  </Badge>
-                ) : null}
               </div>
             </div>
 

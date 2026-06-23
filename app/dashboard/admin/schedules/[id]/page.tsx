@@ -95,6 +95,8 @@ function normalizeScheduleStatus(status?: string | null) {
 
   const s = status.toLowerCase();
 
+  if (["draft", "published", "closed", "cancelled"].includes(s)) return s;
+
   if (s.includes("belum")) return "belum-dimulai";
   if (s.includes("sedang")) return "sedang-berlangsung";
   if (s.includes("selesai")) return "selesai";
@@ -107,14 +109,16 @@ function scheduleStatusVariant(
 ): "muted" | "warning" | "success" {
   const s = normalizeScheduleStatus(status);
 
-  if (s === "sedang-berlangsung") return "warning";
-  if (s === "selesai") return "success";
+  if (s === "published" || s === "sedang-berlangsung") return "success";
+  if (s === "cancelled") return "warning";
+  if (s === "selesai" || s === "closed") return "muted";
   return "muted";
 }
 
 function scheduleStatusLabel(status?: string | null) {
   const s = normalizeScheduleStatus(status);
 
+  if (["draft", "published", "closed", "cancelled"].includes(s)) return s.charAt(0).toUpperCase() + s.slice(1);
   if (s === "belum-dimulai") return "Tes Belum Dimulai";
   if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung";
   if (s === "selesai") return "Tes Selesai";
@@ -563,18 +567,8 @@ export default function AdminScheduleDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {d.moodle_course_id ? (
-            <Badge variant="secondary">Course: {d.moodle_course_id}</Badge>
-          ) : null}
-          {d.moodle_quiz_id ? <Badge variant="secondary">Quiz: {d.moodle_quiz_id}</Badge> : null}
-          {d.moodle_quiz_cmid ? <Badge variant="secondary">CMID: {d.moodle_quiz_cmid}</Badge> : null}
-          {d.quiz_url ? (
-            <Button asChild size="sm" variant="outline">
-              <a href={d.quiz_url} target="_blank" rel="noreferrer">
-                Buka Quiz
-              </a>
-            </Button>
-          ) : null}
+          <Badge variant="secondary">Attempt: {d.attempt_count ?? 0}</Badge>
+          <Badge variant="secondary">Submit: {d.submitted_count ?? 0}</Badge>
         </div>
       </Card>
 

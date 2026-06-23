@@ -1,265 +1,45 @@
-// components/schedules/AddScheduleDialog.tsx
-"use client"
+"use client";
 
-import * as React from "react"
-import { toast } from "sonner"
-import { z } from "zod"
-import { Controller, useForm, useWatch } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-
-import { schedulesService } from "@/lib/services/schedules.service"
-import { API_ENDPOINTS } from "@/lib/api/endpoints"
-import { getApiErrorMessage } from "@/lib/api/errors"
-import { usePartnersQuery } from "@/lib/hooks/usePartnersQuery"
-
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SearchableCombobox } from "@/components/common/SearchableCombobox"
+import * as React from "react";
+import { toast } from "sonner";
+import { z } from "zod";
+import { Controller, useForm, type UseFormRegisterReturn } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { schedulesService } from "@/lib/services/schedules.service";
+import { questionPackagesService } from "@/lib/services/questionPackages.service";
+import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const schema = z.object({
-  date: z.string().min(1, "Tanggal wajib diisi"),
-  start_time: z.string().min(1, "Jam mulai wajib diisi"),
-  price: z
-    .string()
-    .min(1, "Harga wajib diisi")
-    .refine((v) => !Number.isNaN(Number(v)), "Harga harus angka")
-    .refine((v) => Number(v) >= 0, "Harga minimal 0"),
-  is_partner: z.boolean(),
-  partner_id: z.number().optional(),
-  capacity: z
-    .string()
-    .min(1, "Kapasitas wajib diisi")
-    .refine((v) => !Number.isNaN(Number(v)), "Kapasitas harus angka")
-    .refine((v) => Number(v) >= 1, "Kapasitas minimal 1"),
-  package_ids: z.array(z.number()),
-})
+  title: z.string().min(1, "Judul wajib diisi"),
+  question_package_id: z.number().min(1, "Paket wajib dipilih"),
+  start_at: z.string().min(1), end_at: z.string().min(1),
+  registration_start_at: z.string().optional(), registration_end_at: z.string().optional(),
+  price: z.number().min(0), quota: z.number().int().min(1),
+  status: z.enum(["draft", "published"]),
+}).refine((v) => new Date(v.end_at) > new Date(v.start_at), { message: "Waktu selesai harus setelah waktu mulai", path: ["end_at"] });
+type Values = z.infer<typeof schema>;
 
-type FormValues = z.infer<typeof schema>
+function Field({ label, type, register, error }: { label: string; type: string; register: UseFormRegisterReturn; error?: string }) {
+  return <div className="space-y-2"><Label>{label}</Label><Input type={type} {...register}/>{error ? <p className="text-sm text-destructive">{error}</p> : null}</div>;
+}
 
 export function AddScheduleDialog() {
-  const [open, setOpen] = React.useState(false)
-  const qc = useQueryClient()
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      date: "",
-      start_time: "",
-      price: "150000",
-      is_partner: false,
-      partner_id: undefined,
-      capacity: "50",
-      package_ids: [],
-    },
-    mode: "onSubmit",
-  })
-
-  const isPartner = useWatch({ control: form.control, name: "is_partner" })
-
-  const [partnerOpen, setPartnerOpen] = React.useState(false)
-  const [partnerQuery, setPartnerQuery] = React.useState("")
-
-  const { qPartners, partners } = usePartnersQuery({
-    enabled: open && isPartner,
-    q: partnerQuery,
-  })
-
-  React.useEffect(() => {
-    if (!isPartner) {
-      form.setValue("partner_id", undefined)
-      form.setValue("package_ids", [])
-      form.clearErrors(["partner_id", "package_ids"])
-      setPartnerQuery("")
-    }
-  }, [isPartner, form])
-
-  const createMut = useMutation({
-    mutationFn: (v: FormValues) =>
-      schedulesService.create({
-        date: v.date,
-        start_time: v.start_time,
-        price: Number(v.price),
-        capacity: Number(v.capacity),
-        is_partner: v.is_partner,
-        partner_id: v.is_partner ? v.partner_id : undefined,
-        package_ids: v.is_partner ? v.package_ids : undefined,
-      }),
-    onSuccess: (res) => {
-      toast.success(res.message ?? "Jadwal berhasil dibuat")
-      qc.invalidateQueries({ queryKey: [API_ENDPOINTS.SCHEDULES.BASE] })
-      setOpen(false)
-      form.reset({
-        date: "",
-        start_time: "",
-        price: "150000",
-        is_partner: false,
-        partner_id: undefined,
-        capacity: "50",
-        package_ids: [],
-      })
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e)),
-  })
-
-  function onSubmit(v: FormValues) {
-    if (v.is_partner && !v.partner_id) {
-      form.setError("partner_id", {
-        type: "manual",
-        message: "Partner wajib dipilih untuk jadwal mitra",
-      })
-      return
-    }
-
-    createMut.mutate(v)
-  }
-
-  const fieldWrap = "space-y-1.5"
-  const errorText = "text-sm text-destructive"
-  const sectionTitle = "text-sm font-semibold"
-  const sectionHint = "text-xs text-muted-foreground"
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        setOpen(v)
-        if (!v) {
-          form.reset({
-            date: "",
-            start_time: "",
-            price: "150000",
-            is_partner: false,
-            partner_id: undefined,
-            capacity: "50",
-            package_ids: [],
-          })
-          form.clearErrors()
-          setPartnerQuery("")
-        }
-      }}
-    >
-      <DialogTrigger asChild>
-        <Button>+ Jadwal</Button>
-      </DialogTrigger>
-
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Tambah Jadwal</DialogTitle>
-        </DialogHeader>
-
-        <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="rounded-lg border bg-white p-4 space-y-4">
-            <div className="space-y-1">
-              <div className={sectionTitle}>Informasi Jadwal</div>
-              <div className={sectionHint}>Isi tanggal, jam mulai, harga, dan kapasitas.</div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className={fieldWrap}>
-                <Label>Tanggal</Label>
-                <Input type="date" {...form.register("date")} />
-                {form.formState.errors.date ? (
-                  <p className={errorText}>{form.formState.errors.date.message}</p>
-                ) : null}
-              </div>
-
-              <div className={fieldWrap}>
-                <Label>Jam Mulai</Label>
-                <Input type="time" {...form.register("start_time")} />
-                {form.formState.errors.start_time ? (
-                  <p className={errorText}>{form.formState.errors.start_time.message}</p>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className={fieldWrap}>
-                <Label>Harga</Label>
-                <Input type="number" inputMode="numeric" {...form.register("price")} />
-                {form.formState.errors.price ? (
-                  <p className={errorText}>{form.formState.errors.price.message}</p>
-                ) : null}
-              </div>
-
-              <div className={fieldWrap}>
-                <Label>Kapasitas</Label>
-                <Input type="number" inputMode="numeric" {...form.register("capacity")} />
-                {form.formState.errors.capacity ? (
-                  <p className={errorText}>{form.formState.errors.capacity.message}</p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border bg-white p-4 space-y-4">
-            <div className="space-y-1">
-              <div className={sectionTitle}>Tipe Jadwal</div>
-              <div className={sectionHint}>Atur apakah jadwal ini untuk mitra.</div>
-            </div>
-
-            <div className={fieldWrap}>
-              <Label>Mitra?</Label>
-              <Controller
-                control={form.control}
-                name="is_partner"
-                render={({ field }) => (
-                  <Select value={field.value ? "yes" : "no"} onValueChange={(v) => field.onChange(v === "yes")}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no">Tidak</SelectItem>
-                      <SelectItem value="yes">Ya</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
-            {isPartner ? (
-              <div className={fieldWrap}>
-                <Label>Partner</Label>
-                <Controller
-                  control={form.control}
-                  name="partner_id"
-                  render={({ field }) => (
-                    <SearchableCombobox
-                      value={field.value ?? null}
-                      onChange={(val) => {
-                        field.onChange(val)
-                        form.clearErrors("partner_id")
-                      }}
-                      options={partners.map((p) => ({ id: p.id, label: p.name }))}
-                      open={partnerOpen}
-                      onOpenChange={setPartnerOpen}
-                      search={partnerQuery}
-                      onSearchChange={setPartnerQuery}
-                      loading={qPartners.isLoading}
-                      placeholder="Pilih partner"
-                    />
-                  )}
-                />
-                {form.formState.errors.partner_id ? (
-                  <p className={errorText}>{String(form.formState.errors.partner_id.message)}</p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={createMut.isPending}>
-              Batal
-            </Button>
-            <Button type="submit" disabled={createMut.isPending}>
-              {createMut.isPending ? "Menyimpan..." : "Simpan"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
+  const [open, setOpen] = React.useState(false); const qc = useQueryClient();
+  const packageQuery = useQuery({ queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.BASE, "schedule-options"], queryFn: () => questionPackagesService.list({ per_page: 100, is_active: true }), enabled: open });
+  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { title: "", question_package_id: 0, start_at: "", end_at: "", registration_start_at: "", registration_end_at: "", price: 0, quota: 50, status: "draft" } });
+  const mutation = useMutation({ mutationFn: (v: Values) => schedulesService.create({ ...v, registration_start_at: v.registration_start_at || undefined, registration_end_at: v.registration_end_at || undefined }), onSuccess: (r) => { toast.success(r.message ?? "Jadwal dibuat"); qc.invalidateQueries({ queryKey: [API_ENDPOINTS.SCHEDULES.BASE] }); setOpen(false); form.reset(); }, onError: (e) => toast.error(getApiErrorMessage(e)) });
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button>+ Jadwal</Button></DialogTrigger><DialogContent className="sm:max-w-xl"><DialogHeader><DialogTitle>Tambah Jadwal Ujian</DialogTitle></DialogHeader><form className="grid gap-4" onSubmit={form.handleSubmit((v) => mutation.mutate(v))}>
+    <div className="space-y-2"><Label>Judul</Label><Input {...form.register("title")} placeholder="TPA Gelombang 1"/>{form.formState.errors.title ? <p className="text-sm text-destructive">{form.formState.errors.title.message}</p> : null}</div>
+    <div className="space-y-2"><Label>Paket Soal</Label><Controller control={form.control} name="question_package_id" render={({ field }) => <Select value={field.value ? String(field.value) : ""} onValueChange={(v) => field.onChange(Number(v))}><SelectTrigger><SelectValue placeholder="Pilih paket"/></SelectTrigger><SelectContent>{packageQuery.data?.data.map((p) => <SelectItem key={p.id} value={String(p.id)}>{p.name} ({p.total_questions} soal)</SelectItem>)}</SelectContent></Select>}/></div>
+    <div className="grid gap-4 sm:grid-cols-2"><Field label="Mulai" type="datetime-local" register={form.register("start_at")}/><Field label="Selesai" type="datetime-local" register={form.register("end_at")} error={form.formState.errors.end_at?.message}/><Field label="Buka Registrasi" type="datetime-local" register={form.register("registration_start_at")}/><Field label="Tutup Registrasi" type="datetime-local" register={form.register("registration_end_at")}/><Field label="Harga" type="number" register={form.register("price", { valueAsNumber: true })}/><Field label="Kuota" type="number" register={form.register("quota", { valueAsNumber: true })}/></div>
+    <div className="space-y-2"><Label>Status</Label><Controller control={form.control} name="status" render={({ field }) => <Select value={field.value} onValueChange={field.onChange}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="draft">Draft</SelectItem><SelectItem value="published">Published</SelectItem></SelectContent></Select>}/></div>
+    <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button><Button disabled={mutation.isPending}>{mutation.isPending ? "Menyimpan..." : "Simpan"}</Button></div>
+  </form></DialogContent></Dialog>;
 }

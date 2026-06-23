@@ -94,11 +94,7 @@ export type PaymentDetail = {
 
   user: PaymentUserLite | null;
 
-  schedule: (PaymentScheduleLite & {
-    moodle_course_id?: number | null;
-    moodle_quiz_id?: number | null;
-    moodle_quiz_cmid?: number | null;
-  }) | null;
+  schedule: (PaymentScheduleLite & { question_package_id?: number | null }) | null;
 };
 
 export type PaymentDetailResponse = {

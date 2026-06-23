@@ -1,0 +1,2 @@
+import { Cloud, CloudOff, Loader2 } from "lucide-react";
+export function ConnectionStatus({ online, saving }: { online:boolean; saving:boolean }) { return <div className={`flex items-center gap-2 text-xs ${online?"text-muted-foreground":"text-red-600"}`}>{saving?<Loader2 className="h-3.5 w-3.5 animate-spin"/>:online?<Cloud className="h-3.5 w-3.5"/>:<CloudOff className="h-3.5 w-3.5"/>}{saving?"Menyimpan":online?"Terhubung":"Offline"}</div>; }

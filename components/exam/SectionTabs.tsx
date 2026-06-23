@@ -1,0 +1,2 @@
+import type { ExamSection } from "@/lib/types/exam";
+export function SectionTabs({ sections, activeId, onSelect }: { sections: ExamSection[]; activeId:number; onSelect:(id:number)=>void }) { return <div className="flex gap-2 overflow-x-auto pb-1">{sections.map((s)=><button type="button" key={s.id} onClick={()=>onSelect(s.id)} className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm ${s.id===activeId?"border-blue-600 bg-blue-600 text-white":"bg-white"}`}>{s.name}</button>)}</div>; }

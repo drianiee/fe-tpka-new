@@ -75,9 +75,10 @@ function buildPages(page: number, lastPage: number) {
   return result;
 }
 
-function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
-  return <Badge variant="success">Aktif</Badge>;
+function ActiveBadge({ status }: { status: QuestionPackage["status"] }) {
+  if (status === "published") return <Badge variant="success">Published</Badge>;
+  if (status === "archived") return <Badge variant="muted">Archived</Badge>;
+  return <Badge variant="warning">Draft</Badge>;
 }
 
 export function QuestionPackagesTable() {
@@ -150,13 +151,13 @@ export function QuestionPackagesTable() {
         ),
       },
       {
-        key: "moodle_group_name",
-        header: "Moodle Group",
+        key: "questions",
+        header: "Soal / Durasi",
         headerClassName: "text-center min-w-[200px]",
         className: "py-4 px-2 text-center",
         cell: (row) => (
           <div className="truncate max-w-50 mx-auto">
-            {row.moodle_group_name}
+            {row.total_questions} soal / {row.total_duration_minutes} menit
           </div>
         ),
       },
@@ -167,7 +168,7 @@ export function QuestionPackagesTable() {
         className: "py-4 px-2 text-center",
         cell: (row) => (
           <div className="flex justify-center">
-            <ActiveBadge active={row.is_active} />
+            <ActiveBadge status={row.status} />
           </div>
         ),
       },
@@ -200,7 +201,7 @@ export function QuestionPackagesTable() {
             <Input
               value={qText}
               onChange={(e) => setQText(e.target.value)}
-              placeholder="Cari paket (nama / moodle group)…"
+              placeholder="Cari nama paket soal..."
               disabled={busy}
               className="w-full"
             />

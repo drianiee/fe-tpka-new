@@ -17,7 +17,7 @@ export type LatestSchedule = {
   partner_id?: number | null
   end_dt?: string
   status?: string
-  quiz_url?: string | null
+  attempt_count?: number
 }
 
 export type DashboardResponse = {

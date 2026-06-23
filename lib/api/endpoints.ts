@@ -30,8 +30,6 @@ export const API_ENDPOINTS = {
       scheduleId: number | string,
       userId: number | string
     ) => `/api/schedules/${scheduleId}/participants/${userId}`,
-    PROVISION: (scheduleId: number | string) =>
-      `/api/schedules/${scheduleId}/provision`,
     PARTNER_IMPORT: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/partner/import`,
     PARTICIPANTS_EXPORT: (scheduleId: number | string) =>
@@ -90,6 +88,20 @@ export const API_ENDPOINTS = {
       `/api/participant/my-schedules/${id}`,
     SCORES: "/api/participant/scores",
     SCORE_DETAIL: (id: number | string) => `/api/participant/scores/${id}`,
+    ATTEMPT_START: (scheduleId: number | string) =>
+      `/api/participant/schedules/${scheduleId}/attempts`,
+    ATTEMPT: (attemptId: number | string) =>
+      `/api/participant/attempts/${attemptId}`,
+    ATTEMPT_ANSWER: (attemptId: number | string, questionId: number | string) =>
+      `/api/participant/attempts/${attemptId}/answers/${questionId}`,
+    ATTEMPT_ANSWERS_BATCH: (attemptId: number | string) =>
+      `/api/participant/attempts/${attemptId}/answers/batch`,
+    ATTEMPT_HEARTBEAT: (attemptId: number | string) =>
+      `/api/participant/attempts/${attemptId}/heartbeat`,
+    ATTEMPT_SUBMIT: (attemptId: number | string) =>
+      `/api/participant/attempts/${attemptId}/submit`,
+    ATTEMPT_RESULT: (attemptId: number | string) =>
+      `/api/participant/attempts/${attemptId}/result`,
   },
   PAYMENTS_ADMIN: {
     BASE: "/api/payments",

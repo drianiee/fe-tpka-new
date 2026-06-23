@@ -33,15 +33,13 @@ export type ScheduleListItem = {
 
   capacity: number;
 
-  moodle_course_id?: number | null;
-  moodle_quiz_id?: number | null;
-  moodle_quiz_cmid?: number | null;
-  provisioned_at?: string | null;
+  question_package_id: number;
+  attempt_count?: number;
+  submitted_count?: number;
 
   created_at?: string | null;
   updated_at?: string | null;
 
-  quiz_url: string | null;
   status: ScheduleStatus;
   current_participants: number;
 
@@ -81,14 +79,16 @@ export type ScheduleDetail = Omit<ScheduleListItem, "date"> & {
 };
 
 export type CreateScheduleRequest = {
-  date: string; // "YYYY-MM-DD"
-  start_time: string; // "HH:mm"
-  end_time?: string; // "HH:mm"
+  question_package_id: number;
+  title: string;
+  description?: string;
+  start_at: string;
+  end_at: string;
+  registration_start_at?: string;
+  registration_end_at?: string;
   price?: number;
-  capacity?: number;
-  is_partner?: boolean;
-  partner_id?: number | null;
-  package_ids?: number[];
+  quota?: number;
+  status?: "draft" | "published" | "closed" | "cancelled";
 };
 
 export type CreateScheduleResponse = {
@@ -115,7 +115,7 @@ export type AddParticipantResponse = {
     packages: QuestionPackageLite[];
     users: Array<{ id: number; name: string; email: string }>;
   };
-  quiz_url: string | null;
+  attempt_id?: number | null;
 };
 
 export type RemoveParticipantResponse = {
@@ -172,7 +172,6 @@ export type RegisterScheduleResponse = {
     picked?: {
       question_package_id: number;
       package_name: string;
-      moodle_group_name: string;
     };
   };
 };

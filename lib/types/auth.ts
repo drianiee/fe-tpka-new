@@ -9,8 +9,6 @@ export type User = {
 
   email_verified_at: string | null;
 
-  // dari API kamu
-  moodle_user_id?: number | null;
   is_active?: boolean;
 
   id_type?: "ktp" | "ktm" | "sim" | null;

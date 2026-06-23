@@ -1,0 +1,2 @@
+import { ExamTimer } from "@/components/exam/ExamTimer";
+export function ExamHeader({ title, remainingMs }: { title: string; remainingMs: number }) { return <header className="sticky top-16 z-30 flex items-center justify-between gap-4 border-b bg-background/95 px-4 py-3 backdrop-blur"><div><div className="text-xs text-muted-foreground">Ujian berlangsung</div><h1 className="font-semibold">{title}</h1></div><ExamTimer remainingMs={remainingMs} /></header>; }

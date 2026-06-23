@@ -1,5 +1,5 @@
 import axios from "axios"
-import { getToken } from "@/lib/utils/storage"
+import { clearToken, getToken } from "@/lib/utils/storage"
 
 export const http = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000",
@@ -17,3 +17,16 @@ http.interceptors.request.use((config) => {
   config.headers.Accept = "application/json"
   return config
 })
+
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      clearToken()
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.assign("/login")
+      }
+    }
+    return Promise.reject(error)
+  }
+)

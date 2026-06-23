@@ -44,9 +44,10 @@ type StatusOption = { label: string; value: string };
 
 const STATUS_OPTIONS: StatusOption[] = [
   { label: "Semua Status", value: "" },
-  { label: "Tes Belum Dimulai", value: "belum-dimulai" },
-  { label: "Tes Sedang Berlangsung", value: "sedang-berlangsung" },
-  { label: "Tes Telah Selesai", value: "telah-selesai" },
+  { label: "Draft", value: "draft" },
+  { label: "Published", value: "published" },
+  { label: "Closed", value: "closed" },
+  { label: "Cancelled", value: "cancelled" },
 ];
 
 function toYmd(d?: Date | null) {
@@ -81,6 +82,8 @@ function normalizeStatus(status?: string | null) {
 
   const s = status.trim().toLowerCase();
 
+  if (["draft", "published", "closed", "cancelled"].includes(s)) return s;
+
   if (s.includes("belum")) return "belum-dimulai";
   if (s.includes("sedang")) return "sedang-berlangsung";
   if (s.includes("selesai")) return "telah-selesai";
@@ -94,8 +97,9 @@ function statusVariant(
 ): "muted" | "warning" | "success" {
   const s = normalizeStatus(status);
 
-  if (s === "sedang-berlangsung") return "warning";
-  if (s === "telah-selesai") return "success";
+  if (s === "published" || s === "sedang-berlangsung") return "success";
+  if (s === "closed" || s === "telah-selesai") return "muted";
+  if (s === "cancelled") return "warning";
   return "muted";
 }
 
@@ -103,6 +107,7 @@ function statusVariant(
 function statusLabel(status?: string | null) {
   const s = normalizeStatus(status);
 
+  if (["draft", "published", "closed", "cancelled"].includes(s)) return s.charAt(0).toUpperCase() + s.slice(1);
   if (s === "belum-dimulai") return "Tes Belum Dimulai";
   if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung";
   if (s === "telah-selesai") return "Tes Telah Selesai";

@@ -200,21 +200,13 @@ export default function AdminParticipantDetailPage() {
           ),
         },
         {
-          key: "quiz",
-          header: "Quiz",
+          key: "attempt",
+          header: "Attempt",
           headerClassName: "w-32 text-center",
           className: "py-4 px-2 text-center",
           cell: (row) => (
             <div className="flex justify-center">
-              {row.quiz_url ? (
-                <Button asChild size="sm" variant="outline">
-                  <a href={row.quiz_url} target="_blank" rel="noreferrer">
-                    Buka
-                  </a>
-                </Button>
-              ) : (
-                <span className="text-sm text-muted-foreground">-</span>
-              )}
+              <span className="text-sm">{row.attempt_id ?? "-"}</span>
             </div>
           ),
         },
@@ -313,9 +305,6 @@ export default function AdminParticipantDetailPage() {
             <ActiveBadge isActive={p.is_active} />
             <Badge variant="outline">ID: {p.id}</Badge>
             <Badge variant="outline">Role: {p.role}</Badge>
-            {p.moodle_user_id ? (
-              <Badge variant="outline">Moodle UID: {p.moodle_user_id}</Badge>
-            ) : null}
             <Badge variant="secondary">
               Total Jadwal: {data.total_schedules ?? schedules.length}
             </Badge>

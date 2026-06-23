@@ -24,9 +24,10 @@ import {
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 import { Trash } from "lucide-react";
 
-function ActiveBadge({ active }: { active?: boolean | null }) {
-  if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
-  return <Badge variant="success">Aktif</Badge>;
+function ActiveBadge({ status }: { status: QuestionPackage["status"] }) {
+  if (status === "published") return <Badge variant="success">Published</Badge>;
+  if (status === "archived") return <Badge variant="muted">Archived</Badge>;
+  return <Badge variant="warning">Draft</Badge>;
 }
 
 export default function AdminQuestionPackageDetailPage() {
@@ -49,8 +50,8 @@ export default function AdminQuestionPackageDetailPage() {
   const item: QuestionPackage | null = detailQuery.data?.data ?? null;
 
   const statusMut = useMutation({
-    mutationFn: (nextActive: boolean) =>
-      questionPackagesService.updateStatus(pkgId, { is_active: nextActive }),
+    mutationFn: (status: QuestionPackage["status"]) =>
+      questionPackagesService.updateStatus(pkgId, { status }),
     onSuccess: (res) => {
       toast.success(res.message ?? "Status updated");
       qc.invalidateQueries({ queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.BASE] });
@@ -104,8 +105,8 @@ export default function AdminQuestionPackageDetailPage() {
     );
   }
 
-  const nextActive = !item.is_active;
-  const nextLabel = nextActive ? "Aktifkan" : "Nonaktifkan";
+  const nextStatus = item.status === "published" ? "archived" : "published";
+  const nextLabel = nextStatus === "published" ? "Publish" : "Arsipkan";
   const busy = detailQuery.isFetching || statusMut.isPending || deleteMut.isPending;
 
   const title = `Paket Soal #${item.id}`;
@@ -120,9 +121,9 @@ export default function AdminQuestionPackageDetailPage() {
       <div className="space-y-4">
         <Card className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <ActiveBadge active={item.is_active} />
+            <ActiveBadge status={item.status} />
             <Badge variant="outline">ID: {item.id}</Badge>
-            <Badge variant="secondary">Moodle Group: {item.moodle_group_name}</Badge>
+            <Badge variant="secondary">{item.total_questions} soal</Badge>
           </div>
 
           <Separator />
@@ -136,16 +137,14 @@ export default function AdminQuestionPackageDetailPage() {
             </div>
 
             <div>
-              <div className="text-muted-foreground">Moodle Group</div>
-              <div className="truncate" title={item.moodle_group_name}>
-                {item.moodle_group_name}
-              </div>
+              <div className="text-muted-foreground">Durasi</div>
+              <div>{item.total_duration_minutes} menit</div>
             </div>
 
             <div>
               <div className="text-muted-foreground">Status</div>
               <div>
-                <ActiveBadge active={item.is_active} />
+                <ActiveBadge status={item.status} />
               </div>
             </div>
 
@@ -158,6 +157,16 @@ export default function AdminQuestionPackageDetailPage() {
           </div>
         </Card>
 
+        <Card className="p-4 space-y-3">
+          <div className="font-semibold">Section / Subtes</div>
+          {item.sections?.length ? item.sections.map((section) => (
+            <div key={section.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+              <div><div className="font-medium">{section.name}</div><div className="text-muted-foreground">{section.description || "Tanpa deskripsi"}</div></div>
+              <Badge variant="outline">{section.question_count} soal / {section.duration_minutes} menit</Badge>
+            </div>
+          )) : <div className="text-sm text-muted-foreground">Belum ada section. Tambahkan melalui endpoint admin section/bank soal.</div>}
+        </Card>
+
         <Card className="p-4 space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
@@ -168,7 +177,7 @@ export default function AdminQuestionPackageDetailPage() {
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant={item.is_active ? "outline" : "blue"}
+                variant={item.status === "published" ? "outline" : "blue"}
                 disabled={busy}
                 onClick={() => setConfirmStatusOpen(true)}
               >
@@ -202,7 +211,7 @@ export default function AdminQuestionPackageDetailPage() {
 
             <div className="text-sm">
               Apakah anda yakin ingin{" "}
-              <span className="font-semibold">{nextActive ? "mengaktifkan" : "menonaktifkan"}</span>{' '}
+              <span className="font-semibold">{nextStatus === "published" ? "mempublikasikan" : "mengarsipkan"}</span>{' '}
               paket soal <span className="font-semibold">{item.name}</span>?
             </div>
 
@@ -218,8 +227,8 @@ export default function AdminQuestionPackageDetailPage() {
 
               <Button
                 type="button"
-                variant={nextActive ? "blue" : "destructive"}
-                onClick={() => statusMut.mutate(nextActive)}
+                variant={nextStatus === "published" ? "blue" : "destructive"}
+                onClick={() => statusMut.mutate(nextStatus)}
                 disabled={statusMut.isPending}
               >
                 {statusMut.isPending ? "Memproses..." : "Nonaktifkan Paket"}

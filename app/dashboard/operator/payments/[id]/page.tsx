@@ -182,9 +182,7 @@ export default function AdminPaymentDetailPage() {
                     Partner: {p.schedule.partner?.name ?? "-"}
                   </div>
                   <div className="text-muted-foreground">
-                    Moodle: {p.schedule.moodle_course_id ?? "-"} /{" "}
-                    {p.schedule.moodle_quiz_id ?? "-"} /{" "}
-                    {p.schedule.moodle_quiz_cmid ?? "-"}
+                    Paket Soal ID: {p.schedule.question_package_id ?? "-"}
                   </div>
                 </div>
               ) : (

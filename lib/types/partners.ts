@@ -53,17 +53,15 @@ export type PartnerScheduleItem = {
   partner_id: number | null
   price: string
 
-  moodle_course_id?: number | null
-  moodle_quiz_id?: number | null
-  moodle_quiz_cmid?: number | null
-  provisioned_at?: string | null
+  question_package_id: number
+  attempt_count?: number
+  submitted_count?: number
 
   created_at?: string
   updated_at?: string
 
   current_participants: number
   status: string
-  quiz_url: string | null
 
   packages: PartnerSchedulePackage[]
 }

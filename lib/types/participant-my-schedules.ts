@@ -33,6 +33,10 @@ export type ParticipantMyScheduleListItem = {
   end_time: string;
   status: string; // ✅ tambahin ini
   payment_status: ParticipantPaymentStatus;
+  title?: string;
+  can_start?: boolean;
+  has_attempt?: boolean;
+  attempt_id?: number | null;
 };
 
 export type ParticipantMySchedulesResponse = {
@@ -59,5 +63,12 @@ export type ParticipantMyScheduleDetail = {
   partner: { id: number; name: string } | null;
 
   can_start: boolean;
-  quiz_url: string | null;
+  has_attempt: boolean;
+  attempt_id: number | null;
+  question_package: {
+    id: number;
+    name: string;
+    total_duration_minutes: number;
+    total_questions: number;
+  };
 };

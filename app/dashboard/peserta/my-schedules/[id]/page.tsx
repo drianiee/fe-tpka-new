@@ -3,12 +3,14 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { ExternalLink } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Play } from "lucide-react";
 
 import { schedulesService } from "@/lib/services/schedules.service";
 import type { ParticipantMyScheduleDetail } from "@/lib/types/participant-my-schedules";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { examService } from "@/lib/services/exam.service";
+import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
 import { formatDateId } from "@/lib/utils/datetime";
@@ -85,7 +87,13 @@ export default function ParticipantMyScheduleDetailPage() {
 
   const d = query.data;
 
-  const canStart = Boolean(d?.can_start) && Boolean(d?.quiz_url);
+  const startMutation = useMutation({
+    mutationFn: () => examService.start(id as string),
+    onSuccess: (attempt) => router.push(`/dashboard/peserta/exams/${attempt.id}`),
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
+  const canStart = Boolean(d?.can_start) || Boolean(d?.attempt_id);
 
   return (
     <PageHeaderLayout
@@ -150,18 +158,18 @@ export default function ParticipantMyScheduleDetailPage() {
               <DetailRow label="Order ID" value={d.order_id ?? "-"} />
               <DetailRow label="Payment Type" value={d.payment_type ?? "-"} />
               <DetailRow label="Paid At" value={d.paid_at ?? "-"} />
+              <DetailRow label="Paket Soal" value={d.question_package?.name ?? "-"} />
+              <DetailRow label="Jumlah Soal" value={d.question_package?.total_questions ?? 0} />
+              <DetailRow label="Durasi" value={`${d.question_package?.total_duration_minutes ?? 0} menit`} />
 
               <div className="pt-3 items-center flex flex-col space-y-2 justify-center">
                 <Button
                   disabled={!canStart}
-                  onClick={() => {
-                    if (!d.quiz_url) return;
-                    window.open(d.quiz_url, "_blank", "noopener,noreferrer");
-                  }}
+                  onClick={() => d.attempt_id ? router.push(`/dashboard/peserta/exams/${d.attempt_id}`) : startMutation.mutate()}
                   className="gap-2"
                 >
-                  <ExternalLink className="h-4 w-4" />
-                  Mulai Tes
+                  <Play className="h-4 w-4" />
+                  {startMutation.isPending ? "Menyiapkan Tes..." : d.attempt_id ? "Lanjutkan Tes" : "Mulai Tes"}
                 </Button>
                 {!canStart ? (
                   <div className="text-xs text-muted-foreground">
