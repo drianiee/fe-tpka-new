@@ -64,6 +64,17 @@ type OnboardingResponse = {
   partner: { id: number; name: string } | null;
   package_id: number | null;
   attempt_id?: number | null;
+  redirect_to?: string;
+};
+
+type OnboardingPreview = {
+  valid: boolean;
+  expired: boolean;
+  email: string;
+  name: string;
+  schedule: { id: number; title: string; date?: string | null; start_time?: string | null; end_time?: string | null };
+  requires_profile_completion: boolean;
+  redirect_to: string;
 };
 
 /* ================= VALIDATION ================= */
@@ -117,6 +128,9 @@ function PartnerOnboardingPageContent() {
   const tokenFromUrl = safeTrim(params.get("token"));
 
   const [submitting, setSubmitting] = React.useState(false);
+  const [loadingPreview, setLoadingPreview] = React.useState(true);
+  const [preview, setPreview] = React.useState<OnboardingPreview | null>(null);
+  const [previewError, setPreviewError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<OnboardingResponse | null>(null);
 
   const [showPassword, setShowPassword] = React.useState(false);
@@ -134,6 +148,51 @@ function PartnerOnboardingPageContent() {
     },
     mode: "onSubmit",
   });
+
+  React.useEffect(() => {
+    let active = true;
+
+    async function loadPreview() {
+      if (!tokenFromUrl) {
+        setLoadingPreview(false);
+        setPreviewError("Token onboarding tidak ditemukan di URL.");
+        return;
+      }
+
+      try {
+        const res = await http.get<OnboardingPreview>("/api/partner/onboarding/preview", {
+          params: { token: tokenFromUrl },
+        });
+        if (!active) return;
+        setPreview(res.data);
+      } catch (error) {
+        if (!active) return;
+        setPreviewError(getApiErrorMessage(error));
+      } finally {
+        if (active) setLoadingPreview(false);
+      }
+    }
+
+    void loadPreview();
+    return () => {
+      active = false;
+    };
+  }, [tokenFromUrl]);
+
+  async function claimExistingProfile() {
+    if (submitting || !tokenFromUrl) return;
+    setSubmitting(true);
+    try {
+      const res = await http.post<OnboardingResponse>("/api/partner/onboarding/claim", { token: tokenFromUrl });
+      setToken(res.data.token);
+      toast.success(res.data.message ?? "Konfirmasi berhasil");
+      router.replace(res.data.redirect_to ?? `/dashboard/peserta/my-schedules/${res.data.schedule_id}`);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   async function onSubmit(values: FormValues) {
     if (submitting) return;
@@ -244,11 +303,41 @@ function PartnerOnboardingPageContent() {
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">Onboarding Peserta Mitra</h1>
             <p className="text-sm text-muted-foreground">
-              Buat password dan lengkapi profil untuk mulai mengakses dashboard peserta.
+              {preview?.schedule?.title
+                ? `Jadwal: ${preview.schedule.title}`
+                : "Lengkapi profil untuk mulai mengakses dashboard peserta."}
             </p>
           </div>
 
-          {success ? (
+          {loadingPreview ? (
+            <div className="rounded-2xl border bg-white p-6 text-sm text-muted-foreground">Memeriksa undangan...</div>
+          ) : previewError ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+              {previewError}
+              <div className="mt-4">
+                <Button type="button" variant="outline" onClick={() => router.replace("/login")}>
+                  Ke Login
+                </Button>
+              </div>
+            </div>
+          ) : preview && !preview.requires_profile_completion ? (
+            <div className="rounded-2xl border bg-white p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-xl border bg-muted/30 p-2 text-muted-foreground">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xl font-semibold leading-tight">Jadwal Mitra Siap Dibuka</div>
+                  <p className="text-sm text-muted-foreground">
+                    Akun {preview.email} sudah lengkap. Klik tombol di bawah untuk membuka jadwal tes. Jadwal ini tidak membutuhkan pembayaran.
+                  </p>
+                </div>
+              </div>
+              <Button className="w-full" type="button" disabled={submitting} onClick={claimExistingProfile}>
+                {submitting ? "Memproses..." : "Buka Jadwal Tes"}
+              </Button>
+            </div>
+          ) : success ? (
             <div className="rounded-2xl border bg-white p-6">
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 rounded-xl border bg-muted/30 p-2 text-muted-foreground">

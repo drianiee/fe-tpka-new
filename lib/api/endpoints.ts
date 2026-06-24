@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: "/api/auth/login",
     REGISTER: "/api/auth/register",
+    VERIFY_EMAIL: "/api/auth/email/verify",
     ME: "/api/me",
     LOGOUT: "/api/logout",
     COMPLETE_PROFILE: "/api/auth/complete-profile",
@@ -43,6 +44,7 @@ export const API_ENDPOINTS = {
 
   PARTNER: {
     ONBOARDING: "/api/partner/onboarding/claim",
+    PREVIEW: "/api/partner/onboarding/preview",
   },
   
   QUESTION_PACKAGES: {

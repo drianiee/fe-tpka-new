@@ -5,6 +5,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Filter, AlertCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { schedulesService } from "@/lib/services/schedules.service";
 import type { ParticipantScheduleListItem } from "@/lib/types/participant";
@@ -31,7 +32,6 @@ import {
 
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogFooter,
@@ -143,6 +143,9 @@ export default function PesertaDashboardPage() {
       setSelected(null);
       void query.refetch();
       router.push("/dashboard/peserta/my-schedules?status=all");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error));
     },
   });
 
@@ -443,18 +446,16 @@ export default function PesertaDashboardPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Batal</AlertDialogCancel>
 
-            <AlertDialogAction asChild>
-              <Button onClick={onConfirmPay} disabled={!selected || selectedLocked || busy}>
-                {payMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Memproses...
-                  </>
-                ) : (
-                  "Lanjut ke Pembayaran"
-                )}
-              </Button>
-            </AlertDialogAction>
+            <Button onClick={onConfirmPay} disabled={!selected || selectedLocked || busy}>
+              {payMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                "Lanjut ke Pembayaran"
+              )}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

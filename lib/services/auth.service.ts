@@ -6,6 +6,7 @@ import type {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
+  VerifyEmailResponse,
   User,
   CompleteProfileRequest,
   CompleteProfileResponse,
@@ -21,6 +22,11 @@ export class AuthService {
 
   async register(payload: RegisterRequest): Promise<RegisterResponse> {
     const res = await api.post<RegisterResponse>(API_ENDPOINTS.AUTH.REGISTER, payload);
+    return res.data;
+  }
+
+  async verifyEmail(token: string): Promise<VerifyEmailResponse> {
+    const res = await api.post<VerifyEmailResponse>(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token });
     return res.data;
   }
 

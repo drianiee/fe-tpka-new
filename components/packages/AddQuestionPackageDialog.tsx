@@ -28,13 +28,13 @@ const DEFAULT_SECTIONS: Array<{
   {
     code: "verbal",
     name: "Verbal",
-    duration_minutes: 50,
+    duration_minutes: 25,
     target_question_count: 50,
   },
   {
     code: "kuantitatif",
     name: "Kuantitatif",
-    duration_minutes: 40,
+    duration_minutes: 60,
     target_question_count: 70,
   },
   {
@@ -46,7 +46,7 @@ const DEFAULT_SECTIONS: Array<{
   {
     code: "spasial",
     name: "Spasial",
-    duration_minutes: 20,
+    duration_minutes: 25,
     target_question_count: 20,
   },
 ];

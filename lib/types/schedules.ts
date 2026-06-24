@@ -80,7 +80,6 @@ export type ScheduleDetail = Omit<ScheduleListItem, "date"> & {
 
 export type CreateScheduleRequest = {
   question_package_id: number;
-  title: string;
   description?: string;
   start_at: string;
   end_at?: string;
@@ -88,7 +87,6 @@ export type CreateScheduleRequest = {
   registration_end_at?: string;
   price?: number;
   quota?: number;
-  status?: "draft" | "published" | "closed" | "cancelled";
 };
 
 export type CreateScheduleResponse = {

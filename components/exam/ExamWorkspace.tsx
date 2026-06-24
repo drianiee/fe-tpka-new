@@ -14,6 +14,8 @@ type ExamWorkspaceProps = {
   avatarLabel?: string;
   sections: ExamSection[];
   questions: ExamQuestion[];
+  activeSectionId?: number | null;
+  allowSectionSwitch?: boolean;
   currentId: number;
   selectedOptionId: number | null;
   answeredIds: Set<number>;
@@ -50,6 +52,8 @@ export function ExamWorkspace({
   avatarLabel,
   sections,
   questions,
+  activeSectionId: controlledActiveSectionId,
+  allowSectionSwitch = true,
   currentId,
   selectedOptionId,
   answeredIds,
@@ -67,7 +71,8 @@ export function ExamWorkspace({
   const [fontScale, setFontScale] = React.useState(1);
   const [activeSectionId, setActiveSectionId] = React.useState<number | null>(null);
   const current = questions.find((question) => question.id === currentId) ?? questions[0] ?? null;
-  const currentSection = sections.find((section) => section.id === (activeSectionId ?? current?.section_id)) ?? sections[0] ?? null;
+  const effectiveActiveSectionId = controlledActiveSectionId ?? activeSectionId ?? current?.section_id ?? null;
+  const currentSection = sections.find((section) => section.id === effectiveActiveSectionId) ?? sections[0] ?? null;
   const currentSectionIndex = currentSection ? sections.findIndex((section) => section.id === currentSection.id) : 0;
   const sectionQuestions = currentSection ? questions.filter((question) => question.section_id === currentSection.id) : questions;
   const currentInActiveSection = current && currentSection ? current.section_id === currentSection.id : false;
@@ -75,7 +80,7 @@ export function ExamWorkspace({
   const canGoPrev = sectionQuestionIndex > 0;
   const canGoNext = sectionQuestionIndex >= 0 && sectionQuestionIndex < sectionQuestions.length - 1;
   const avatarText = (avatarLabel || accessLabel).slice(0, 2).toUpperCase();
-  const displayedRemainingMs = timerMode === "section" && currentSection
+  const displayedRemainingMs = timerMode === "section" && remainingMs == null && currentSection
     ? currentSection.duration_minutes * 60_000
     : remainingMs;
 
@@ -86,6 +91,7 @@ export function ExamWorkspace({
   }, [activeSectionId, current?.section_id]);
 
   const goToSection = (sectionId: number) => {
+    if (!allowSectionSwitch) return;
     setActiveSectionId(sectionId);
     const target = questions.find((question) => question.section_id === sectionId);
     if (target) onCurrentIdChange(target.id);
@@ -124,10 +130,12 @@ export function ExamWorkspace({
                   <button
                     key={section.id}
                     type="button"
+                    disabled={!allowSectionSwitch && section.id !== currentSection?.id}
                     onClick={() => goToSection(section.id)}
                     className={cn(
                       "rounded-lg px-4 py-2 text-sm font-semibold transition",
-                      section.id === currentSection?.id ? "bg-blue-100 text-blue-900" : "bg-muted text-muted-foreground hover:bg-blue-50 hover:text-blue-900"
+                      section.id === currentSection?.id ? "bg-blue-100 text-blue-900" : "bg-muted text-muted-foreground hover:bg-blue-50 hover:text-blue-900",
+                      !allowSectionSwitch && section.id !== currentSection?.id ? "cursor-not-allowed opacity-50 hover:bg-muted hover:text-muted-foreground" : ""
                     )}
                   >
                     Soal {section.name}

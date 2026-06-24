@@ -22,7 +22,7 @@ export type User = {
 };
 
 export type LoginRequest = { email: string; password: string };
-export type LoginResponse = { user: User; token: string };
+export type LoginResponse = { user: User; token: string; requires_profile_completion?: boolean };
 
 export type RegisterRequest = {
   name: string;
@@ -30,7 +30,14 @@ export type RegisterRequest = {
   password: string;
   password_confirmation: string;
 };
-export type RegisterResponse = { message: string; user: User; token: string };
+export type RegisterResponse = { message: string; requires_email_verification?: boolean };
+
+export type VerifyEmailResponse = {
+  message: string;
+  next: string;
+  user: User;
+  token: string;
+};
 
 export type CompleteProfileRequest = {
   id_type: "ktp" | "ktm" | "sim";
