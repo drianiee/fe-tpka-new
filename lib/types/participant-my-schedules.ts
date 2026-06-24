@@ -17,7 +17,25 @@ export type ParticipantPaymentStatus =
   | "deny"
   | "failure"
   | "partner"
+  | "approved"
+  | "pending_payment"
+  | "cancelled"
+  | "expired"
   | string;
+
+export type ParticipantRegistrationInfo = {
+  id: number;
+  status: string;
+  access_status: string;
+  registration_source: string;
+};
+
+export type ParticipantPaymentInfo = {
+  id: number;
+  transaction_status: ParticipantPaymentStatus;
+  snap_redirect_url: string | null;
+  paid_at: string | null;
+};
 
 export type ParticipantRegistrationStatus =
   | "terdaftar"
@@ -37,6 +55,8 @@ export type ParticipantMyScheduleListItem = {
   can_start?: boolean;
   has_attempt?: boolean;
   attempt_id?: number | null;
+  registration?: ParticipantRegistrationInfo;
+  payment?: ParticipantPaymentInfo | null;
 };
 
 export type ParticipantMySchedulesResponse = {
@@ -61,6 +81,8 @@ export type ParticipantMyScheduleDetail = {
   payment_type: string | null;
 
   partner: { id: number; name: string } | null;
+  registration: ParticipantRegistrationInfo;
+  payment: ParticipantPaymentInfo | null;
 
   can_start: boolean;
   has_attempt: boolean;

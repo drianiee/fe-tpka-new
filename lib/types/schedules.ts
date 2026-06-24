@@ -162,12 +162,31 @@ export type ExportScheduleParticipantsResponse = {
 export type RegisterScheduleResponse = {
   message: string;
   mode: "paid" | "free";
+  registration?: {
+    id: number;
+    status: string;
+    access_status: string;
+  };
+  payment: {
+    id: number;
+    order_id: string;
+    amount: number;
+    transaction_status: string;
+    snap_token: string | null;
+    snap_redirect_url: string | null;
+  } | null;
+  midtrans: {
+    client_key: string | null;
+    snap_token: string | null;
+    redirect_url: string | null;
+  } | null;
   data: {
     schedule_id: number;
-    payment_id: number;
-    order_id: string;
-    snap_token: string;
-    redirect_url: string;
+    registration_id: number;
+    payment_id: number | null;
+    order_id: string | null;
+    snap_token: string | null;
+    redirect_url: string | null;
     amount: number;
     picked?: {
       question_package_id: number;

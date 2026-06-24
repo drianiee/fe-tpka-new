@@ -6,13 +6,24 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { questionsService } from "@/lib/services/questions.service";
+import { cn } from "@/lib/utils";
+import { apiAssetUrl } from "@/lib/utils/api-asset";
 import type { ExamSection } from "@/lib/types/question-packages";
-import type { QuestionAdmin, QuestionOptionAdmin, QuestionPayload } from "@/lib/types/questions";
+import type {
+  QuestionAdmin,
+  QuestionOptionAdmin,
+  QuestionPayload,
+} from "@/lib/types/questions";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const LABELS = ["A", "B", "C", "D"] as const;
 
@@ -26,56 +37,114 @@ function emptyOptions(): QuestionOptionAdmin[] {
   }));
 }
 
-function toPayload(question: QuestionAdmin | null, sections: ExamSection[]): QuestionPayload {
+function toPayload(
+  question: QuestionAdmin | null,
+  section: ExamSection,
+): QuestionPayload {
   return {
-    exam_section_id: question?.exam_section_id ?? sections[0]?.id ?? 0,
+    exam_section_id: section.id,
     order_number: question?.order_number,
     question_text: question?.question_text ?? "",
     question_image: question?.question_image ?? "",
-    explanation: question?.explanation ?? "",
-    difficulty: question?.difficulty ?? "",
     score: question?.score == null ? undefined : Number(question.score),
-    is_active: question?.is_active ?? true,
-    options: question?.options?.length ? LABELS.map((label, index) => {
-      const option = question.options.find((item) => item.option_label === label);
-      return {
-        option_label: label,
-        option_text: option?.option_text ?? "",
-        option_image: option?.option_image ?? "",
-        is_correct: option?.is_correct ?? label === "A",
-        order_number: option?.order_number ?? index + 1,
-      };
-    }) : emptyOptions(),
+    options: question?.options?.length
+      ? LABELS.map((label, index) => {
+          const option = question.options.find(
+            (item) => item.option_label === label,
+          );
+          return {
+            option_label: label,
+            option_text: option?.option_text ?? "",
+            option_image: option?.option_image ?? "",
+            is_correct: option?.is_correct ?? label === "A",
+            order_number: option?.order_number ?? index + 1,
+          };
+        })
+      : emptyOptions(),
   };
+}
+
+function UploadedImageField({
+  label,
+  value,
+  disabled,
+  onUpload,
+  onClear,
+}: {
+  label: string;
+  value?: string | null;
+  disabled?: boolean;
+  onUpload: (file: File | null) => void;
+  onClear: () => void;
+}) {
+  const imageUrl = apiAssetUrl(value ?? null);
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input
+        type="file"
+        accept="image/*"
+        disabled={disabled}
+        onChange={(e) => onUpload(e.target.files?.[0] ?? null)}
+      />
+      {imageUrl ? (
+        <div className="rounded-lg border p-3">
+          <img
+            src={imageUrl}
+            alt={label}
+            className="max-h-40 rounded border object-contain"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="mt-3"
+            onClick={onClear}
+          >
+            Hapus gambar
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function QuestionFormDialog({
   packageId,
-  sections,
+  section,
   question,
   trigger,
 }: {
   packageId: number;
-  sections: ExamSection[];
+  section: ExamSection;
   question?: QuestionAdmin | null;
   trigger: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState<QuestionPayload>(() => toPayload(question ?? null, sections));
+  const [form, setForm] = React.useState<QuestionPayload>(() =>
+    toPayload(question ?? null, section),
+  );
   const qc = useQueryClient();
 
   React.useEffect(() => {
-    if (open) setForm(toPayload(question ?? null, sections));
-  }, [open, question, sections]);
+    if (open) setForm(toPayload(question ?? null, section));
+  }, [open, question, section]);
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.DETAIL(packageId)] });
-    qc.invalidateQueries({ queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.QUESTIONS(packageId)] });
+    qc.invalidateQueries({
+      queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.DETAIL(packageId)],
+    });
+    qc.invalidateQueries({
+      queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.QUESTIONS(packageId)],
+    });
   };
 
   const saveMutation = useMutation({
     mutationFn: (payload: QuestionPayload) =>
-      question?.id ? questionsService.update(question.id, payload) : questionsService.create(packageId, payload),
+      question?.id
+        ? questionsService.update(question.id, payload)
+        : questionsService.create(packageId, payload),
     onSuccess: (res) => {
       toast.success(res.message ?? "Soal disimpan");
       invalidate();
@@ -97,10 +166,13 @@ export function QuestionFormDialog({
 
   const validate = () => {
     if (!form.exam_section_id) return "Section wajib dipilih.";
-    if (!form.question_text?.trim() && !form.question_image?.trim()) return "Soal wajib punya teks atau gambar.";
-    if (form.options.filter((option) => option.is_correct).length !== 1) return "Pilih tepat satu kunci jawaban.";
+    if (!form.question_text?.trim() && !form.question_image?.trim())
+      return "Soal wajib punya teks atau gambar.";
+    if (form.options.filter((option) => option.is_correct).length !== 1)
+      return "Pilih tepat satu kunci jawaban.";
     for (const option of form.options) {
-      if (!option.option_text?.trim() && !option.option_image?.trim()) return `Opsi ${option.option_label} wajib punya teks atau gambar.`;
+      if (!option.option_text?.trim() && !option.option_image?.trim())
+        return `Opsi ${option.option_label} wajib punya teks atau gambar.`;
     }
     return null;
   };
@@ -115,8 +187,6 @@ export function QuestionFormDialog({
       ...form,
       question_text: form.question_text?.trim() || null,
       question_image: form.question_image?.trim() || null,
-      explanation: form.explanation?.trim() || null,
-      difficulty: form.difficulty?.trim() || null,
       options: form.options.map((option, index) => ({
         ...option,
         option_text: option.option_text?.trim() || null,
@@ -129,14 +199,19 @@ export function QuestionFormDialog({
   const setOption = (label: string, patch: Partial<QuestionOptionAdmin>) => {
     setForm((value) => ({
       ...value,
-      options: value.options.map((option) => option.option_label === label ? { ...option, ...patch } : option),
+      options: value.options.map((option) =>
+        option.option_label === label ? { ...option, ...patch } : option,
+      ),
     }));
   };
 
   const setCorrect = (label: string) => {
     setForm((value) => ({
       ...value,
-      options: value.options.map((option) => ({ ...option, is_correct: option.option_label === label })),
+      options: value.options.map((option) => ({
+        ...option,
+        is_correct: option.option_label === label,
+      })),
     }));
   };
 
@@ -145,79 +220,112 @@ export function QuestionFormDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{question ? "Edit Soal" : "Tambah Soal"}</DialogTitle>
+          <DialogTitle>
+            {question ? "Edit" : "Tambah"} Soal {section.name}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4">
-          <div className="grid gap-3">
-            <div className="space-y-2">
-              <Label>Section</Label>
-              <Select value={String(form.exam_section_id)} onValueChange={(v) => setForm((x) => ({ ...x, exam_section_id: Number(v) }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {sections.map((section) => <SelectItem key={section.id} value={String(section.id)}>{section.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label>Teks Soal</Label>
-            <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.question_text ?? ""} onChange={(e) => setForm((x) => ({ ...x, question_text: e.target.value }))} />
+            <textarea
+              className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              value={form.question_text ?? ""}
+              onChange={(e) =>
+                setForm((x) => ({ ...x, question_text: e.target.value }))
+              }
+            />
           </div>
-          <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-            <div className="space-y-2">
-              <Label>Gambar Soal URL/path</Label>
-              <Input value={form.question_image ?? ""} onChange={(e) => setForm((x) => ({ ...x, question_image: e.target.value }))} placeholder="/storage/question-images/..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Upload</Label>
-              <Input type="file" accept="image/*" disabled={uploadMutation.isPending} onChange={(e) => upload(e.target.files?.[0] ?? null, (url) => setForm((x) => ({ ...x, question_image: url })))} />
-            </div>
-          </div>
+          <UploadedImageField
+            label="Gambar Soal"
+            value={form.question_image}
+            disabled={uploadMutation.isPending}
+            onUpload={(file) =>
+              upload(file, (url) =>
+                setForm((x) => ({ ...x, question_image: url })),
+              )
+            }
+            onClear={() => setForm((x) => ({ ...x, question_image: null }))}
+          />
 
           <div className="grid gap-3">
             {LABELS.map((label) => {
-              const option = form.options.find((item) => item.option_label === label) ?? emptyOptions().find((item) => item.option_label === label)!;
+              const option =
+                form.options.find((item) => item.option_label === label) ??
+                emptyOptions().find((item) => item.option_label === label)!;
               return (
-                <div key={label} className="rounded-lg border p-3">
+                <div
+                  key={label}
+                  className={cn(
+                    "rounded-lg border p-3 transition-colors",
+                    option.is_correct
+                      ? "border-blue-300 bg-blue-50 ring-1 ring-blue-200"
+                      : "bg-white",
+                  )}
+                >
                   <div className="mb-3 flex items-center justify-between">
-                    <div className="font-medium">Opsi {label}</div>
-                    <Button type="button" size="sm" variant={option.is_correct ? "default" : "outline"} onClick={() => setCorrect(label)}>
-                      {option.is_correct ? "Kunci" : "Jadikan Kunci"}
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={cn(
+                          "font-medium",
+                          option.is_correct ? "text-blue-900" : "",
+                        )}
+                      >
+                        Opsi {label}
+                      </div>
+                      {option.is_correct ? (
+                        <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                          Kunci Jawaban
+                        </span>
+                      ) : null}
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={option.is_correct ? "blue" : "outline"}
+                      onClick={() => setCorrect(label)}
+                    >
+                      {option.is_correct ? "Terpilih" : "Jadikan Kunci"}
                     </Button>
                   </div>
-                  <div className="grid gap-2 md:grid-cols-2">
-                    <Input value={option.option_text ?? ""} onChange={(e) => setOption(label, { option_text: e.target.value })} placeholder={`Teks opsi ${label}`} />
-                    <Input value={option.option_image ?? ""} onChange={(e) => setOption(label, { option_image: e.target.value })} placeholder="URL/path gambar opsi" />
-                    <Input type="file" accept="image/*" disabled={uploadMutation.isPending} onChange={(e) => upload(e.target.files?.[0] ?? null, (url) => setOption(label, { option_image: url }))} />
+                  <div className="flex flex-col gap-3">
+                    <Input
+                      value={option.option_text ?? ""}
+                      onChange={(e) =>
+                        setOption(label, { option_text: e.target.value })
+                      }
+                      placeholder={`Teks opsi ${label}`}
+                    />
+                    <UploadedImageField
+                      label={`Gambar Opsi ${label}`}
+                      value={option.option_image}
+                      disabled={uploadMutation.isPending}
+                      onUpload={(file) =>
+                        upload(file, (url) =>
+                          setOption(label, { option_image: url }),
+                        )
+                      }
+                      onClear={() => setOption(label, { option_image: null })}
+                    />
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Difficulty</Label>
-              <Input value={form.difficulty ?? ""} onChange={(e) => setForm((x) => ({ ...x, difficulty: e.target.value }))} placeholder="mudah/sedang/sulit" />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={form.is_active ? "1" : "0"} onValueChange={(v) => setForm((x) => ({ ...x, is_active: v === "1" }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="1">Aktif</SelectItem><SelectItem value="0">Nonaktif</SelectItem></SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Pembahasan</Label>
-            <textarea className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.explanation ?? ""} onChange={(e) => setForm((x) => ({ ...x, explanation: e.target.value }))} />
-          </div>
-
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button type="button" onClick={submit} disabled={saveMutation.isPending || uploadMutation.isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={submit}
+              disabled={saveMutation.isPending || uploadMutation.isPending}
+            >
               {saveMutation.isPending ? "Menyimpan..." : "Simpan Soal"}
             </Button>
           </div>

@@ -1,4 +1,11 @@
-"use client";
-import { useParams } from "next/navigation";
-import { ExamPlayer } from "@/components/exam/ExamPlayer";
-export default function ParticipantExamPage() { const { attemptId }=useParams<{attemptId:string}>(); return <ExamPlayer attemptId={attemptId}/>; }
+import { redirect } from "next/navigation";
+
+export default async function ParticipantExamPage({
+  params,
+}: {
+  params: Promise<{ attemptId: string }>;
+}) {
+  const { attemptId } = await params;
+
+  redirect(`/exams/${attemptId}`);
+}

@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Play } from "lucide-react";
+import { CreditCard, Play } from "lucide-react";
 
 import { schedulesService } from "@/lib/services/schedules.service";
 import type { ParticipantMyScheduleDetail } from "@/lib/types/participant-my-schedules";
@@ -40,8 +40,19 @@ function paymentStatusLabel(ps?: string | null) {
   const s = normalizeText(ps ?? "");
   if (!s) return "-";
   if (s === "pending") return "Menunggu Pembayaran";
-  if (s === "capture" || s === "settlement" || s === "paid" || s === "partner")
+  if (
+    s === "capture" ||
+    s === "settlement" ||
+    s === "paid" ||
+    s === "partner" ||
+    s === "approved"
+  )
     return "Terdaftar";
+  if (s === "pending_payment") return "Menunggu Pembayaran";
+  if (s === "expire" || s === "expired") return "Kedaluwarsa";
+  if (s === "cancel" || s === "cancelled") return "Dibatalkan";
+  if (s === "deny") return "Ditolak";
+  if (s === "failure") return "Gagal";
   return ps ?? "-";
 }
 
@@ -50,8 +61,14 @@ function paymentBadgeVariant(
 ): "muted" | "warning" | "success" {
   const s = normalizeText(ps ?? "");
   if (!s) return "muted";
-  if (s === "pending") return "warning";
-  if (s === "capture" || s === "settlement" || s === "paid" || s === "partner")
+  if (s === "pending" || s === "pending_payment") return "warning";
+  if (
+    s === "capture" ||
+    s === "settlement" ||
+    s === "paid" ||
+    s === "partner" ||
+    s === "approved"
+  )
     return "success";
   return "muted";
 }
@@ -86,10 +103,13 @@ export default function ParticipantMyScheduleDetailPage() {
   });
 
   const d = query.data;
+  const canContinuePayment =
+    normalizeText(d?.payment_status ?? "") === "pending" ||
+    normalizeText(d?.payment_status ?? "") === "pending_payment";
 
   const startMutation = useMutation({
     mutationFn: () => examService.start(id as string),
-    onSuccess: (attempt) => router.push(`/dashboard/peserta/exams/${attempt.id}`),
+    onSuccess: (attempt) => router.push(`/exams/${attempt.id}`),
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
 
@@ -163,9 +183,20 @@ export default function ParticipantMyScheduleDetailPage() {
               <DetailRow label="Durasi" value={`${d.question_package?.total_duration_minutes ?? 0} menit`} />
 
               <div className="pt-3 items-center flex flex-col space-y-2 justify-center">
+                {canContinuePayment && d.payment?.snap_redirect_url ? (
+                  <Button
+                    onClick={() => {
+                      window.location.href = d.payment?.snap_redirect_url ?? "";
+                    }}
+                    className="gap-2"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Lanjutkan Pembayaran
+                  </Button>
+                ) : null}
                 <Button
                   disabled={!canStart}
-                  onClick={() => d.attempt_id ? router.push(`/dashboard/peserta/exams/${d.attempt_id}`) : startMutation.mutate()}
+                  onClick={() => d.attempt_id ? router.push(`/exams/${d.attempt_id}`) : startMutation.mutate()}
                   className="gap-2"
                 >
                   <Play className="h-4 w-4" />

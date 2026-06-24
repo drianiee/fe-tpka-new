@@ -69,7 +69,7 @@ export function ImportQuestionsDialog({ packageId }: { packageId: number }) {
             <div className="mt-1 text-muted-foreground">
               section_code, order_number, question_text, question_image, option_a_text, option_a_image,
               option_b_text, option_b_image, option_c_text, option_c_image, option_d_text, option_d_image,
-              correct_option, score, difficulty, explanation.
+              correct_option, score.
             </div>
           </div>
 

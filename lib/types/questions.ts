@@ -17,10 +17,7 @@ export type QuestionAdmin = {
   type: "multiple_choice" | "single_choice" | string;
   question_text: string | null;
   question_image: string | null;
-  explanation: string | null;
-  difficulty: string | null;
   score: number | string;
-  is_active: boolean;
   order_number: number;
   section?: ExamSection;
   options: QuestionOptionAdmin[];
@@ -33,10 +30,7 @@ export type QuestionPayload = {
   order_number?: number;
   question_text?: string | null;
   question_image?: string | null;
-  explanation?: string | null;
-  difficulty?: string | null;
   score?: number;
-  is_active: boolean;
   options: QuestionOptionAdmin[];
 };
 
@@ -44,8 +38,6 @@ export type ListQuestionsParams = {
   section_id?: number;
   section_code?: string;
   search?: string;
-  difficulty?: string;
-  is_active?: boolean;
   page?: number;
   per_page?: number;
 };
@@ -59,7 +51,6 @@ export type ImportQuestionsResponse = {
 
 export type UploadedQuestionImage = {
   url: string;
-  path: string;
 };
 
 export type ListQuestionsResponse = PaginatedResponse<QuestionAdmin>;

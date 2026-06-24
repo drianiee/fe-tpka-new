@@ -63,12 +63,21 @@ function paymentStatusLabel(ps?: string | null) {
   const s = normalizeText(ps ?? "");
   if (!s) return "-";
   if (s === "pending") return "Menunggu Pembayaran";
-  if (s === "capture" || s === "settlement" || s === "paid" || s === "partner")
+  if (
+    s === "capture" ||
+    s === "settlement" ||
+    s === "paid" ||
+    s === "partner" ||
+    s === "approved"
+  )
     return "Terdaftar";
   if (s === "expire") return "Kedaluwarsa";
+  if (s === "expired") return "Kedaluwarsa";
   if (s === "cancel") return "Dibatalkan";
+  if (s === "cancelled") return "Dibatalkan";
   if (s === "deny") return "Ditolak";
   if (s === "failure") return "Gagal";
+  if (s === "pending_payment") return "Menunggu Pembayaran";
   return ps ?? "-";
 }
 
@@ -77,10 +86,23 @@ function paymentBadgeVariant(
 ): "muted" | "warning" | "success" {
   const s = normalizeText(ps ?? "");
   if (!s) return "muted";
-  if (s === "pending") return "warning";
-  if (s === "capture" || s === "settlement" || s === "paid" || s === "partner")
+  if (s === "pending" || s === "pending_payment") return "warning";
+  if (
+    s === "capture" ||
+    s === "settlement" ||
+    s === "paid" ||
+    s === "partner" ||
+    s === "approved"
+  )
     return "success";
-  if (s === "expire" || s === "cancel" || s === "deny" || s === "failure")
+  if (
+    s === "expire" ||
+    s === "expired" ||
+    s === "cancel" ||
+    s === "cancelled" ||
+    s === "deny" ||
+    s === "failure"
+  )
     return "muted";
   return "muted";
 }
@@ -95,6 +117,11 @@ function statusVariant(
   if (s === "tes sedang berlangsung") return "warning";
   if (s === "tes selesai") return "success";
   return "muted";
+}
+
+function canContinuePayment(row: ParticipantMyScheduleListItem) {
+  const s = normalizeText(row.payment_status ?? "");
+  return (s === "pending" || s === "pending_payment") && Boolean(row.payment?.snap_redirect_url);
 }
 
 export default function ParticipantMySchedulesPage() {
@@ -250,11 +277,26 @@ function ParticipantMySchedulesPageContent() {
         headerClassName: "w-28 text-center",
         className: "py-4 px-2 text-center",
         cell: (row) => (
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-2">
+            {canContinuePayment(row) ? (
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.location.href = row.payment?.snap_redirect_url ?? "";
+                }}
+                aria-label="Lanjutkan pembayaran"
+              >
+                Bayar
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="outline"
-              onClick={() => handleDetailClick(row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDetailClick(row);
+              }}
               aria-label="Lihat detail jadwal"
             >
               Detail

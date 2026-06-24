@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Filter, AlertCircle, Loader2 } from "lucide-react";
 
@@ -112,6 +113,7 @@ function ConfirmDetailRow({ label, value }: { label: string; value: React.ReactN
 }
 
 export default function PesertaDashboardPage() {
+  const router = useRouter();
   const [qText, setQText] = React.useState("");
   const [status, setStatus] = React.useState<string>("");
 
@@ -127,8 +129,20 @@ export default function PesertaDashboardPage() {
   const payMutation = useMutation<RegisterScheduleResponse, unknown, number>({
     mutationFn: (scheduleId) => schedulesService.registerParticipant(scheduleId),
     onSuccess: (res) => {
-      const url = res?.data?.redirect_url;
-      if (url) window.location.href = url;
+      const url =
+        res?.midtrans?.redirect_url ??
+        res?.payment?.snap_redirect_url ??
+        res?.data?.redirect_url;
+
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+
+      setConfirmOpen(false);
+      setSelected(null);
+      void query.refetch();
+      router.push("/dashboard/peserta/my-schedules?status=all");
     },
   });
 
