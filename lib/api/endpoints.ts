@@ -33,6 +33,8 @@ export const API_ENDPOINTS = {
     ) => `/api/schedules/${scheduleId}/participants/${userId}`,
     PARTNER_IMPORT: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/partner/import`,
+    PARTNER_IMPORT_TEMPLATE: (scheduleId: number | string) =>
+      `/api/schedules/${scheduleId}/partner/import-template`,
     PARTICIPANTS_EXPORT: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/participants/export`,
   },
@@ -66,6 +68,7 @@ export const API_ENDPOINTS = {
   PAYMENTS: {
     MIDTRANS_CREATE: "/api/payments/midtrans/create",
     MIDTRANS_CALLBACK: "/api/payments/midtrans/callback",
+    MIDTRANS_SYNC: "/api/participant/payments/midtrans/sync",
     PAY_BY_SCHEDULE: (scheduleId: number | string) =>
       `/api/participant/schedules/${scheduleId}/pay`,
   },

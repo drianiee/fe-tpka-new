@@ -66,6 +66,9 @@ export type ScheduleParticipant = {
   name: string;
   email: string;
   status: ScheduleParticipantStatus;
+  status_label?: string | null;
+  status_variant?: "muted" | "warning" | "success" | null;
+  email_verified_at?: string | null;
 
   scores?: ScheduleParticipantScores | null;
   certificate_download_url?: string | null;
@@ -80,6 +83,8 @@ export type ScheduleDetail = Omit<ScheduleListItem, "date"> & {
 
 export type CreateScheduleRequest = {
   question_package_id: number;
+  partner_id?: number | null;
+  is_partner?: boolean;
   description?: string;
   start_at: string;
   end_at?: string;

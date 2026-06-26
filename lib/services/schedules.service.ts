@@ -117,6 +117,15 @@ export const schedulesService = {
       .then((r) => r.data);
   },
 
+  partnerImportTemplateUrl(scheduleId: number | string): string {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+    return `${baseUrl}${API_ENDPOINTS.SCHEDULES.PARTNER_IMPORT_TEMPLATE(
+      scheduleId,
+    )}`;
+  },
+
   exportParticipants(scheduleId: number | string): Promise<ExportScheduleParticipantsResponse> {
     return http.get(API_ENDPOINTS.SCHEDULES.PARTICIPANTS_EXPORT(scheduleId)).then((r) => r.data);
   },

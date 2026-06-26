@@ -3,7 +3,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -21,19 +21,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 /* ================= VALIDATION ================= */
 
 const schema = z.object({
   name: z.string().trim().min(1, "Nama mitra wajib diisi"),
-  code: z.string().trim().optional(),
   contact_name: z.string().trim().optional(),
 
   // optional; empty string dianggap tidak diisi
@@ -42,8 +34,6 @@ const schema = z.object({
     .optional(),
 
   contact_phone: z.string().trim().optional(),
-
-  is_active: z.boolean(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -63,11 +53,9 @@ export function AddPartnerDialog() {
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
-      code: "",
       contact_name: "",
       contact_email: "",
       contact_phone: "",
-      is_active: true,
     },
     mode: "onSubmit",
   });
@@ -76,14 +64,12 @@ export function AddPartnerDialog() {
     mutationFn: (v: FormValues) =>
       partnersService.create({
         name: v.name.trim(),
-        code: toOptionalTrimmed(v.code),
         contact_name: toOptionalTrimmed(v.contact_name),
         contact_email:
           v.contact_email && v.contact_email !== ""
             ? v.contact_email.trim()
             : undefined,
         contact_phone: toOptionalTrimmed(v.contact_phone),
-        is_active: v.is_active,
       }),
     onSuccess: (res) => {
       toast.success(res.message || "Mitra berhasil dibuat");
@@ -124,9 +110,7 @@ export function AddPartnerDialog() {
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor="partner-name">
-                  Nama Mitra
-                </Label>
+                <Label htmlFor="partner-name">Nama Mitra</Label>
               </div>
               <Input
                 id="partner-name"
@@ -139,51 +123,6 @@ export function AddPartnerDialog() {
                   {form.formState.errors.name.message}
                 </p>
               ) : null}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="partner-code">Kode Mitra</Label>
-                <Input
-                  id="partner-code"
-                  placeholder="Contoh: DP-01"
-                  disabled={busy}
-                  {...form.register("code")}
-                />
-                {form.formState.errors.code ? (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.code.message}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Status Kemitraan</Label>
-                <Controller
-                  control={form.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value ? "active" : "inactive"}
-                      onValueChange={(v) => field.onChange(v === "active")}
-                      disabled={busy}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Aktif</SelectItem>
-                        <SelectItem value="inactive">Tidak Aktif</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.is_active ? (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.is_active.message}
-                  </p>
-                ) : null}
-              </div>
             </div>
           </div>
 

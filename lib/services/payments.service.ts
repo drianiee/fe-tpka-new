@@ -15,6 +15,13 @@ export class PaymentsService {
     });
     return res.data;
   }
+
+  async syncMidtrans(orderId: string) {
+    const res = await api.post(API_ENDPOINTS.PAYMENTS.MIDTRANS_SYNC, {
+      order_id: orderId,
+    });
+    return res.data;
+  }
 }
 
 export const paymentsService = new PaymentsService();

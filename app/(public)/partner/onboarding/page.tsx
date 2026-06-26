@@ -225,7 +225,10 @@ function PartnerOnboardingPageContent() {
       toast.success(res.data.message ?? "Onboarding berhasil");
       setSuccess(res.data);
 
-      router.replace("/dashboard/peserta");
+      router.replace(
+        res.data.redirect_to ??
+          `/dashboard/peserta/my-schedules/${res.data.schedule_id}`,
+      );
     } catch (e: unknown) {
       if (axios.isAxiosError(e)) {
         const ax = e as AxiosError<{ message?: string; errors?: Record<string, string[]> }>;

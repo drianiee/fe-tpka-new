@@ -50,7 +50,10 @@ export type ParticipantMyScheduleListItem = {
   start_time: string;
   end_time: string;
   status: string; // ✅ tambahin ini
+  is_partner?: boolean;
   payment_status: ParticipantPaymentStatus;
+  participant_status_key?: string;
+  participant_status_label?: string;
   title?: string;
   can_start?: boolean;
   has_attempt?: boolean;
@@ -76,6 +79,8 @@ export type ParticipantMyScheduleDetail = {
   price: string;
 
   payment_status: ParticipantPaymentStatus;
+  participant_status_key?: string;
+  participant_status_label?: string;
   paid_at: string | null;
   order_id: string | null;
   payment_type: string | null;

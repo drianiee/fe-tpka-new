@@ -81,6 +81,35 @@ function paymentStatusLabel(ps?: string | null) {
   return ps ?? "-";
 }
 
+function participantStatusLabel(row: ParticipantMyScheduleListItem) {
+  if (row.participant_status_label) return row.participant_status_label;
+  return paymentStatusLabel(row.payment_status);
+}
+
+function participantStatusBadgeVariant(
+  row: ParticipantMyScheduleListItem
+): "muted" | "warning" | "success" {
+  const key = normalizeText(row.participant_status_key ?? "");
+  if (
+    key === "confirmed_email" ||
+    key === "payment_completed" ||
+    normalizeText(row.payment_status ?? "") === "paid"
+  ) {
+    return "success";
+  }
+
+  if (
+    key === "unconfirmed_email" ||
+    key === "payment_pending" ||
+    normalizeText(row.payment_status ?? "") === "pending" ||
+    normalizeText(row.payment_status ?? "") === "pending_payment"
+  ) {
+    return "warning";
+  }
+
+  return paymentBadgeVariant(row.payment_status);
+}
+
 function paymentBadgeVariant(
   ps?: string | null
 ): "muted" | "warning" | "success" {
@@ -176,9 +205,7 @@ function ParticipantMySchedulesPageContent() {
     return src.filter((r) => {
       const text = `${formatDateId(r.date)} ${hhmm(r.start_time)} ${hhmm(
         r.end_time
-      )} ${r.status ?? ""} ${paymentStatusLabel(
-        r.payment_status
-      )}`.toLowerCase();
+      )} ${r.status ?? ""} ${participantStatusLabel(r)}`.toLowerCase();
       return text.includes(q);
     });
   }, [query.data, qText]);
@@ -257,16 +284,16 @@ function ParticipantMySchedulesPageContent() {
       },
       {
         key: "payment",
-        header: "Status Pembayaran",
+        header: "Status Peserta",
         headerClassName: "w-56 text-center",
         className: "py-4 px-2 text-center",
         cell: (row) => (
           <div className="flex justify-center">
             <Badge
-              variant={paymentBadgeVariant(row.payment_status)}
+              variant={participantStatusBadgeVariant(row)}
               className="truncate max-w-52"
             >
-              {paymentStatusLabel(row.payment_status)}
+              {participantStatusLabel(row)}
             </Badge>
           </div>
         ),

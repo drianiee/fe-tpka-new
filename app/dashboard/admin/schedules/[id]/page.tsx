@@ -25,6 +25,7 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
 import { formatDateId } from "@/lib/utils/datetime";
+import { downloadWithBearer } from "@/lib/utils/download";
 import { getToken } from "@/lib/utils/storage";
 
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
@@ -287,13 +288,18 @@ export default function AdminScheduleDetailPage() {
         header: "Status",
         headerClassName: "w-32.5 text-center",
         className: "truncate text-center",
-        cell: (row) => (
-          <div className="flex justify-center">
-            <Badge variant={statusVariant(row.status)} className="capitalize">
-              {statusLabel(row.status)}
-            </Badge>
-          </div>
-        ),
+        cell: (row) => {
+          const label = row.status_label ?? statusLabel(row.status);
+          const variant = row.status_variant ?? statusVariant(row.status);
+
+          return (
+            <div className="flex justify-center">
+              <Badge variant={variant} className="capitalize whitespace-nowrap">
+                {label}
+              </Badge>
+            </div>
+          );
+        },
       },
       {
         key: "verbal",
@@ -448,8 +454,7 @@ export default function AdminScheduleDetailPage() {
           <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
             <li className="flex gap-2">
               <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-              Format: <span className="font-medium text-foreground">.xlsx</span> /{" "}
-              <span className="font-medium text-foreground">.xls</span>
+              Format: <span className="font-medium text-foreground">.xlsx</span>
             </li>
             <li className="flex gap-2">
               <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
@@ -462,6 +467,23 @@ export default function AdminScheduleDetailPage() {
               <span className="font-medium text-foreground">di-skip</span>
             </li>
           </ul>
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadWithBearer(
+                  schedulesService.partnerImportTemplateUrl(scheduleId),
+                  "template-import-peserta-mitra.xlsx",
+                ).catch((error) =>
+                  toast.error(getApiErrorMessage(error)),
+                )
+              }
+            >
+              Download Template Excel
+            </Button>
+          </div>
         </div>
 
         <form
@@ -481,7 +503,7 @@ export default function AdminScheduleDetailPage() {
                   <Input
                     id="partner-import-file"
                     type="file"
-                    accept=".xlsx,.xls"
+                    accept=".xlsx,.xls,.csv"
                     disabled={importMut.isPending}
                     className="cursor-pointer"
                     onChange={(e) => {

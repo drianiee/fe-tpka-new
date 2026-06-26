@@ -64,6 +64,36 @@ function paymentStatusLabel(ps?: string | null) {
   return ps ?? "-";
 }
 
+function participantStatusLabel(d?: ParticipantMyScheduleDetail | null) {
+  if (!d) return "-";
+  if (d.participant_status_label) return d.participant_status_label;
+  return paymentStatusLabel(d.payment_status);
+}
+
+function participantStatusBadgeVariant(
+  d?: ParticipantMyScheduleDetail | null,
+): "muted" | "warning" | "success" {
+  const key = normalizeText(d?.participant_status_key ?? "");
+  if (
+    key === "confirmed_email" ||
+    key === "payment_completed" ||
+    normalizeText(d?.payment_status ?? "") === "paid"
+  ) {
+    return "success";
+  }
+
+  if (
+    key === "unconfirmed_email" ||
+    key === "payment_pending" ||
+    normalizeText(d?.payment_status ?? "") === "pending" ||
+    normalizeText(d?.payment_status ?? "") === "pending_payment"
+  ) {
+    return "warning";
+  }
+
+  return paymentBadgeVariant(d?.payment_status);
+}
+
 function paymentBadgeVariant(
   ps?: string | null,
 ): "muted" | "warning" | "success" {
@@ -168,11 +198,11 @@ export default function ParticipantMyScheduleDetailPage() {
                   </Badge>
 
                   <Badge
-                    variant={paymentBadgeVariant(d.payment_status)}
+                    variant={participantStatusBadgeVariant(d)}
                     className="truncate max-w-44"
-                    title={d.payment_status ?? undefined}
+                    title={d.participant_status_label ?? d.payment_status ?? undefined}
                   >
-                    {paymentStatusLabel(d.payment_status)}
+                    {participantStatusLabel(d)}
                   </Badge>
                 </div>
               </div>
@@ -216,7 +246,7 @@ export default function ParticipantMyScheduleDetailPage() {
                   className="gap-2"
                 >
                   <Play className="h-4 w-4" />
-                  {startMutation.isPending ? "Menyiapkan Tes..." : d.attempt_id ? "Lanjutkan Tes" : "Mulai Tes"}
+                  {startMutation.isPending ? "Menyiapkan Tes..." : "Mulai Tes"}
                 </Button>
                 {!canStart ? (
                   <div className="text-xs text-muted-foreground">

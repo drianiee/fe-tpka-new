@@ -25,6 +25,7 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
 import { formatDateId } from "@/lib/utils/datetime";
+import { downloadWithBearer } from "@/lib/utils/download";
 import { getToken } from "@/lib/utils/storage";
 
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
@@ -79,7 +80,8 @@ function importSummaryText(res: PartnerImportResponse) {
   const parts: string[] = [];
   if (typeof s.attached_to_schedule === "number")
     parts.push(`Terpasang: ${s.attached_to_schedule}`);
-  if (typeof s.created_users === "number") parts.push(`User dibuat: ${s.created_users}`);
+  if (typeof s.created_users === "number")
+    parts.push(`User dibuat: ${s.created_users}`);
   if (typeof s.sent_invitations === "number")
     parts.push(`Invitation: ${s.sent_invitations}`);
   if (typeof s.skipped_rows === "number") parts.push(`Skip: ${s.skipped_rows}`);
@@ -105,7 +107,7 @@ function normalizeScheduleStatus(status?: string | null) {
 }
 
 function scheduleStatusVariant(
-  status?: string | null
+  status?: string | null,
 ): "muted" | "warning" | "success" {
   const s = normalizeScheduleStatus(status);
 
@@ -118,7 +120,8 @@ function scheduleStatusVariant(
 function scheduleStatusLabel(status?: string | null) {
   const s = normalizeScheduleStatus(status);
 
-  if (["draft", "published", "closed", "cancelled"].includes(s)) return s.charAt(0).toUpperCase() + s.slice(1);
+  if (["draft", "published", "closed", "cancelled"].includes(s))
+    return s.charAt(0).toUpperCase() + s.slice(1);
   if (s === "belum-dimulai") return "Tes Belum Dimulai";
   if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung";
   if (s === "selesai") return "Tes Selesai";
@@ -130,7 +133,9 @@ function normalizeStatus(status?: string | null) {
   return (status ?? "").trim().toLowerCase();
 }
 
-function statusVariant(status?: string | null): "muted" | "warning" | "success" {
+function statusVariant(
+  status?: string | null,
+): "muted" | "warning" | "success" {
   const s = normalizeStatus(status);
   if (!s) return "muted";
   if (s === "peserta belum terdaftar") return "muted";
@@ -156,7 +161,9 @@ function buildPages(page: number, lastPage: number) {
   const windowSize = 1;
 
   if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1) as Array<number | "ellipsis">;
+    return Array.from({ length: total }, (_, i) => i + 1) as Array<
+      number | "ellipsis"
+    >;
   }
 
   const start = Math.max(2, current - windowSize);
@@ -219,14 +226,15 @@ export default function AdminScheduleDetailPage() {
       per_page: perPage,
       page,
     }),
-    [qDebounced, perPage, page]
+    [qDebounced, perPage, page],
   );
 
   const exportParticipantsMut = useMutation({
     mutationFn: () => schedulesService.exportParticipants(scheduleId),
     onSuccess: (res: ExportScheduleParticipantsResponse) => {
       toast.success(res.message ?? "Berhasil export peserta");
-      if (res.download_url) window.open(res.download_url, "_blank", "noopener,noreferrer");
+      if (res.download_url)
+        window.open(res.download_url, "_blank", "noopener,noreferrer");
     },
     onError: (e) => toast.error(getApiErrorMessage(e)),
   });
@@ -237,7 +245,9 @@ export default function AdminScheduleDetailPage() {
   });
 
   // ✅ per-row loading (biar nggak disable semua tombol)
-  const [downloadingUrl, setDownloadingUrl] = React.useState<string | null>(null);
+  const [downloadingUrl, setDownloadingUrl] = React.useState<string | null>(
+    null,
+  );
 
   const handleDownloadCert = React.useCallback(
     async (url: string) => {
@@ -248,7 +258,7 @@ export default function AdminScheduleDetailPage() {
         setDownloadingUrl(null);
       }
     },
-    [downloadCertMut]
+    [downloadCertMut],
   );
 
   const columns = React.useMemo<DataTableColumn<ScheduleParticipant>[]>(() => {
@@ -287,13 +297,18 @@ export default function AdminScheduleDetailPage() {
         header: "Status",
         headerClassName: "w-32.5 text-center",
         className: "truncate text-center",
-        cell: (row) => (
-          <div className="flex justify-center">
-            <Badge variant={statusVariant(row.status)} className="capitalize">
-              {statusLabel(row.status)}
-            </Badge>
-          </div>
-        ),
+        cell: (row) => {
+          const label = row.status_label ?? statusLabel(row.status);
+          const variant = row.status_variant ?? statusVariant(row.status);
+
+          return (
+            <div className="flex justify-center">
+              <Badge variant={variant} className="capitalize whitespace-nowrap">
+                {label}
+              </Badge>
+            </div>
+          );
+        },
       },
       {
         key: "verbal",
@@ -337,7 +352,9 @@ export default function AdminScheduleDetailPage() {
         className: "text-center whitespace-nowrap",
         cell: (row) => {
           const certUrl = row.certificate_download_url ?? null;
-          const isRowDownloading = Boolean(certUrl && downloadingUrl === certUrl);
+          const isRowDownloading = Boolean(
+            certUrl && downloadingUrl === certUrl,
+          );
 
           return certUrl ? (
             <Button
@@ -370,10 +387,13 @@ export default function AdminScheduleDetailPage() {
   });
 
   const importMut = useMutation({
-    mutationFn: (file: File) => schedulesService.partnerImport(scheduleId, file),
+    mutationFn: (file: File) =>
+      schedulesService.partnerImport(scheduleId, file),
     onSuccess: (res) => {
       const sum = importSummaryText(res);
-      toast.success(sum ? `${res.message} (${sum})` : res.message ?? "Import berhasil");
+      toast.success(
+        sum ? `${res.message} (${sum})` : (res.message ?? "Import berhasil"),
+      );
 
       qc.invalidateQueries({
         predicate: (q) =>
@@ -389,7 +409,10 @@ export default function AdminScheduleDetailPage() {
 
   if (detailQuery.isLoading) {
     return (
-      <PageHeaderLayout title="Detail Jadwal" description="Memuat detail jadwal...">
+      <PageHeaderLayout
+        title="Detail Jadwal"
+        description="Memuat detail jadwal..."
+      >
         <p className="text-sm text-muted-foreground">Loading...</p>
       </PageHeaderLayout>
     );
@@ -397,7 +420,10 @@ export default function AdminScheduleDetailPage() {
 
   if (detailQuery.isError || !detailQuery.data) {
     return (
-      <PageHeaderLayout title="Detail Jadwal" description="Gagal memuat detail jadwal">
+      <PageHeaderLayout
+        title="Detail Jadwal"
+        description="Gagal memuat detail jadwal"
+      >
         <p className="text-sm text-destructive">Gagal load schedule</p>
       </PageHeaderLayout>
     );
@@ -448,12 +474,12 @@ export default function AdminScheduleDetailPage() {
           <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
             <li className="flex gap-2">
               <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-              Format: <span className="font-medium text-foreground">.xlsx</span> /{" "}
-              <span className="font-medium text-foreground">.xls</span>
+              Format: <span className="font-medium text-foreground">.xlsx</span>
             </li>
             <li className="flex gap-2">
               <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-              Kolom wajib: <span className="font-medium text-foreground">name</span>,{" "}
+              Kolom wajib:{" "}
+              <span className="font-medium text-foreground">name</span>,{" "}
               <span className="font-medium text-foreground">email</span>
             </li>
             <li className="flex gap-2">
@@ -462,6 +488,21 @@ export default function AdminScheduleDetailPage() {
               <span className="font-medium text-foreground">di-skip</span>
             </li>
           </ul>
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadWithBearer(
+                  schedulesService.partnerImportTemplateUrl(scheduleId),
+                  "template-import-peserta-mitra.xlsx",
+                ).catch((error) => toast.error(getApiErrorMessage(error)))
+              }
+            >
+              Download Template Excel
+            </Button>
+          </div>
         </div>
 
         <form
@@ -481,7 +522,7 @@ export default function AdminScheduleDetailPage() {
                   <Input
                     id="partner-import-file"
                     type="file"
-                    accept=".xlsx,.xls"
+                    accept=".xlsx,.xls,.csv"
                     disabled={importMut.isPending}
                     className="cursor-pointer"
                     onChange={(e) => {
@@ -498,7 +539,8 @@ export default function AdminScheduleDetailPage() {
                 </p>
               ) : (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Pastikan header kolom sesuai agar proses import berjalan lancar.
+                  Pastikan header kolom sesuai agar proses import berjalan
+                  lancar.
                 </p>
               )}
             </div>
@@ -545,9 +587,9 @@ export default function AdminScheduleDetailPage() {
           </div>
           <div>
             <div className="text-muted-foreground">Status</div>
-<Badge variant={scheduleStatusVariant(d.status)}>
-  {scheduleStatusLabel(d.status)}
-</Badge>
+            <Badge variant={scheduleStatusVariant(d.status)}>
+              {scheduleStatusLabel(d.status)}
+            </Badge>
           </div>
         </div>
 
@@ -589,7 +631,9 @@ export default function AdminScheduleDetailPage() {
               onClick={() => exportParticipantsMut.mutate()}
               disabled={exportParticipantsMut.isPending}
             >
-              {exportParticipantsMut.isPending ? "Exporting..." : "Export Peserta (XLSX)"}
+              {exportParticipantsMut.isPending
+                ? "Exporting..."
+                : "Export Peserta (XLSX)"}
             </Button>
           </div>
 
@@ -597,9 +641,17 @@ export default function AdminScheduleDetailPage() {
             {participantsPage ? (
               <>
                 Menampilkan{" "}
-                <span className="font-medium text-foreground">{participantsPage.from ?? 0}</span>–
-                <span className="font-medium text-foreground">{participantsPage.to ?? 0}</span> dari{" "}
-                <span className="font-medium text-foreground">{participantsPage.total ?? 0}</span>
+                <span className="font-medium text-foreground">
+                  {participantsPage.from ?? 0}
+                </span>
+                –
+                <span className="font-medium text-foreground">
+                  {participantsPage.to ?? 0}
+                </span>{" "}
+                dari{" "}
+                <span className="font-medium text-foreground">
+                  {participantsPage.total ?? 0}
+                </span>
               </>
             ) : null}
           </div>
@@ -644,7 +696,11 @@ export default function AdminScheduleDetailPage() {
                       if (!canPrev || busy) return;
                       setPage((p) => Math.max(1, p - 1));
                     }}
-                    className={!canPrev || busy ? "pointer-events-none opacity-50" : undefined}
+                    className={
+                      !canPrev || busy
+                        ? "pointer-events-none opacity-50"
+                        : undefined
+                    }
                   />
                 </PaginationItem>
 
@@ -667,7 +723,9 @@ export default function AdminScheduleDetailPage() {
                           if (busy) return;
                           setPage(p);
                         }}
-                        className={busy ? "pointer-events-none opacity-50" : undefined}
+                        className={
+                          busy ? "pointer-events-none opacity-50" : undefined
+                        }
                       >
                         {String(p)}
                       </PaginationLink>
@@ -683,7 +741,11 @@ export default function AdminScheduleDetailPage() {
                       if (!canNext || busy) return;
                       setPage((p) => p + 1);
                     }}
-                    className={!canNext || busy ? "pointer-events-none opacity-50" : undefined}
+                    className={
+                      !canNext || busy
+                        ? "pointer-events-none opacity-50"
+                        : undefined
+                    }
                   />
                 </PaginationItem>
               </PaginationContent>
