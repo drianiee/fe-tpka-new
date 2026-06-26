@@ -24,6 +24,7 @@ type ExamWorkspaceProps = {
   timerMode?: "attempt" | "section";
   saving?: boolean;
   finishLabel?: string;
+  finishDisabled?: boolean;
   footerStatus?: string;
   onCurrentIdChange: (id: number) => void;
   onSelectOption: (questionId: number, optionId: number) => void;
@@ -62,6 +63,7 @@ export function ExamWorkspace({
   timerMode = "attempt",
   saving = false,
   finishLabel = "Selesaikan Sesi",
+  finishDisabled = false,
   footerStatus,
   onCurrentIdChange,
   onSelectOption,
@@ -266,7 +268,14 @@ export function ExamWorkspace({
               <Button type="button" variant="outline" onClick={() => setFontScale((value) => Math.max(0.85, value - 0.1))}>A˅ Downsize</Button>
             </section>
 
-            <Button type="button" className="h-12 w-full" onClick={onFinish}>{finishLabel}</Button>
+            <Button
+              type="button"
+              className="h-12 w-full"
+              onClick={onFinish}
+              disabled={finishDisabled}
+            >
+              {finishLabel}
+            </Button>
           </div>
         </aside>
       </div>

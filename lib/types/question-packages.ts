@@ -20,6 +20,8 @@ export type QuestionPackage = {
   total_duration_minutes: number;
   total_questions: number;
   target_total_questions: number;
+  base_score: number;
+  correct_answer_score: number;
   sections_count?: number;
   sections?: ExamSection[];
   summary?: Record<string, number>;
@@ -33,6 +35,8 @@ export type CreateQuestionPackageRequest = {
   status?: QuestionPackageStatus;
   total_duration_minutes: number;
   target_total_questions?: number;
+  base_score?: number;
+  correct_answer_score?: number;
   sections?: Array<{
     code: SectionCode;
     duration_minutes: number;
@@ -40,6 +44,7 @@ export type CreateQuestionPackageRequest = {
   }>;
 };
 export type CreateQuestionPackageResponse = { message?: string; data: QuestionPackage };
+export type UpdateQuestionPackageResponse = { message?: string; data: QuestionPackage };
 export type UpdateQuestionPackageStatusRequest = { status: QuestionPackageStatus };
 export type UpdateQuestionPackageStatusResponse = { message?: string; data: QuestionPackage };
 export type DeleteQuestionPackageResponse = { message?: string };

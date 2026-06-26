@@ -54,6 +54,8 @@ const DEFAULT_SECTIONS: Array<{
 export function AddQuestionPackageDialog() {
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
+  const [baseScore, setBaseScore] = React.useState("200");
+  const [correctAnswerScore, setCorrectAnswerScore] = React.useState("2");
   const [sections, setSections] = React.useState(DEFAULT_SECTIONS);
   const qc = useQueryClient();
 
@@ -65,9 +67,16 @@ export function AddQuestionPackageDialog() {
     (sum, section) => sum + section.target_question_count,
     0,
   );
+  const parsedBaseScore = Math.max(0, Number(baseScore) || 0);
+  const parsedCorrectAnswerScore = Math.max(
+    0,
+    Number(correctAnswerScore) || 0,
+  );
 
   const reset = () => {
     setName("");
+    setBaseScore("200");
+    setCorrectAnswerScore("2");
     setSections(DEFAULT_SECTIONS);
   };
 
@@ -78,6 +87,8 @@ export function AddQuestionPackageDialog() {
         name: name.trim(),
         total_duration_minutes: totalDuration,
         target_total_questions: totalTarget,
+        base_score: parsedBaseScore,
+        correct_answer_score: parsedCorrectAnswerScore,
         sections: sections.map(
           ({ code, duration_minutes, target_question_count }) => ({
             code,
@@ -134,6 +145,32 @@ export function AddQuestionPackageDialog() {
               placeholder="Paket TPA A"
             />
           </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Nilai Template</Label>
+              <Input
+                type="number"
+                min={0}
+                value={baseScore}
+                onChange={(e) => setBaseScore(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Nilai awal peserta, walau belum ada jawaban benar.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Nilai per Jawaban Benar</Label>
+              <Input
+                type="number"
+                min={0}
+                value={correctAnswerScore}
+                onChange={(e) => setCorrectAnswerScore(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Rumus total: nilai template + (jumlah benar x nilai per jawaban benar).
+              </p>
+            </div>
+          </div>
           <div className="rounded-xl border p-3">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="font-medium">Pembagian Subtes</div>
@@ -185,6 +222,16 @@ export function AddQuestionPackageDialog() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-dashed p-3 text-sm">
+            <div className="font-medium">Simulasi Skor</div>
+            <div className="mt-1 text-muted-foreground">
+              Minimal nilai: {parsedBaseScore}
+            </div>
+            <div className="text-muted-foreground">
+              Maksimal nilai:{" "}
+              {parsedBaseScore + totalTarget * parsedCorrectAnswerScore}
             </div>
           </div>
 

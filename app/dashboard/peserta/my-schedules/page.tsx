@@ -310,7 +310,7 @@ function ParticipantMySchedulesPageContent() {
   return (
     <PageHeaderLayout
       title="Jadwal Tes Saya"
-      description="Daftar jadwal yang sudah Anda miliki. Klik detail untuk melihat tombol mulai tes (jika sudah tersedia)."
+      description="Daftar jadwal yang sudah Anda miliki. Klik detail untuk melihat tombol mulai tes"
       showBack={false}
     >
       <div className="h-full min-h-0 rounded-xl border overflow-hidden flex flex-col bg-white">

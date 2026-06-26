@@ -18,6 +18,14 @@ import { formatDateId } from "@/lib/utils/datetime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
 function normalizeText(s: string) {
@@ -94,6 +102,7 @@ export default function ParticipantMyScheduleDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const router = useRouter();
+  const [startConfirmOpen, setStartConfirmOpen] = React.useState(false);
 
   const query = useQuery<ParticipantMyScheduleDetail>({
     queryKey: [API_ENDPOINTS.PARTICIPANT.MY_SCHEDULE_DETAIL(id ?? "none")],
@@ -109,7 +118,10 @@ export default function ParticipantMyScheduleDetailPage() {
 
   const startMutation = useMutation({
     mutationFn: () => examService.start(id as string),
-    onSuccess: (attempt) => router.push(`/exams/${attempt.id}`),
+    onSuccess: (attempt) => {
+      setStartConfirmOpen(false);
+      router.push(`/exams/${attempt.id}`);
+    },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
 
@@ -118,7 +130,7 @@ export default function ParticipantMyScheduleDetailPage() {
   return (
     <PageHeaderLayout
       title={`Detail Jadwal #${id ?? "-"}`}
-      description="Informasi jadwal dan akses tes (jika sudah tersedia)."
+      description="Informasi jadwal dan akses tes"
       showBack
       onBack={() => router.push("/dashboard/peserta/my-schedules/")}
     >
@@ -196,7 +208,11 @@ export default function ParticipantMyScheduleDetailPage() {
                 ) : null}
                 <Button
                   disabled={!canStart}
-                  onClick={() => d.attempt_id ? router.push(`/exams/${d.attempt_id}`) : startMutation.mutate()}
+                  onClick={() =>
+                    d.attempt_id
+                      ? router.push(`/exams/${d.attempt_id}`)
+                      : setStartConfirmOpen(true)
+                  }
                   className="gap-2"
                 >
                   <Play className="h-4 w-4" />
@@ -221,6 +237,70 @@ export default function ParticipantMyScheduleDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Dialog
+            open={startConfirmOpen}
+            onOpenChange={(open) => {
+              if (!startMutation.isPending) setStartConfirmOpen(open);
+            }}
+          >
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Tes akan dimulai</DialogTitle>
+                <DialogDescription>
+                  Pastikan Anda sudah siap sebelum memulai. Setelah tes
+                  dimulai, waktu pengerjaan akan berjalan dari server.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                <DetailRow
+                  label="Paket Soal"
+                  value={d.question_package?.name ?? "-"}
+                />
+                <DetailRow
+                  label="Jadwal"
+                  value={`${formatDateId(d.date)} • ${hhmm(d.start_time)} WIB`}
+                />
+                <DetailRow
+                  label="Jumlah Soal"
+                  value={d.question_package?.total_questions ?? 0}
+                />
+                <DetailRow
+                  label="Durasi"
+                  value={`${d.question_package?.total_duration_minutes ?? 0} menit`}
+                />
+              </div>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                Tes dikerjakan per sesi. Selesaikan sesi saat ini sebelum
+                lanjut ke sesi berikutnya, dan jawaban tidak dapat diubah
+                setelah ujian dikirim.
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStartConfirmOpen(false)}
+                  disabled={startMutation.isPending}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => startMutation.mutate()}
+                  disabled={startMutation.isPending}
+                  className="gap-2"
+                >
+                  <Play className="h-4 w-4" />
+                  {startMutation.isPending
+                    ? "Menyiapkan Tes..."
+                    : "Mulai Tes Sekarang"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </PageHeaderLayout>

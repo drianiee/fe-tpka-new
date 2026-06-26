@@ -20,6 +20,8 @@ import { ImportQuestionsDialog } from "@/components/packages/ImportQuestionsDial
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
@@ -67,6 +69,8 @@ export function QuestionPackageDetail({
   const [activeSectionId, setActiveSectionId] = React.useState<number | null>(
     null,
   );
+  const [baseScoreInput, setBaseScoreInput] = React.useState("200");
+  const [correctAnswerScoreInput, setCorrectAnswerScoreInput] = React.useState("2");
 
   const detailQuery = useQuery({
     queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.DETAIL(packageId)],
@@ -85,6 +89,12 @@ export function QuestionPackageDetail({
   React.useEffect(() => {
     if (!activeSectionId && sections[0]?.id) setActiveSectionId(sections[0].id);
   }, [activeSectionId, sections]);
+
+  React.useEffect(() => {
+    if (!item) return;
+    setBaseScoreInput(String(item.base_score));
+    setCorrectAnswerScoreInput(String(item.correct_answer_score));
+  }, [item]);
 
   const questionsQuery = useQuery({
     queryKey: [
@@ -140,6 +150,39 @@ export function QuestionPackageDetail({
     onError: (e) => toast.error(getApiErrorMessage(e)),
   });
 
+  const updateScoringMutation = useMutation({
+    mutationFn: () => {
+      if (!item) throw new Error("Paket tidak ditemukan.");
+
+      return questionPackagesService.update(packageId, {
+        name: item.name,
+        total_duration_minutes: item.total_duration_minutes,
+        target_total_questions: item.target_total_questions,
+        base_score: Math.max(0, Number(baseScoreInput) || 0),
+        correct_answer_score: Math.max(0, Number(correctAnswerScoreInput) || 0),
+        sections: sections.map((section) => ({
+          code: section.code as
+            | "verbal"
+            | "kuantitatif"
+            | "logika"
+            | "spasial",
+          duration_minutes: section.duration_minutes,
+          target_question_count: section.target_question_count,
+        })),
+      });
+    },
+    onSuccess: (res) => {
+      toast.success(res.message ?? "Pengaturan nilai diperbarui");
+      qc.invalidateQueries({
+        queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.BASE],
+      });
+      qc.invalidateQueries({
+        queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.DETAIL(packageId)],
+      });
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e)),
+  });
+
   if (detailQuery.isLoading) {
     return (
       <PageHeaderLayout
@@ -169,6 +212,14 @@ export function QuestionPackageDetail({
     null;
   const questions = questionsQuery.data?.data ?? [];
   const nextStatus = item.status === "published" ? "archived" : "published";
+  const parsedBaseScore = Math.max(0, Number(baseScoreInput) || 0);
+  const parsedCorrectAnswerScore = Math.max(
+    0,
+    Number(correctAnswerScoreInput) || 0,
+  );
+  const maxScore =
+    parsedBaseScore +
+    (item.target_total_questions ?? 0) * parsedCorrectAnswerScore;
 
   return (
     <PageHeaderLayout
@@ -227,6 +278,39 @@ export function QuestionPackageDetail({
           </div>
 
           <Separator />
+
+          <div className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <div className="space-y-2">
+              <Label>Nilai Template</Label>
+              <Input
+                type="number"
+                min={0}
+                value={baseScoreInput}
+                onChange={(e) => setBaseScoreInput(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nilai per Jawaban Benar</Label>
+              <Input
+                type="number"
+                min={0}
+                value={correctAnswerScoreInput}
+                onChange={(e) => setCorrectAnswerScoreInput(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              className="md:min-w-32"
+              disabled={updateScoringMutation.isPending}
+              onClick={() => updateScoringMutation.mutate()}
+            >
+              {updateScoringMutation.isPending ? "Menyimpan..." : "Simpan Nilai"}
+            </Button>
+            <div className="text-sm text-muted-foreground md:col-span-3">
+              Rumus nilai: {parsedBaseScore} + ({item.target_total_questions ?? 0} x{" "}
+              {parsedCorrectAnswerScore}) = maksimal {maxScore}
+            </div>
+          </div>
 
           <div className="grid gap-3 md:grid-cols-4">
             {sections.map((section: ExamSection) => (

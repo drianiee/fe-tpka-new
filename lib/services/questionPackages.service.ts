@@ -6,6 +6,7 @@ import type {
   DetailQuestionPackageResponse,
   CreateQuestionPackageRequest,
   CreateQuestionPackageResponse,
+  UpdateQuestionPackageResponse,
   UpdateQuestionPackageStatusRequest,
   UpdateQuestionPackageStatusResponse,
   DeleteQuestionPackageResponse,
@@ -35,6 +36,15 @@ export const questionPackagesService = {
     return http
       .post(API_ENDPOINTS.QUESTION_PACKAGES.BASE, payload)
       .then((r) => r.data as CreateQuestionPackageResponse);
+  },
+
+  update(
+    id: number | string,
+    payload: CreateQuestionPackageRequest
+  ): Promise<UpdateQuestionPackageResponse> {
+    return http
+      .put(API_ENDPOINTS.QUESTION_PACKAGES.DETAIL(id), payload)
+      .then((r) => r.data as UpdateQuestionPackageResponse);
   },
 
   updateStatus(

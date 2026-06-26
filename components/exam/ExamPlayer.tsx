@@ -1,11 +1,20 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { ExamExpiredScreen } from "@/components/exam/ExamExpiredScreen";
 import { ExamWorkspace } from "@/components/exam/ExamWorkspace";
 import { SubmitExamDialog } from "@/components/exam/SubmitExamDialog";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { useAutosaveAnswer } from "@/lib/hooks/useAutosaveAnswer";
 import { useExamAttempt } from "@/lib/hooks/useExamAttempt";
@@ -22,6 +31,7 @@ function sectionStorageKey(attemptId: string) {
 }
 
 export function ExamPlayer({ attemptId }: { attemptId: string }) {
+  const router = useRouter();
   const query = useExamAttempt(attemptId);
   const save = useAutosaveAnswer(attemptId);
 
@@ -30,6 +40,7 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
   const [activeSectionIndex, setActiveSectionIndex] = React.useState(0);
   const [sectionDeadline, setSectionDeadline] = React.useState<number | null>(null);
   const [sectionRemaining, setSectionRemaining] = React.useState(0);
+  const [finishSessionOpen, setFinishSessionOpen] = React.useState(false);
   const [submitOpen, setSubmitOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [result, setResult] = React.useState<ExamResult | null>(null);
@@ -56,12 +67,13 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
       setResult(value);
       setSubmitOpen(false);
       window.localStorage.removeItem(sectionStorageKey(attemptId));
+      router.replace("/dashboard/peserta/certificates");
     } catch (error) {
       toast.error(getApiErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
-  }, [attemptId, submitting]);
+  }, [attemptId, router, submitting]);
 
   const attemptRemaining = useExamTimer(attempt?.server_time, attempt?.expires_at, submit);
 
@@ -173,9 +185,18 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
     return () => window.clearInterval(id);
   }, [attempt, moveToNextSection, sectionDeadline]);
 
+  React.useEffect(() => {
+    if (!attempt || result) return;
+    if (attempt.status !== "in_progress") {
+      router.replace("/dashboard/peserta/certificates");
+    }
+  }, [attempt, result, router]);
+
   if (query.isLoading) return <div className="p-8 text-sm text-muted-foreground">Memuat attempt...</div>;
   if (query.isError || !attempt) return <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{getApiErrorMessage(query.error)}</div>;
-  if (result || attempt.status !== "in_progress") return <ExamExpiredScreen score={result?.score_total ?? null} />;
+  if (result || attempt.status !== "in_progress") {
+    return <div className="p-8 text-sm text-muted-foreground">Mengalihkan ke sertifikat...</div>;
+  }
 
   const current = activeQuestions.find((question) => question.id === currentId) ?? activeQuestions[0] ?? null;
   if (!current) return <div>Paket ujian tidak memiliki soal untuk sesi ini.</div>;
@@ -183,6 +204,9 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
   const answeredIds = new Set(Object.values(answers).filter((answer) => answer.question_option_id != null || answer.answer_text).map((answer) => answer.question_id));
   const flaggedIds = new Set(Object.values(answers).filter((answer) => answer.is_flagged).map((answer) => answer.question_id));
   const isLastSection = activeSectionIndex >= orderedSections.length - 1;
+  const activeAnsweredCount = activeQuestions.filter((question) => answeredIds.has(question.id)).length;
+  const activeUnansweredCount = Math.max(0, activeQuestions.length - activeAnsweredCount);
+  const canFinishActiveSection = activeQuestions.length > 0 && activeUnansweredCount === 0;
 
   const saveValue = (questionId: number, patch: Partial<ExamAnswer>) => {
     const previous = answers[questionId];
@@ -216,12 +240,47 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
         timerMode="section"
         saving={save.isPending}
         finishLabel={isLastSection ? "Selesaikan Ujian" : "Selesaikan Sesi"}
+        finishDisabled={!canFinishActiveSection}
         footerStatus={online ? "Jawaban tersimpan otomatis" : "Koneksi terputus, mencoba sinkron ulang"}
         onCurrentIdChange={setCurrentId}
         onSelectOption={(questionId, optionId) => saveValue(questionId, { question_option_id: optionId })}
         onToggleFlag={(questionId) => saveValue(questionId, { is_flagged: !answers[questionId]?.is_flagged })}
-        onFinish={() => moveToNextSection(false)}
+        onFinish={() => {
+          if (isLastSection) moveToNextSection(false);
+          else setFinishSessionOpen(true);
+        }}
       />
+      <Dialog open={finishSessionOpen} onOpenChange={setFinishSessionOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selesaikan sesi ini?</DialogTitle>
+            <DialogDescription>
+              Pastikan jawaban pada sesi {activeSection?.name ?? "ini"} sudah
+              sesuai. Setelah lanjut ke sesi berikutnya, Anda tidak bisa
+              kembali ke sesi ini.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setFinishSessionOpen(false)}
+            >
+              Cek Lagi
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setFinishSessionOpen(false);
+                moveToNextSection(false);
+              }}
+            >
+              Lanjut Sesi Berikutnya
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <SubmitExamDialog
         open={submitOpen}
         answered={answeredIds.size}

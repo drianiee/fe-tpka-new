@@ -157,8 +157,8 @@ export function QuestionPackagesTable() {
       {
         key: "questions",
         header: "Soal / Durasi",
-        headerClassName: "text-center min-w-[200px]",
-        className: "py-4 px-2 text-center",
+        headerClassName: "min-w-[200px]",
+        className: "py-4 px-2",
         cell: (row) => (
           <div className="truncate max-w-50 mx-auto">
             {row.total_questions}/{row.target_total_questions ?? 0} soal / {row.total_duration_minutes} menit
@@ -167,15 +167,30 @@ export function QuestionPackagesTable() {
       },
       {
         key: "summary",
-        header: "Per Sesi",
-        headerClassName: "min-w-[260px]",
+        header: "Sesi",
+        headerClassName: "min-w-[200px]",
         className: "py-4 px-2",
         cell: (row) => (
-          <div className="grid grid-cols-2 gap-1 text-xs">
+          <div className="flex flex-col gap-1 text-xs">
             <span>Verbal: {row.summary?.verbal ?? 0}/{row.sections?.find((s) => s.code === "verbal")?.target_question_count ?? 0}</span>
             <span>Kuant: {row.summary?.kuantitatif ?? 0}/{row.sections?.find((s) => s.code === "kuantitatif")?.target_question_count ?? 0}</span>
             <span>Logika: {row.summary?.logika ?? 0}/{row.sections?.find((s) => s.code === "logika")?.target_question_count ?? 0}</span>
             <span>Spasial: {row.summary?.spasial ?? 0}/{row.sections?.find((s) => s.code === "spasial")?.target_question_count ?? 0}</span>
+          </div>
+        ),
+      },
+      {
+        key: "scoring",
+        header: "Skoring",
+        headerClassName: "min-w-[220px]",
+        className: "py-4 px-2",
+        cell: (row) => (
+          <div className="text-xs leading-5">
+            <div>Template: {row.base_score}</div>
+            <div>Benar: +{row.correct_answer_score}/soal</div>
+            <div>
+              Maks: {row.base_score + (row.target_total_questions ?? 0) * row.correct_answer_score}
+            </div>
           </div>
         ),
       },
