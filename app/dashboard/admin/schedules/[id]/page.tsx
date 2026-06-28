@@ -302,6 +302,21 @@ export default function AdminScheduleDetailPage() {
         },
       },
       {
+        key: "package",
+        header: "Paket",
+        headerClassName: "w-28 text-center",
+        className: "text-center whitespace-nowrap",
+        cell: (row) => (
+          row.question_package ? (
+            <Badge variant="outline" className="max-w-28 truncate">
+              {row.question_package.name}
+            </Badge>
+          ) : (
+            <span className="text-sm text-muted-foreground">-</span>
+          )
+        ),
+      },
+      {
         key: "verbal",
         header: "Verbal",
         headerClassName: "w-14.5 text-center",
@@ -574,7 +589,7 @@ export default function AdminScheduleDetailPage() {
         </div>
 
         <div>
-          <div className="text-muted-foreground text-sm mb-1">Paket Soal</div>
+          <div className="text-muted-foreground text-sm mb-1">Pool Paket Soal</div>
           {packages.length === 0 ? (
             <span className="text-sm text-muted-foreground">-</span>
           ) : (
@@ -586,6 +601,9 @@ export default function AdminScheduleDetailPage() {
               ))}
             </div>
           )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Paket diacak per peserta saat registrasi.
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-2">

@@ -141,11 +141,35 @@ function statusVariant(
 ): "muted" | "warning" | "success" {
   const s = normalizeText(status ?? "");
   if (!s) return "muted";
-  if (s === "tes belum dimulai") return "muted";
-  if (s === "tes akan segera dimulai") return "warning";
-  if (s === "tes sedang berlangsung") return "warning";
-  if (s === "tes selesai") return "success";
+  if (s === "belum dimulai") return "muted";
+  if (s === "sedang berlangsung") return "warning";
+  if (s === "selesai") return "success";
   return "muted";
+}
+
+function scheduleDateTime(date: string, time: string) {
+  return new Date(`${date.slice(0, 10)}T${time}`);
+}
+
+function testStatusLabel(row: ParticipantMyScheduleListItem) {
+  const now = new Date();
+  const startAt = scheduleDateTime(row.date, row.start_time);
+  const endAt = scheduleDateTime(row.date, row.end_time);
+  const attemptStatus = normalizeText(row.attempt_status ?? "");
+
+  if (attemptStatus === "submitted" || attemptStatus === "expired") {
+    return "Selesai";
+  }
+
+  if (now < startAt) {
+    return "Belum Dimulai";
+  }
+
+  if (now >= endAt) {
+    return "Selesai";
+  }
+
+  return "Sedang Berlangsung";
 }
 
 function canContinuePayment(row: ParticipantMyScheduleListItem) {
@@ -219,8 +243,8 @@ function ParticipantMySchedulesPageContent() {
 
   const handleDetailClick = React.useCallback(
     (row: ParticipantMyScheduleListItem) => {
-      const statusNormalized = normalizeText(row.status ?? "");
-      if (isMobileDevice() && statusNormalized === "tes belum dimulai") {
+      const statusNormalized = normalizeText(testStatusLabel(row));
+      if (isMobileDevice() && statusNormalized === "belum dimulai") {
         setBlockedSchedule(row);
         setDetailWarningOpen(true);
         return;
@@ -274,10 +298,10 @@ function ParticipantMySchedulesPageContent() {
         cell: (row) => (
           <div className="flex justify-center">
             <Badge
-              variant={statusVariant(row.status)}
+              variant={statusVariant(testStatusLabel(row))}
               className="truncate max-w-56"
             >
-              {row.status || "-"}
+              {testStatusLabel(row)}
             </Badge>
           </div>
         ),

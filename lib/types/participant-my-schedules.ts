@@ -58,6 +58,7 @@ export type ParticipantMyScheduleListItem = {
   can_start?: boolean;
   has_attempt?: boolean;
   attempt_id?: number | null;
+  attempt_status?: string | null;
   registration?: ParticipantRegistrationInfo;
   payment?: ParticipantPaymentInfo | null;
 };
@@ -92,10 +93,11 @@ export type ParticipantMyScheduleDetail = {
   can_start: boolean;
   has_attempt: boolean;
   attempt_id: number | null;
+  attempt_status?: string | null;
   question_package: {
     id: number;
     name: string;
     total_duration_minutes: number;
     total_questions: number;
-  };
+  } | null;
 };

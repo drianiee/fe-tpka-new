@@ -15,7 +15,6 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
 import { formatDateId } from "@/lib/utils/datetime";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -76,45 +75,6 @@ function buildPages(page: number, lastPage: number) {
 
   return result;
 }
-
-function normalizeStatus(status?: string | null) {
-  if (!status) return "";
-
-  const s = status.trim().toLowerCase();
-
-  if (["draft", "published", "closed", "cancelled"].includes(s)) return s;
-
-  if (s.includes("belum")) return "belum-dimulai";
-  if (s.includes("sedang")) return "sedang-berlangsung";
-  if (s.includes("selesai")) return "telah-selesai";
-
-  return "";
-}
-
-
-function statusVariant(
-  status?: string | null
-): "muted" | "warning" | "success" {
-  const s = normalizeStatus(status);
-
-  if (s === "published" || s === "sedang-berlangsung") return "success";
-  if (s === "closed" || s === "telah-selesai") return "muted";
-  if (s === "cancelled") return "warning";
-  return "muted";
-}
-
-
-function statusLabel(status?: string | null) {
-  const s = normalizeStatus(status);
-
-  if (["draft", "published", "closed", "cancelled"].includes(s)) return s.charAt(0).toUpperCase() + s.slice(1);
-  if (s === "belum-dimulai") return "Tes Belum Dimulai";
-  if (s === "sedang-berlangsung") return "Tes Sedang Berlangsung";
-  if (s === "telah-selesai") return "Tes Telah Selesai";
-
-  return "Belum Ditentukan";
-}
-
 
 export function SchedulesTable() {
   const router = useRouter();
@@ -231,44 +191,6 @@ export function SchedulesTable() {
         headerClassName: "w-32 text-center",
         className: "py-4 px-2 text-center",
         cell: (row) => `${row.current_participants}/${row.capacity}`,
-      },
-      {
-        key: "packages",
-        header: "Paket",
-        headerClassName: "w-72 text-center",
-        className: "py-4 px-2",
-        cell: (row) =>
-          row.packages.length === 0 ? (
-            <div className="text-center">-</div>
-          ) : (
-            <div className="flex flex-wrap gap-1 max-w-70 mx-auto">
-              {row.packages.map((pkg) => (
-                <Badge
-                  key={pkg.id}
-                  variant="outline"
-                  className="max-w-full truncate px-2 py-1 text-xs"
-                >
-                  {pkg.name}
-                </Badge>
-              ))}
-            </div>
-          ),
-      },
-      {
-        key: "status",
-        header: "Status",
-        headerClassName: "w-48 text-center",
-        className: "py-4 px-2 text-center",
-        cell: (row) => (
-          <div className="flex justify-center">
-            <Badge
-              variant={statusVariant(row.status)}
-              className="truncate max-w-45"
-            >
-              {statusLabel(row.status)}
-            </Badge>
-          </div>
-        ),
       },
       {
         key: "action",

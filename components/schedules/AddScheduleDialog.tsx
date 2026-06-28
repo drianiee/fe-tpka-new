@@ -10,7 +10,6 @@ import { z } from "zod";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { partnersService } from "@/lib/services/partners.service";
-import { questionPackagesService } from "@/lib/services/questionPackages.service";
 import { schedulesService } from "@/lib/services/schedules.service";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,7 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const schema = z
   .object({
-    question_package_id: z.number().min(1, "Paket wajib dipilih"),
     is_partner: z.boolean(),
     partner_id: z.number().nullable(),
     start_at: z.string().min(1, "Mulai ujian wajib diisi"),
@@ -71,11 +69,6 @@ export function AddScheduleDialog() {
   const [open, setOpen] = React.useState(false);
   const qc = useQueryClient();
 
-  const packageQuery = useQuery({
-    queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.BASE, "schedule-options"],
-    queryFn: () => questionPackagesService.list({ per_page: 100, is_active: true }),
-    enabled: open,
-  });
   const partnersQuery = useQuery({
     queryKey: [API_ENDPOINTS.PARTNERS.BASE, "schedule-options"],
     queryFn: () => partnersService.list({ per_page: 100 }),
@@ -85,7 +78,6 @@ export function AddScheduleDialog() {
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: {
-      question_package_id: 0,
       is_partner: false,
       partner_id: null,
       start_at: "",
@@ -139,29 +131,6 @@ export function AddScheduleDialog() {
         </DialogHeader>
 
         <form className="grid gap-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-          <div className="space-y-2">
-            <Label>Paket Soal</Label>
-            <Controller
-              control={form.control}
-              name="question_package_id"
-              render={({ field }) => (
-                <Select value={field.value ? String(field.value) : ""} onValueChange={(value) => field.onChange(Number(value))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih paket" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {packageQuery.data?.data.map((item) => (
-                      <SelectItem key={item.id} value={String(item.id)}>
-                        {item.name} ({item.total_questions} soal)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.question_package_id ? <p className="text-sm text-destructive">{errors.question_package_id.message}</p> : null}
-          </div>
-
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Jenis Jadwal</Label>

@@ -13,6 +13,9 @@ export type QuestionPackageLite = {
   id: number;
   name: string;
   is_active?: boolean;
+  status?: string;
+  total_questions?: number;
+  total_duration_minutes?: number;
 };
 
 export type PartnerLite = {
@@ -33,7 +36,7 @@ export type ScheduleListItem = {
 
   capacity: number;
 
-  question_package_id: number;
+  question_package_id: number | null;
   attempt_count?: number;
   submitted_count?: number;
 
@@ -69,6 +72,7 @@ export type ScheduleParticipant = {
   status_label?: string | null;
   status_variant?: "muted" | "warning" | "success" | null;
   email_verified_at?: string | null;
+  question_package?: { id: number; name: string } | null;
 
   scores?: ScheduleParticipantScores | null;
   certificate_download_url?: string | null;
@@ -82,7 +86,7 @@ export type ScheduleDetail = Omit<ScheduleListItem, "date"> & {
 };
 
 export type CreateScheduleRequest = {
-  question_package_id: number;
+  question_package_id?: number | null;
   partner_id?: number | null;
   is_partner?: boolean;
   description?: string;

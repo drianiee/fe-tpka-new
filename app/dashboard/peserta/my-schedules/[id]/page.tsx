@@ -37,11 +37,37 @@ function statusVariant(
 ): "muted" | "warning" | "success" {
   const s = normalizeText(status ?? "");
   if (!s) return "muted";
-  if (s === "tes belum dimulai") return "muted";
-  if (s === "tes akan segera dimulai") return "warning";
-  if (s === "tes sedang berlangsung") return "warning";
-  if (s === "tes selesai") return "success";
+  if (s === "belum dimulai") return "muted";
+  if (s === "sedang berlangsung") return "warning";
+  if (s === "selesai") return "success";
   return "muted";
+}
+
+function scheduleDateTime(date: string, time: string) {
+  return new Date(`${date.slice(0, 10)}T${time}`);
+}
+
+function testStatusLabel(d?: ParticipantMyScheduleDetail | null) {
+  if (!d) return "-";
+
+  const now = new Date();
+  const startAt = scheduleDateTime(d.date, d.start_time);
+  const endAt = scheduleDateTime(d.date, d.end_time);
+  const attemptStatus = normalizeText(d.attempt_status ?? "");
+
+  if (attemptStatus === "submitted" || attemptStatus === "expired") {
+    return "Selesai";
+  }
+
+  if (now < startAt) {
+    return "Belum Dimulai";
+  }
+
+  if (now >= endAt) {
+    return "Selesai";
+  }
+
+  return "Sedang Berlangsung";
 }
 
 function paymentStatusLabel(ps?: string | null) {
@@ -191,10 +217,10 @@ export default function ParticipantMyScheduleDetailPage() {
 
                 <div className="flex items-center gap-2">
                   <Badge
-                    variant={statusVariant(d.status)}
+                    variant={statusVariant(testStatusLabel(d))}
                     className="truncate max-w-56"
                   >
-                    {d.status || "-"}
+                    {testStatusLabel(d)}
                   </Badge>
 
                   <Badge
