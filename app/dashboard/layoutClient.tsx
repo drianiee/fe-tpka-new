@@ -90,9 +90,23 @@ export function DashboardLayoutClient({
   React.useEffect(() => {
     if (!user) return;
     const area = pathname.split("/")[2];
-    const expected = user.role === "administrator" ? "admin" : user.role;
+    const expected =
+      user.role === "peserta"
+        ? "peserta"
+        : "admin";
     if (["admin", "operator", "peserta"].includes(area) && area !== expected) {
       router.replace(`/dashboard/${expected}`);
+      return;
+    }
+
+    if (
+      user.role === "operator" &&
+      (
+        pathname.startsWith("/dashboard/admin/operators") ||
+        pathname.startsWith("/dashboard/admin/question-packages")
+      )
+    ) {
+      router.replace("/dashboard/admin");
     }
   }, [pathname, router, user]);
 

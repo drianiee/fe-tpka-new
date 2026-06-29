@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Filter } from "lucide-react";
 
@@ -83,10 +83,7 @@ function ActiveBadge({ status }: { status: QuestionPackage["status"] }) {
 
 export function QuestionPackagesTable() {
   const router = useRouter();
-  const pathname = usePathname();
-  const basePath = pathname?.includes("/dashboard/operator")
-    ? "/dashboard/operator/question-packages"
-    : "/dashboard/admin/question-packages";
+  const basePath = "/dashboard/admin/question-packages";
 
   const [qText, setQText] = React.useState("");
   const [status, setStatus] = React.useState<string>("");

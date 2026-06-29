@@ -7,8 +7,7 @@ import { authService } from "@/lib/services/auth.service";
 import { getToken } from "@/lib/utils/storage";
 
 function roleHome(role: string) {
-  if (role === "administrator") return "/dashboard/admin";
-  if (role === "operator") return "/dashboard/operator";
+  if (role === "administrator" || role === "operator") return "/dashboard/admin";
   return "/dashboard/peserta";
 }
 
