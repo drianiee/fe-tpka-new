@@ -30,6 +30,18 @@ function sectionStorageKey(attemptId: string) {
   return `tpka:attempt:${attemptId}:section-session`;
 }
 
+function scheduleAnchorMs(startAt?: string) {
+  return startAt ? new Date(startAt).getTime() : Date.now();
+}
+
+function sectionEndMs(sections: ExamSection[], index: number, anchorMs: number) {
+  const elapsedBefore = sections
+    .slice(0, index + 1)
+    .reduce((total, section) => total + durationMs(section), 0);
+
+  return anchorMs + elapsedBefore;
+}
+
 export function ExamPlayer({ attemptId }: { attemptId: string }) {
   const router = useRouter();
   const query = useExamAttempt(attemptId);
@@ -120,8 +132,8 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
     }
 
     const serverNow = new Date(attempt.server_time).getTime();
-    const startedAt = new Date(attempt.started_at).getTime();
-    const elapsed = Math.max(0, serverNow - startedAt);
+    const anchorMs = scheduleAnchorMs(attempt.schedule.start_at);
+    const elapsed = Math.max(0, serverNow - anchorMs);
     let cumulative = 0;
     let index = orderedSections.length - 1;
 
@@ -133,7 +145,7 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
       }
     }
 
-    const scheduledDeadline = startedAt + cumulative;
+    const scheduledDeadline = anchorMs + cumulative;
     const deadline = Date.now() + Math.max(0, scheduledDeadline - serverNow);
     setActiveSectionIndex(index);
     setSectionDeadline(deadline);
@@ -158,7 +170,11 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
 
       const nextIndex = activeSectionIndex + 1;
       const attemptEnd = new Date(attempt.expires_at).getTime();
-      const nextDeadline = Math.min(Date.now() + durationMs(orderedSections[nextIndex]), attemptEnd);
+      const anchorMs = scheduleAnchorMs(attempt.schedule.start_at);
+      const nextDeadline = Math.min(
+        sectionEndMs(orderedSections, nextIndex, anchorMs),
+        attemptEnd
+      );
       setActiveSectionIndex(nextIndex);
       setSectionDeadline(nextDeadline);
       autoAdvanceLock.current = false;

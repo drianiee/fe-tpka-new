@@ -601,9 +601,6 @@ export default function AdminScheduleDetailPage() {
               ))}
             </div>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">
-            Paket diacak per peserta saat registrasi.
-          </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
