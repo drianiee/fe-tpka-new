@@ -54,10 +54,15 @@ export type SaveExamAnswer = {
 
 export type ExamResult = {
   id: number;
-  status: "submitted" | "expired";
+  status: "submitted" | "expired" | "cancelled";
   submitted_at: string | null;
   score_total: number;
   score_breakdown: Array<{ section_id: number; correct_count: number; wrong_count: number; unanswered_count: number; raw_score: number; final_score: number }>;
   schedule?: { id: number; title: string };
   question_package?: { id: number; name: string };
+};
+
+export type ExamViolationPayload = {
+  reason: string;
+  context?: Record<string, unknown>;
 };

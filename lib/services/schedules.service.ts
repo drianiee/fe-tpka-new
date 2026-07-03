@@ -10,6 +10,7 @@ import type {
   CreateScheduleRequest,
   CreateScheduleResponse,
   ExportScheduleParticipantsResponse,
+  GrantRetakeResponse,
   ExportSchedulesResponse,
   PartnerImportResponse,
   RemoveParticipantResponse,
@@ -103,6 +104,15 @@ export const schedulesService = {
   ): Promise<RemoveParticipantResponse> {
     return http
       .delete(API_ENDPOINTS.SCHEDULES.PARTICIPANT_DELETE(scheduleId, userId))
+      .then((r) => r.data);
+  },
+
+  grantRetake(
+    scheduleId: number | string,
+    userId: number | string
+  ): Promise<GrantRetakeResponse> {
+    return http
+      .post(API_ENDPOINTS.SCHEDULES.PARTICIPANT_RETAKE(scheduleId, userId))
       .then((r) => r.data);
   },
 

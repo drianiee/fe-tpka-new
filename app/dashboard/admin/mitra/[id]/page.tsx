@@ -16,7 +16,6 @@ import { formatRupiah, hhmm } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   Pagination,
   PaginationContent,
@@ -35,7 +34,7 @@ import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 // }
 
 function statusVariant(
-  status?: string | null
+  status?: string | null,
 ): "muted" | "warning" | "success" {
   if (!status) return "muted";
   if (status === "belum-dimulai") return "muted";
@@ -118,7 +117,7 @@ function AdminPartnerDetailPageContent() {
 
   const pages = React.useMemo(
     () => buildPages(params.page, lastPage),
-    [params.page, lastPage]
+    [params.page, lastPage],
   );
 
   const hrefFor = (p: number) => {
@@ -140,7 +139,7 @@ function AdminPartnerDetailPageContent() {
     router.push(
       qs
         ? `/dashboard/admin/mitra/${partnerId}?${qs}`
-        : `/dashboard/admin/mitra/${partnerId}`
+        : `/dashboard/admin/mitra/${partnerId}`,
     );
   };
 
@@ -180,28 +179,6 @@ function AdminPartnerDetailPageContent() {
         headerClassName: "w-32 text-center",
         className: "py-4 px-2 text-center",
         cell: (row) => `${row.current_participants}/${row.capacity}`,
-      },
-      {
-        key: "packages",
-        header: "Paket",
-        headerClassName: "text-center min-w-[200px]",
-        className: "py-4 px-2",
-        cell: (row) =>
-          (row.packages ?? []).length === 0 ? (
-            <div className="text text-muted-foreground">-</div>
-          ) : (
-            <div className="flex flex-wrap gap-1">
-              {(row.packages ?? []).map((pkg) => (
-                <Badge
-                  key={pkg.id}
-                  variant="outline"
-                  className="max-w-full truncate px-2 py-1 text-xs"
-                >
-                  {pkg.name}
-                </Badge>
-              ))}
-            </div>
-          ),
       },
       {
         key: "status",
@@ -258,26 +235,11 @@ function AdminPartnerDetailPageContent() {
   }
 
   const title = `Mitra #${partner.id} — ${partner.name}`;
-  const description = `Kode: ${partner.code ?? "-"}`;
 
   return (
-    <PageHeaderLayout title={title} description={description} showBack={true}>
+    <PageHeaderLayout title={title} showBack={true}>
       <div className="space-y-4">
         <Card className="p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* <ActiveBadge active={partner.is_active ?? true} /> */}
-            {partner.code && (
-              <Badge variant="outline">Code: {partner.code}</Badge>
-            )}
-            {typeof partner.schedules_count === "number" && (
-              <Badge variant="secondary">
-                Schedules: {partner.schedules_count}
-              </Badge>
-            )}
-          </div>
-
-          <Separator />
-
           <div className="grid gap-3 md:grid-cols-4 text-sm">
             <div>
               <div className="text-muted-foreground">PIC</div>
@@ -344,6 +306,12 @@ function AdminPartnerDetailPageContent() {
                 loading={q.isFetching}
                 emptyText="Tidak ada schedule"
                 stickyHeader
+                onRowClick={(row) =>
+                  router.push(`/dashboard/admin/schedules/${row.id}`)
+                }
+                getRowClassName={() =>
+                  "cursor-pointer transition-colors hover:bg-muted/30 focus-visible:bg-muted/30"
+                }
               />
             </div>
 
@@ -416,7 +384,7 @@ function AdminPartnerDetailPageContent() {
                           e.preventDefault();
                           if (!canNext || q.isFetching) return;
                           router.push(
-                            hrefFor(Math.min(lastPage, params.page + 1))
+                            hrefFor(Math.min(lastPage, params.page + 1)),
                           );
                         }}
                         className={

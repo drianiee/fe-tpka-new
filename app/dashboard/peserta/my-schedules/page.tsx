@@ -157,6 +157,14 @@ function testStatusLabel(row: ParticipantMyScheduleListItem) {
   const endAt = scheduleDateTime(row.date, row.end_time);
   const attemptStatus = normalizeText(row.attempt_status ?? "");
 
+  if (attemptStatus === "in_progress") {
+    return "Sedang Berlangsung";
+  }
+
+  if (row.can_start) {
+    return "Sedang Berlangsung";
+  }
+
   if (attemptStatus === "submitted" || attemptStatus === "expired") {
     return "Selesai";
   }

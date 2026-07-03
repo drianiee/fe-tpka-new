@@ -28,6 +28,8 @@ export type ParticipantRegistrationInfo = {
   status: string;
   access_status: string;
   registration_source: string;
+  retake_granted_at?: string | null;
+  retake_consumed_at?: string | null;
 };
 
 export type ParticipantPaymentInfo = {

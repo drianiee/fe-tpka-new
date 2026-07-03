@@ -69,6 +69,8 @@ export type ScheduleParticipant = {
   name: string;
   email: string;
   status: ScheduleParticipantStatus;
+  attempt_id?: number | null;
+  attempt_status?: string | null;
   status_label?: string | null;
   status_variant?: "muted" | "warning" | "success" | null;
   email_verified_at?: string | null;
@@ -104,11 +106,21 @@ export type CreateScheduleResponse = {
 };
 
 export type AddParticipantRequest = {
-  user_id: number;
+  user_id?: number | null;
+  email: string;
+  name?: string;
 };
 
 export type AddParticipantResponse = {
   message: string;
+  participant?: {
+    id: number;
+    name: string;
+    email: string;
+    created_user: boolean;
+    sent_invitation: boolean;
+    sent_confirmation: boolean;
+  };
   schedule: {
     id: number;
     date: string;
@@ -127,6 +139,11 @@ export type AddParticipantResponse = {
 
 export type RemoveParticipantResponse = {
   message: string;
+};
+
+export type GrantRetakeResponse = {
+  message: string;
+  schedule: ScheduleDetail;
 };
 
 export type PartnerImportSummary = {

@@ -24,6 +24,7 @@ const buttonVariants = cva(
           "bg-white text-emerald-600 border border-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-emerald-500/30 dark:bg-transparent dark:text-emerald-400 dark:border-emerald-400 dark:hover:bg-emerald-400/10",
 
         blue: "bg-[#013880] text-white hover:bg-[#012f6b] focus-visible:ring-[#013880]/40",
+        red: "border bg-red-50 shadow-xs text-red-600 border-red-600 hover:bg-red-100",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -38,7 +39,7 @@ const buttonVariants = cva(
       variant: "blue",
       size: "default",
     },
-  }
+  },
 );
 
 function Button({

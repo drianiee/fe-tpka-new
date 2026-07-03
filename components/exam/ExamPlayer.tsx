@@ -30,7 +30,7 @@ function sectionStorageKey(attemptId: string) {
   return `tpka:attempt:${attemptId}:section-session`;
 }
 
-function scheduleAnchorMs(startAt?: string) {
+function attemptAnchorMs(startAt?: string) {
   return startAt ? new Date(startAt).getTime() : Date.now();
 }
 
@@ -57,8 +57,16 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [result, setResult] = React.useState<ExamResult | null>(null);
   const [online, setOnline] = React.useState(true);
+  const [strictNoticeOpen, setStrictNoticeOpen] = React.useState(false);
+  const [fullscreenPromptOpen, setFullscreenPromptOpen] = React.useState(false);
+  const [strictArmed, setStrictArmed] = React.useState(false);
+  const [fullscreenLoading, setFullscreenLoading] = React.useState(false);
+  const [violationDialogOpen, setViolationDialogOpen] = React.useState(false);
+  const [violationMessage, setViolationMessage] = React.useState("");
   const initializedAttempt = React.useRef<string | null>(null);
   const autoAdvanceLock = React.useRef(false);
+  const strictInitialized = React.useRef<string | null>(null);
+  const violationLock = React.useRef(false);
 
   const attempt = query.data;
   const orderedSections = React.useMemo(
@@ -78,7 +86,11 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
       const value = await examService.submit(attemptId);
       setResult(value);
       setSubmitOpen(false);
+      setStrictArmed(false);
       window.localStorage.removeItem(sectionStorageKey(attemptId));
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => undefined);
+      }
       router.replace("/dashboard/peserta/certificates");
     } catch (error) {
       toast.error(getApiErrorMessage(error));
@@ -86,6 +98,49 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
       setSubmitting(false);
     }
   }, [attemptId, router, submitting]);
+
+  const activateFullscreen = React.useCallback(async (silent = false) => {
+    setFullscreenLoading(true);
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
+      setFullscreenPromptOpen(false);
+      setStrictNoticeOpen(true);
+    } catch (error) {
+      setFullscreenPromptOpen(true);
+      if (!silent) {
+        toast.error("Fullscreen wajib aktif sebelum ujian dimulai.");
+      }
+      throw error;
+    } finally {
+      setFullscreenLoading(false);
+    }
+  }, []);
+
+  const handleViolation = React.useCallback(
+    async (reason: string, context: Record<string, unknown> = {}) => {
+      if (violationLock.current) return;
+      violationLock.current = true;
+      setStrictArmed(false);
+
+      try {
+        await examService.violation(attemptId, { reason, context });
+      } catch {
+        // Jika request gagal, peserta tetap harus keluar dari halaman ujian.
+      } finally {
+        window.localStorage.removeItem(sectionStorageKey(attemptId));
+        if (document.fullscreenElement) {
+          await document.exitFullscreen().catch(() => undefined);
+        }
+        setViolationMessage(
+          "Ujian diakhiri karena pelanggaran mode pengawasan. Anda tidak dapat masuk lagi ke ujian ini. Silakan hubungi admin jika membutuhkan ujian ulang."
+        );
+        setViolationDialogOpen(true);
+      }
+    },
+    [attemptId]
+  );
 
   const attemptRemaining = useExamTimer(attempt?.server_time, attempt?.expires_at, submit);
 
@@ -112,6 +167,14 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
   }, [attemptId, attempt]);
 
   React.useEffect(() => {
+    if (!attempt || attempt.status !== "in_progress") return;
+    if (strictInitialized.current === attemptId) return;
+    strictInitialized.current = attemptId;
+
+    void activateFullscreen(true).catch(() => undefined);
+  }, [activateFullscreen, attempt, attemptId]);
+
+  React.useEffect(() => {
     if (!attempt || orderedSections.length === 0 || initializedAttempt.current === attemptId) return;
     initializedAttempt.current = attemptId;
 
@@ -132,7 +195,7 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
     }
 
     const serverNow = new Date(attempt.server_time).getTime();
-    const anchorMs = scheduleAnchorMs(attempt.schedule.start_at);
+    const anchorMs = attemptAnchorMs(attempt.started_at);
     const elapsed = Math.max(0, serverNow - anchorMs);
     let cumulative = 0;
     let index = orderedSections.length - 1;
@@ -170,7 +233,7 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
 
       const nextIndex = activeSectionIndex + 1;
       const attemptEnd = new Date(attempt.expires_at).getTime();
-      const anchorMs = scheduleAnchorMs(attempt.schedule.start_at);
+      const anchorMs = attemptAnchorMs(attempt.started_at);
       const nextDeadline = Math.min(
         sectionEndMs(orderedSections, nextIndex, anchorMs),
         attemptEnd
@@ -207,6 +270,47 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
       router.replace("/dashboard/peserta/certificates");
     }
   }, [attempt, result, router]);
+
+  React.useEffect(() => {
+    if (!attempt || attempt.status !== "in_progress" || !strictArmed) return;
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        void handleViolation("tab_hidden", {
+          event: "visibilitychange",
+          visibilityState: document.visibilityState,
+        });
+      }
+    };
+
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        void handleViolation("fullscreen_exit", { event: "fullscreenchange" });
+      }
+    };
+
+    const onWindowBlur = () => {
+      void handleViolation("window_blur", { event: "blur" });
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    window.addEventListener("blur", onWindowBlur);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      window.removeEventListener("blur", onWindowBlur);
+    };
+  }, [attempt, handleViolation, strictArmed]);
+
+  React.useEffect(() => {
+    return () => {
+      if (document.fullscreenElement) {
+        void document.exitFullscreen().catch(() => undefined);
+      }
+    };
+  }, []);
 
   if (query.isLoading) return <div className="p-8 text-sm text-muted-foreground">Memuat attempt...</div>;
   if (query.isError || !attempt) return <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{getApiErrorMessage(query.error)}</div>;
@@ -305,6 +409,74 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
         onOpenChange={setSubmitOpen}
         onConfirm={submit}
       />
+      <Dialog open={fullscreenPromptOpen} onOpenChange={() => undefined}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Aktifkan fullscreen</DialogTitle>
+            <DialogDescription>
+              Ujian hanya bisa dimulai dalam mode fullscreen. Aktifkan
+              fullscreen untuk melanjutkan ke sesi ujian.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => void activateFullscreen()}
+              disabled={fullscreenLoading}
+            >
+              {fullscreenLoading ? "Mengaktifkan..." : "Aktifkan Fullscreen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={strictNoticeOpen} onOpenChange={() => undefined}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Mode pengawasan strict aktif</DialogTitle>
+            <DialogDescription>
+              Anda tidak boleh keluar fullscreen, pindah tab, pindah window,
+              minimize browser, atau membuka aplikasi lain selama ujian
+              berlangsung.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            Pelanggaran pertama akan langsung mengakhiri ujian dan status
+            peserta dicatat sebagai selesai dengan pelanggaran.
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!document.fullscreenElement) {
+                  setStrictNoticeOpen(false);
+                  setFullscreenPromptOpen(true);
+                  return;
+                }
+                setStrictNoticeOpen(false);
+                setStrictArmed(true);
+              }}
+            >
+              Saya Mengerti, Mulai Tes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={violationDialogOpen} onOpenChange={() => undefined}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ujian dihentikan</DialogTitle>
+            <DialogDescription>{violationMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => router.replace("/dashboard/peserta/my-schedules?status=all")}
+            >
+              Kembali ke Jadwal Tes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -16,6 +16,7 @@ import { formatRupiah, hhmm } from "@/lib/utils/format";
 import { formatDateId } from "@/lib/utils/datetime";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
@@ -48,6 +49,32 @@ const STATUS_OPTIONS: StatusOption[] = [
   { label: "Closed", value: "closed" },
   { label: "Cancelled", value: "cancelled" },
 ];
+
+function resolveScheduleWindowStatus(row: ScheduleListItem) {
+  const now = new Date();
+  const startAt = row.date ? new Date(row.date) : null;
+
+  let endAt: Date | null = null;
+  if (startAt && row.end_time) {
+    const [hours = "0", minutes = "0", seconds = "0"] = row.end_time.split(":");
+    endAt = new Date(startAt);
+    endAt.setHours(Number(hours), Number(minutes), Number(seconds), 0);
+  }
+
+  if (!startAt || !endAt) {
+    return { label: "-", variant: "muted" as const };
+  }
+
+  if (now < startAt) {
+    return { label: "Belum Dimulai", variant: "muted" as const };
+  }
+
+  if (now >= endAt) {
+    return { label: "Selesai", variant: "success" as const };
+  }
+
+  return { label: "Sedang Berlangsung", variant: "warning" as const };
+}
 
 function toYmd(d?: Date | null) {
   if (!d) return undefined;
@@ -191,6 +218,21 @@ export function SchedulesTable() {
         headerClassName: "w-32 text-center",
         className: "py-4 px-2 text-center",
         cell: (row) => `${row.current_participants}/${row.capacity}`,
+      },
+      {
+        key: "status",
+        header: "Status",
+        headerClassName: "w-44 text-center",
+        className: "py-4 px-2 text-center",
+        cell: (row) => {
+          const status = resolveScheduleWindowStatus(row);
+
+          return (
+            <div className="flex justify-center">
+              <Badge variant={status.variant}>{status.label}</Badge>
+            </div>
+          );
+        },
       },
       {
         key: "action",

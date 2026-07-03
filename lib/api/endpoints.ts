@@ -31,6 +31,10 @@ export const API_ENDPOINTS = {
       scheduleId: number | string,
       userId: number | string
     ) => `/api/schedules/${scheduleId}/participants/${userId}`,
+    PARTICIPANT_RETAKE: (
+      scheduleId: number | string,
+      userId: number | string
+    ) => `/api/schedules/${scheduleId}/participants/${userId}/retake`,
     PARTNER_IMPORT: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/partner/import`,
     PARTNER_IMPORT_TEMPLATE: (scheduleId: number | string) =>
@@ -113,6 +117,8 @@ export const API_ENDPOINTS = {
       `/api/participant/attempts/${attemptId}/answers/batch`,
     ATTEMPT_HEARTBEAT: (attemptId: number | string) =>
       `/api/participant/attempts/${attemptId}/heartbeat`,
+    ATTEMPT_VIOLATION: (attemptId: number | string) =>
+      `/api/participant/attempts/${attemptId}/violation`,
     ATTEMPT_SUBMIT: (attemptId: number | string) =>
       `/api/participant/attempts/${attemptId}/submit`,
     ATTEMPT_RESULT: (attemptId: number | string) =>

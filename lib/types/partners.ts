@@ -1,7 +1,6 @@
 export type PartnerListItem = {
   id: number
   name: string
-  code?: string
   contact_name?: string
   contact_email?: string
   contact_phone?: string
@@ -17,7 +16,6 @@ export type PartnerLite = {
 
 export type CreatePartnerRequest = {
   name: string
-  code?: string
   contact_name?: string
   contact_email?: string
   contact_phone?: string
@@ -33,16 +31,6 @@ export type PartnerDetail = PartnerListItem & {
   schedules_count?: number
 }
 
-export type PartnerSchedulePackage = {
-  id: number
-  name: string
-  is_active?: boolean
-  pivot?: {
-    test_schedule_id: number
-    question_package_id: number
-  }
-}
-
 export type PartnerScheduleItem = {
   id: number
   date: string
@@ -53,7 +41,6 @@ export type PartnerScheduleItem = {
   partner_id: number | null
   price: string
 
-  question_package_id: number
   attempt_count?: number
   submitted_count?: number
 
@@ -62,8 +49,6 @@ export type PartnerScheduleItem = {
 
   current_participants: number
   status: string
-
-  packages: PartnerSchedulePackage[]
 }
 
 export type PartnerSchedulesPaginated = {

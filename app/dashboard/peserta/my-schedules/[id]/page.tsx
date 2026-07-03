@@ -55,6 +55,14 @@ function testStatusLabel(d?: ParticipantMyScheduleDetail | null) {
   const endAt = scheduleDateTime(d.date, d.end_time);
   const attemptStatus = normalizeText(d.attempt_status ?? "");
 
+  if (attemptStatus === "in_progress") {
+    return "Sedang Berlangsung";
+  }
+
+  if (d.can_start) {
+    return "Sedang Berlangsung";
+  }
+
   if (attemptStatus === "submitted" || attemptStatus === "expired") {
     return "Selesai";
   }
@@ -171,6 +179,8 @@ export default function ParticipantMyScheduleDetailPage() {
   const canContinuePayment =
     normalizeText(d?.payment_status ?? "") === "pending" ||
     normalizeText(d?.payment_status ?? "") === "pending_payment";
+  const testStatus = testStatusLabel(d);
+  const isFinished = normalizeText(testStatus) === "selesai";
 
   const startMutation = useMutation({
     mutationFn: () => examService.start(id as string),
@@ -217,10 +227,10 @@ export default function ParticipantMyScheduleDetailPage() {
 
                 <div className="flex items-center gap-2">
                   <Badge
-                    variant={statusVariant(testStatusLabel(d))}
+                    variant={statusVariant(testStatus)}
                     className="truncate max-w-56"
                   >
-                    {testStatusLabel(d)}
+                    {testStatus}
                   </Badge>
 
                   <Badge
@@ -262,19 +272,21 @@ export default function ParticipantMyScheduleDetailPage() {
                     Lanjutkan Pembayaran
                   </Button>
                 ) : null}
-                <Button
-                  disabled={!canStart}
-                  onClick={() =>
-                    d.attempt_id
-                      ? router.push(`/exams/${d.attempt_id}`)
-                      : setStartConfirmOpen(true)
-                  }
-                  className="gap-2"
-                >
-                  <Play className="h-4 w-4" />
-                  {startMutation.isPending ? "Menyiapkan Tes..." : "Mulai Tes"}
-                </Button>
-                {!canStart ? (
+                {!isFinished ? (
+                  <Button
+                    disabled={!canStart}
+                    onClick={() =>
+                      d.attempt_id
+                        ? router.push(`/exams/${d.attempt_id}`)
+                        : setStartConfirmOpen(true)
+                    }
+                    className="gap-2"
+                  >
+                    <Play className="h-4 w-4" />
+                    {startMutation.isPending ? "Menyiapkan Tes..." : "Mulai Tes"}
+                  </Button>
+                ) : null}
+                {!isFinished && !canStart ? (
                   <div className="text-xs text-muted-foreground">
                     Tombol{" "}
                     <span className="font-medium text-foreground">
@@ -288,6 +300,11 @@ export default function ParticipantMyScheduleDetailPage() {
                     <span className="font-medium text-foreground">
                       {hhmm(d.start_time)}
                     </span>
+                  </div>
+                ) : null}
+                {isFinished ? (
+                  <div className="text-sm font-medium text-foreground">
+                    Selesai
                   </div>
                 ) : null}
               </div>
@@ -304,8 +321,8 @@ export default function ParticipantMyScheduleDetailPage() {
               <DialogHeader>
                 <DialogTitle>Tes akan dimulai</DialogTitle>
                 <DialogDescription>
-                  Pastikan Anda sudah siap sebelum memulai. Setelah tes
-                  dimulai, waktu pengerjaan akan berjalan dari server.
+                  Pastikan Anda sudah siap sebelum memulai. Sistem akan masuk
+                  fullscreen dan mode pengawasan ketat akan aktif selama ujian.
                 </DialogDescription>
               </DialogHeader>
 
@@ -329,9 +346,9 @@ export default function ParticipantMyScheduleDetailPage() {
               </div>
 
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                Tes dikerjakan per sesi. Selesaikan sesi saat ini sebelum
-                lanjut ke sesi berikutnya, dan jawaban tidak dapat diubah
-                setelah ujian dikirim.
+                Jangan pindah tab, pindah window, minimize browser, membuka
+                aplikasi lain, atau keluar fullscreen. Pelanggaran pertama akan
+                langsung mengakhiri ujian.
               </div>
 
               <DialogFooter className="gap-2">

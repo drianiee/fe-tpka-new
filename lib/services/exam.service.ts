@@ -1,6 +1,11 @@
 import { http } from "@/lib/api/http";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import type { ExamAttempt, ExamResult, SaveExamAnswer } from "@/lib/types/exam";
+import type {
+  ExamAttempt,
+  ExamResult,
+  ExamViolationPayload,
+  SaveExamAnswer,
+} from "@/lib/types/exam";
 
 export const examService = {
   startAttempt(scheduleId: number | string) {
@@ -17,6 +22,14 @@ export const examService = {
   },
   sendHeartbeat(attemptId: number | string) {
     return http.post<{ server_time: string; expires_at: string; status: string }>(API_ENDPOINTS.PARTICIPANT.ATTEMPT_HEARTBEAT(attemptId)).then((r) => r.data);
+  },
+  reportViolation(
+    attemptId: number | string,
+    payload: ExamViolationPayload
+  ) {
+    return http
+      .post<ExamResult>(API_ENDPOINTS.PARTICIPANT.ATTEMPT_VIOLATION(attemptId), payload)
+      .then((r) => r.data);
   },
   submitAttempt(attemptId: number | string) {
     return http.post<ExamResult>(API_ENDPOINTS.PARTICIPANT.ATTEMPT_SUBMIT(attemptId)).then((r) => r.data);
@@ -35,6 +48,9 @@ export const examService = {
   },
   heartbeat(attemptId: number | string) {
     return this.sendHeartbeat(attemptId);
+  },
+  violation(attemptId: number | string, payload: ExamViolationPayload) {
+    return this.reportViolation(attemptId, payload);
   },
   submit(attemptId: number | string) {
     return this.submitAttempt(attemptId);

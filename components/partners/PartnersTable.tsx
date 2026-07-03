@@ -64,7 +64,7 @@ export function PartnersTable() {
   const router = useRouter();
 
   const [qText, setQText] = React.useState("");
-  const [perPage, setPerPage] = React.useState(20);
+  const [perPage, setPerPage] = React.useState(10);
   const [page, setPage] = React.useState(1);
 
   const qDebounced = useDebouncedValue(qText, 350);
@@ -112,13 +112,6 @@ export function PartnersTable() {
         headerClassName: "w-16 text-center",
         className: "py-4 px-2 text-center",
         cell: (_row, idx) => (page - 1) * perPage + (idx + 1),
-      },
-      {
-        key: "code",
-        header: "ID Mitra",
-        headerClassName: "w-32",
-        className: "py-4 px-2",
-        cell: (row) => row.code,
       },
       {
         key: "name",
@@ -188,7 +181,7 @@ export function PartnersTable() {
             <Input
               value={qText}
               onChange={(e) => setQText(e.target.value)}
-              placeholder="Cari mitra (nama / kode)…"
+              placeholder="Cari mitra (nama)…"
               disabled={busy}
               className="w-full"
             />

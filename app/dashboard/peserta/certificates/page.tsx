@@ -59,9 +59,16 @@ function normalizeStatus(status?: string | null) {
   return (status ?? "").trim().toLowerCase();
 }
 
+function statusLabel(status?: string | null) {
+  const s = normalizeStatus(status);
+  if (s === "submitted" || s === "expired") return "Selesai";
+  return status || "-";
+}
+
 function statusVariant(status?: string | null): "muted" | "warning" | "success" {
   const s = normalizeStatus(status);
   if (!s) return "muted";
+  if (s === "submitted" || s === "expired") return "success";
   if (s.includes("belum")) return "warning";
   if (s.includes("selesai") || s.includes("done")) return "success";
   return "muted";
@@ -157,7 +164,7 @@ export default function ParticipantCertificatesPage() {
         className: "whitespace-nowrap",
         cell: (row) => (
           <Badge variant={statusVariant(row.status)} className="capitalize">
-            {row.status || "-"}
+            {statusLabel(row.status)}
           </Badge>
         ),
       },
