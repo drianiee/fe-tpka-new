@@ -3,7 +3,8 @@
 import Link from "next/link";
 import * as React from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { partnersService } from "@/lib/services/partners.service";
 import type {
@@ -11,6 +12,7 @@ import type {
   PartnerScheduleItem,
 } from "@/lib/types/partners";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
 
 import { Badge } from "@/components/ui/badge";
@@ -104,6 +106,22 @@ function AdminPartnerDetailPageContent() {
     queryFn: () => partnersService.detail(partnerId, params),
     enabled: Number.isFinite(partnerId),
     placeholderData: keepPreviousData,
+  });
+
+  const exportSchedulesMut = useMutation({
+    mutationFn: () => partnersService.exportSchedules(partnerId),
+    onSuccess: ({ blob, filename }) => {
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      toast.success("Berhasil export jadwal mitra")
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
   });
 
   const data = q.data;
@@ -275,7 +293,8 @@ function AdminPartnerDetailPageContent() {
         </Card>
 
         <Card className="p-4 space-y-3">
-          <div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
             <h3 className="text-lg font-semibold">Jadwal</h3>
             <div className="text-xs text-muted-foreground">
               {schedulesRes && (
@@ -295,6 +314,14 @@ function AdminPartnerDetailPageContent() {
                 </>
               )}
             </div>
+            </div>
+            <Button
+              variant="excel"
+              onClick={() => exportSchedulesMut.mutate()}
+              disabled={exportSchedulesMut.isPending}
+            >
+              {exportSchedulesMut.isPending ? "Exporting..." : "Export Excel"}
+            </Button>
           </div>
 
           <div className="rounded-xl border overflow-hidden flex flex-col">

@@ -11,7 +11,6 @@ import type {
   CreateScheduleResponse,
   ExportScheduleParticipantsResponse,
   GrantRetakeResponse,
-  ExportSchedulesResponse,
   PartnerImportResponse,
   RemoveParticipantResponse,
   RegisterScheduleResponse,
@@ -45,12 +44,21 @@ export type ScheduleDetailParams = {
   page?: number;
 };
 
+export type ExportParticipantsParams = {
+  q?: string;
+};
+
 export type ParticipantSchedulesParams = {
   limit?: number;
 };
 
 export type ParticipantMySchedulesParams = {
   status?: ParticipantMySchedulesStatusFilter; // default: "all"
+};
+
+export type ExportSchedulesFile = {
+  blob: Blob;
+  filename: string;
 };
 
 function isParticipantScheduleRow(v: unknown): v is ParticipantScheduleListItem {
@@ -75,10 +83,21 @@ export const schedulesService = {
 
   exportExcel(
     params?: Omit<ListSchedulesParams, "per_page" | "page">
-  ): Promise<ExportSchedulesResponse> {
+  ): Promise<ExportSchedulesFile> {
     return http
-      .get(API_ENDPOINTS.SCHEDULES.BASE, { params: { ...(params ?? {}), print: 1 } })
-      .then((r) => r.data);
+      .get(API_ENDPOINTS.SCHEDULES.BASE, {
+        params: { ...(params ?? {}), export: 1 },
+        responseType: "blob",
+      })
+      .then((r) => {
+        const disposition = String(r.headers["content-disposition"] ?? "");
+        const matched = disposition.match(/filename="?([^"]+)"?/i);
+
+        return {
+          blob: r.data,
+          filename: matched?.[1] ?? "schedules.xlsx",
+        };
+      });
   },
 
   create(payload: CreateScheduleRequest): Promise<CreateScheduleResponse> {
@@ -136,8 +155,24 @@ export const schedulesService = {
     )}`;
   },
 
-  exportParticipants(scheduleId: number | string): Promise<ExportScheduleParticipantsResponse> {
-    return http.get(API_ENDPOINTS.SCHEDULES.PARTICIPANTS_EXPORT(scheduleId)).then((r) => r.data);
+  exportParticipants(
+    scheduleId: number | string,
+    params?: ExportParticipantsParams
+  ): Promise<ExportSchedulesFile> {
+    return http
+      .get(API_ENDPOINTS.SCHEDULES.PARTICIPANTS_EXPORT(scheduleId), {
+        params,
+        responseType: "blob",
+      })
+      .then((r) => {
+        const disposition = String(r.headers["content-disposition"] ?? "");
+        const matched = disposition.match(/filename="?([^"]+)"?/i);
+
+        return {
+          blob: r.data,
+          filename: matched?.[1] ?? `schedule-${scheduleId}-participants.xlsx`,
+        };
+      });
   },
 
   registerParticipant(scheduleId: number | string): Promise<RegisterScheduleResponse> {

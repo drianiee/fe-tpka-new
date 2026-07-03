@@ -44,10 +44,9 @@ type StatusOption = { label: string; value: string };
 
 const STATUS_OPTIONS: StatusOption[] = [
   { label: "Semua Status", value: "" },
-  { label: "Draft", value: "draft" },
-  { label: "Published", value: "published" },
-  { label: "Closed", value: "closed" },
-  { label: "Cancelled", value: "cancelled" },
+  { label: "Belum Dimulai", value: "belum-dimulai" },
+  { label: "Sedang Berlangsung", value: "sedang-berlangsung" },
+  { label: "Selesai", value: "telah-selesai" },
 ];
 
 function resolveScheduleWindowStatus(row: ScheduleListItem) {
@@ -146,9 +145,15 @@ export function SchedulesTable() {
         date_from: params.date_from,
         date_to: params.date_to,
       }),
-    onSuccess: (res) => {
-      if (res?.download_url)
-        window.open(res.download_url, "_blank", "noopener,noreferrer");
+    onSuccess: ({ blob, filename }) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
     },
   });
 
@@ -263,8 +268,7 @@ export function SchedulesTable() {
             <Input
               value={qText}
               onChange={(e) => setQText(e.target.value)}
-              placeholder="Cari partner…"
-              disabled={busy}
+              placeholder="Cari jadwal / partner / tanggal..."
               className="w-full"
             />
           </div>

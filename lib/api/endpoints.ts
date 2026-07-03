@@ -46,6 +46,8 @@ export const API_ENDPOINTS = {
   PARTNERS: {
     BASE: "/api/partners",
     DETAIL: (id: number | string) => `/api/partners/${id}`,
+    SCHEDULES_EXPORT: (id: number | string) =>
+      `/api/partners/${id}/schedules/export`,
   },
 
   PARTNER: {

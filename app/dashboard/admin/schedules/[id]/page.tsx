@@ -21,7 +21,6 @@ import type {
   AddParticipantRequest,
   ScheduleDetail,
   ScheduleParticipant,
-  ExportScheduleParticipantsResponse,
 } from "@/lib/types/schedules";
 import type { ParticipantListItem } from "@/lib/types/participants";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
@@ -58,7 +57,6 @@ import {
 } from "@/components/ui/pagination";
 
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
-import { SearchableCombobox } from "@/components/common/SearchableCombobox";
 
 function useDebouncedValue<T>(value: T, delay = 350) {
   const [debounced, setDebounced] = React.useState(value);
@@ -140,6 +138,13 @@ function resolveDetailScheduleWindowStatus(schedule: Pick<ScheduleDetail, "date"
   return { label: "Sedang Berlangsung", variant: "warning" as const };
 }
 
+function hasScheduleStarted(schedule: Pick<ScheduleDetail, "date">) {
+  const startAt = schedule.date ? new Date(schedule.date) : null;
+  if (!startAt) return false;
+
+  return Date.now() >= startAt.getTime();
+}
+
 function normalizeStatus(status?: string | null) {
   return (status ?? "").trim().toLowerCase();
 }
@@ -217,8 +222,9 @@ export default function AdminScheduleDetailPage() {
   const scheduleId = Number(id);
   const [importOpen, setImportOpen] = React.useState(false);
   const [addParticipantOpen, setAddParticipantOpen] = React.useState(false);
-  const [participantComboboxOpen, setParticipantComboboxOpen] = React.useState(false);
   const [participantSearch, setParticipantSearch] = React.useState("");
+  const [participantEmailDropdownOpen, setParticipantEmailDropdownOpen] =
+    React.useState(false);
   const [retakeDialogOpen, setRetakeDialogOpen] = React.useState(false);
   const [retakeCandidate, setRetakeCandidate] =
     React.useState<ScheduleParticipant | null>(null);
@@ -243,10 +249,18 @@ export default function AdminScheduleDetailPage() {
   );
 
   const exportParticipantsMut = useMutation({
-    mutationFn: () => schedulesService.exportParticipants(scheduleId),
-    onSuccess: (res: ExportScheduleParticipantsResponse) => {
-      toast.success(res.message ?? "Berhasil export peserta");
-      if (res.download_url) window.open(res.download_url, "_blank", "noopener,noreferrer");
+    mutationFn: () =>
+      schedulesService.exportParticipants(scheduleId, { q: params.q }),
+    onSuccess: ({ blob, filename }) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Berhasil export peserta");
     },
     onError: (e) => toast.error(getApiErrorMessage(e)),
   });
@@ -493,23 +507,39 @@ export default function AdminScheduleDetailPage() {
     placeholderData: keepPreviousData,
   });
 
-  const participantOptions = React.useMemo(
-    () =>
-      (participantLookupQuery.data?.data ?? []).map((participant) => ({
-        id: participant.id,
-        label: `${participant.email} — ${participant.name}`,
-      })),
-    [participantLookupQuery.data]
-  );
+  const watchedParticipantEmail = addParticipantForm.watch("email");
+  const selectedExistingParticipant = React.useMemo<ParticipantListItem | null>(() => {
+    const email = watchedParticipantEmail?.trim().toLowerCase();
+    if (!email) return null;
 
-  const selectedExistingParticipantId = addParticipantForm.watch("user_id");
-  const selectedExistingParticipant = React.useMemo<ParticipantListItem | null>(
-    () =>
-      (participantLookupQuery.data?.data ?? []).find(
-        (participant) => participant.id === selectedExistingParticipantId
-      ) ?? null,
-    [participantLookupQuery.data, selectedExistingParticipantId]
-  );
+    return (
+      participantLookupQuery.data?.data.find(
+        (participant) => participant.email.trim().toLowerCase() === email
+      ) ?? null
+    );
+  }, [participantLookupQuery.data, watchedParticipantEmail]);
+  const participantSuggestions = participantLookupQuery.data?.data ?? [];
+
+  React.useEffect(() => {
+    if (!addParticipantOpen) return;
+
+    if (selectedExistingParticipant) {
+      addParticipantForm.setValue("user_id", selectedExistingParticipant.id, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      addParticipantForm.setValue("name", selectedExistingParticipant.name, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      return;
+    }
+
+    addParticipantForm.setValue("user_id", null, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }, [addParticipantForm, addParticipantOpen, selectedExistingParticipant]);
 
   const importMut = useMutation({
     mutationFn: (file: File) => schedulesService.partnerImport(scheduleId, file),
@@ -551,35 +581,11 @@ export default function AdminScheduleDetailPage() {
         name: "",
       });
       setParticipantSearch("");
-      setParticipantComboboxOpen(false);
+      setParticipantEmailDropdownOpen(false);
       setAddParticipantOpen(false);
     },
     onError: (e) => toast.error(getApiErrorMessage(e)),
   });
-
-  const handleSelectExistingParticipant = React.useCallback(
-    (participantId: number) => {
-      const participant =
-        participantLookupQuery.data?.data.find((item) => item.id === participantId) ??
-        null;
-      if (!participant) return;
-
-      addParticipantForm.setValue("user_id", participant.id, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      addParticipantForm.setValue("email", participant.email, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      addParticipantForm.setValue("name", participant.name, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setParticipantSearch(participant.email);
-    },
-    [addParticipantForm, participantLookupQuery.data]
-  );
 
   if (detailQuery.isLoading) {
     return (
@@ -620,6 +626,7 @@ export default function AdminScheduleDetailPage() {
       retakeMut.isPending
   );
   const scheduleWindowStatus = resolveDetailScheduleWindowStatus(d);
+  const scheduleStarted = hasScheduleStarted(d);
 
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
@@ -635,19 +642,21 @@ export default function AdminScheduleDetailPage() {
                 name: "",
               });
               setParticipantSearch("");
-              setParticipantComboboxOpen(false);
+              setParticipantEmailDropdownOpen(false);
             }
           }}
         >
           <DialogTrigger asChild>
-            <Button disabled={addParticipantMut.isPending}>Input Peserta</Button>
+            <Button disabled={addParticipantMut.isPending || scheduleStarted}>
+              Input Peserta
+            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>Input Peserta Manual</DialogTitle>
               <DialogDescription>
-                Cari peserta berdasarkan email. Jika email belum pernah terdaftar,
-                isi email dan nama lalu sistem akan mengirim email onboarding.
+                Jika email sudah pernah terdaftar, nama akan terisi otomatis.
+                Jika belum, isi email dan nama lalu sistem akan mengirim email onboarding.
               </DialogDescription>
             </DialogHeader>
 
@@ -662,25 +671,6 @@ export default function AdminScheduleDetailPage() {
               )}
             >
               <div className="space-y-2">
-                <Label>Cari Email Peserta</Label>
-                <SearchableCombobox
-                  options={participantOptions}
-                  open={participantComboboxOpen}
-                  onOpenChange={setParticipantComboboxOpen}
-                  search={participantSearch}
-                  onSearchChange={setParticipantSearch}
-                  value={addParticipantForm.watch("user_id") ?? null}
-                  onChange={handleSelectExistingParticipant}
-                  placeholder="Cari email peserta yang sudah terdaftar"
-                  loading={participantLookupQuery.isFetching}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Jika peserta sudah pernah terdaftar, pilih dari dropdown ini
-                  agar email dan nama terisi otomatis.
-                </p>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="manual-participant-email">
                   Email Peserta <span className="text-destructive">*</span>
                 </Label>
@@ -688,28 +678,88 @@ export default function AdminScheduleDetailPage() {
                   control={addParticipantForm.control}
                   name="email"
                   render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="manual-participant-email"
-                      type="email"
-                      placeholder="peserta@example.com"
-                      disabled={addParticipantMut.isPending}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        field.onChange(value);
-                        setParticipantSearch(value);
-                        if (
-                          selectedExistingParticipant &&
-                          value.trim().toLowerCase() !==
-                            selectedExistingParticipant.email.toLowerCase()
-                        ) {
-                          addParticipantForm.setValue("user_id", null, {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          });
-                        }
-                      }}
-                    />
+                    <div className="relative">
+                      <Input
+                        {...field}
+                        id="manual-participant-email"
+                        type="email"
+                        placeholder="peserta@example.com"
+                        disabled={addParticipantMut.isPending || scheduleStarted}
+                        autoComplete="off"
+                        onFocus={() => setParticipantEmailDropdownOpen(true)}
+                        onBlur={() => {
+                          window.setTimeout(
+                            () => setParticipantEmailDropdownOpen(false),
+                            150
+                          );
+                        }}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value);
+                          setParticipantSearch(value);
+                          setParticipantEmailDropdownOpen(true);
+                        }}
+                      />
+                      {participantEmailDropdownOpen &&
+                      !scheduleStarted &&
+                      participantSearch.trim().length > 0 ? (
+                        <div className="absolute z-50 mt-2 max-h-56 w-full overflow-auto rounded-md border bg-background shadow-md">
+                          {participantLookupQuery.isFetching ? (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                              Mencari peserta...
+                            </div>
+                          ) : participantSuggestions.length > 0 ? (
+                            participantSuggestions.map((participant) => (
+                              <button
+                                key={participant.id}
+                                type="button"
+                                className="flex w-full flex-col px-3 py-2 text-left hover:bg-muted/50"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  addParticipantForm.setValue(
+                                    "email",
+                                    participant.email,
+                                    {
+                                      shouldDirty: true,
+                                      shouldValidate: true,
+                                    }
+                                  );
+                                  addParticipantForm.setValue(
+                                    "user_id",
+                                    participant.id,
+                                    {
+                                      shouldDirty: true,
+                                      shouldValidate: true,
+                                    }
+                                  );
+                                  addParticipantForm.setValue(
+                                    "name",
+                                    participant.name,
+                                    {
+                                      shouldDirty: true,
+                                      shouldValidate: true,
+                                    }
+                                  );
+                                  setParticipantSearch(participant.email);
+                                  setParticipantEmailDropdownOpen(false);
+                                }}
+                              >
+                                <span className="text-sm font-medium">
+                                  {participant.email}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {participant.name}
+                                </span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                              Email tidak ditemukan. Tetap bisa ketik email manual.
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                   )}
                 />
                 {addParticipantForm.formState.errors.email?.message ? (
@@ -717,6 +767,10 @@ export default function AdminScheduleDetailPage() {
                     {addParticipantForm.formState.errors.email.message}
                   </p>
                 ) : null}
+                <p className="text-xs text-muted-foreground">
+                  Ketik email peserta. Jika email sudah terdaftar, suggestion akan
+                  muncul di input ini dan nama akan terisi otomatis.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -733,6 +787,7 @@ export default function AdminScheduleDetailPage() {
                       placeholder="Nama lengkap peserta"
                       disabled={
                         addParticipantMut.isPending ||
+                        scheduleStarted ||
                         Boolean(addParticipantForm.watch("user_id"))
                       }
                     />
@@ -767,16 +822,21 @@ export default function AdminScheduleDetailPage() {
                       name: "",
                     });
                     setParticipantSearch("");
-                    setParticipantComboboxOpen(false);
+                    setParticipantEmailDropdownOpen(false);
                   }}
                   disabled={addParticipantMut.isPending}
                 >
                   Batal
                 </Button>
-                <Button type="submit" disabled={addParticipantMut.isPending}>
+                <Button type="submit" disabled={addParticipantMut.isPending || scheduleStarted}>
                   {addParticipantMut.isPending ? "Menyimpan..." : "Simpan Peserta"}
                 </Button>
               </DialogFooter>
+              {scheduleStarted ? (
+                <p className="text-xs text-destructive">
+                  Peserta tidak bisa ditambahkan lagi karena waktu tes sudah dimulai.
+                </p>
+              ) : null}
             </form>
           </DialogContent>
         </Dialog>
@@ -791,7 +851,7 @@ export default function AdminScheduleDetailPage() {
           }}
         >
           <DialogTrigger asChild>
-            <Button variant="excel" disabled={importMut.isPending}>
+            <Button variant="excel" disabled={importMut.isPending || scheduleStarted}>
               Import Peserta Mitra (XLSX)
             </Button>
           </DialogTrigger>
@@ -835,6 +895,7 @@ export default function AdminScheduleDetailPage() {
                       toast.error(getApiErrorMessage(error)),
                     )
                   }
+                  disabled={scheduleStarted}
                 >
                   Download Template Excel
                 </Button>
@@ -859,7 +920,7 @@ export default function AdminScheduleDetailPage() {
                         id="partner-import-file"
                         type="file"
                         accept=".xlsx,.xls,.csv"
-                        disabled={importMut.isPending}
+                        disabled={importMut.isPending || scheduleStarted}
                         className="cursor-pointer"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -891,10 +952,15 @@ export default function AdminScheduleDetailPage() {
                   Batal
                 </Button>
 
-                <Button type="submit" disabled={importMut.isPending}>
+                <Button type="submit" disabled={importMut.isPending || scheduleStarted}>
                   {importMut.isPending ? "Mengimpor..." : "Import"}
                 </Button>
               </div>
+              {scheduleStarted ? (
+                <p className="text-xs text-destructive">
+                  Peserta mitra tidak bisa diupload lagi karena waktu tes sudah dimulai.
+                </p>
+              ) : null}
             </form>
           </DialogContent>
         </Dialog>

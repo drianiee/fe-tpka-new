@@ -19,6 +19,11 @@ export type PartnerDetailParams = {
   per_page?: number
 }
 
+export type ExportPartnerSchedulesFile = {
+  blob: Blob
+  filename: string
+}
+
 export const partnersService = {
   async list(params?: ListPartnersParams): Promise<PaginatedResponse<PartnerListItem>> {
     const { data } = await http.get<PaginatedResponse<PartnerListItem>>(API_ENDPOINTS.PARTNERS.BASE, { params })
@@ -33,5 +38,18 @@ export const partnersService = {
   async detail(id: number | string, params?: PartnerDetailParams): Promise<PartnerDetailResponse> {
     const { data } = await http.get<PartnerDetailResponse>(API_ENDPOINTS.PARTNERS.DETAIL(id), { params })
     return data
+  },
+
+  async exportSchedules(id: number | string): Promise<ExportPartnerSchedulesFile> {
+    const response = await http.get(API_ENDPOINTS.PARTNERS.SCHEDULES_EXPORT(id), {
+      responseType: "blob",
+    })
+    const disposition = String(response.headers["content-disposition"] ?? "")
+    const matched = disposition.match(/filename=\"?([^\"]+)\"?/i)
+
+    return {
+      blob: response.data,
+      filename: matched?.[1] ?? `partner-${id}-schedules.xlsx`,
+    }
   },
 }
