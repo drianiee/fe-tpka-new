@@ -27,8 +27,7 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
 import { formatDateId } from "@/lib/utils/datetime";
-import { downloadWithBearer } from "@/lib/utils/download";
-import { getToken } from "@/lib/utils/storage";
+import { downloadWithBearer, openWithBearer } from "@/lib/utils/download";
 
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
@@ -190,31 +189,6 @@ function buildPages(page: number, lastPage: number) {
   return result;
 }
 
-// ✅ helper: buka/download file yang butuh Bearer token
-async function openWithBearer(url: string) {
-  const token = getToken();
-  if (!token) throw new Error("Token tidak ditemukan. Silakan login ulang.");
-
-  const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "*/*",
-    },
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `Gagal mengunduh. HTTP ${res.status}`);
-  }
-
-  const blob = await res.blob();
-  const objUrl = URL.createObjectURL(blob);
-  window.open(objUrl, "_blank", "noopener,noreferrer");
-
-  window.setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
-}
-
 export default function AdminScheduleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
@@ -352,7 +326,7 @@ export default function AdminScheduleDetailPage() {
       },
       {
         key: "status",
-        header: "Status",
+        header: "Status Peserta",
         headerClassName: "w-32.5 text-center",
         className: "truncate text-center",
         cell: (row) => {

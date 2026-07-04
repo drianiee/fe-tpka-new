@@ -50,7 +50,7 @@ function safeTrim(v?: string | null) {
 /* ================= REGISTER VALIDATION ================= */
 
 const passwordRuleText =
-  "Password minimal 6 karakter, mengandung 1 huruf besar, 1 angka, dan 1 karakter khusus (contoh: = atau -).";
+  "Password minimal 8 karakter, mengandung 1 huruf besar dan 1 angka.";
 
 const registerSchema = z
   .object({
@@ -58,11 +58,10 @@ const registerSchema = z
     email: z.string().email("Email tidak valid"),
     password: z
       .string()
-      .min(6, "Password minimal 6 karakter")
+      .min(8, "Password minimal 8 karakter")
       .refine((v) => /[A-Z]/.test(v), "Password harus mengandung minimal 1 huruf besar")
-      .refine((v) => /[0-9]/.test(v), "Password harus mengandung minimal 1 angka")
-      .refine((v) => /[=-]/.test(v), "Password harus mengandung minimal 1 karakter khusus: = atau -"),
-    password_confirmation: z.string().min(6, "Konfirmasi password minimal 6 karakter"),
+      .refine((v) => /[0-9]/.test(v), "Password harus mengandung minimal 1 angka"),
+    password_confirmation: z.string().min(8, "Konfirmasi password minimal 8 karakter"),
   })
   .refine((v) => v.password === v.password_confirmation, {
     message: "Password dan konfirmasi tidak sama",

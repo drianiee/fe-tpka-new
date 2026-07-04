@@ -80,17 +80,16 @@ type OnboardingPreview = {
 /* ================= VALIDATION ================= */
 
 const passwordRuleText =
-  "Password minimal 6 karakter, mengandung 1 huruf besar, 1 angka, dan 1 karakter khusus (contoh: = atau -).";
+  "Password minimal 8 karakter, mengandung 1 huruf besar dan 1 angka.";
 
 const schema = z
   .object({
     password: z
       .string()
-      .min(6, "Password minimal 6 karakter")
+      .min(8, "Password minimal 8 karakter")
       .refine((v) => /[A-Z]/.test(v), "Password harus mengandung minimal 1 huruf besar")
-      .refine((v) => /[0-9]/.test(v), "Password harus mengandung minimal 1 angka")
-      .refine((v) => /[=-]/.test(v), "Password harus mengandung minimal 1 karakter khusus: = atau -"),
-    password_confirmation: z.string().min(6, "Ulangi password minimal 6 karakter"),
+      .refine((v) => /[0-9]/.test(v), "Password harus mengandung minimal 1 angka"),
+    password_confirmation: z.string().min(8, "Ulangi password minimal 8 karakter"),
     id_type: z.enum(["ktp", "ktm", "sim"], { message: "Pilih jenis identitas" }),
     birth_date: z.string().min(1, "Tanggal lahir wajib diisi"),
     phone: z.string().min(8, "Nomor HP minimal 8 digit"),

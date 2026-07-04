@@ -45,12 +45,19 @@ export type ParticipantScheduleItem = {
   partner: { id: number; name: string } | null;
 
   participant_status: string; // "peserta terdaftar" dst
+  participant_status_variant?: "muted" | "warning" | "success" | null;
   accessed_at: string | null;
   finished_at: string | null;
   assigned_at: string | null;
 
   capacity: number;
   current_participants: number;
+  certificate?: {
+    certificate_no: string | null;
+    verify_url: string | null;
+    download_url: string | null;
+    public_pdf_url?: string | null;
+  } | null;
 };
 
 export type ParticipantDetailResponse = {

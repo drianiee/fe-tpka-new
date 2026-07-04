@@ -27,7 +27,11 @@ import { Label } from "@/components/ui/label";
 const schema = z.object({
   name: z.string().trim().min(1, "Nama wajib diisi"),
   email: z.string().trim().min(1, "Email wajib diisi").email("Email tidak valid"),
-  password: z.string().min(6, "Password minimal 6 karakter"),
+  password: z
+    .string()
+    .min(8, "Password minimal 8 karakter")
+    .refine((v) => /[A-Z]/.test(v), "Password harus mengandung minimal 1 huruf besar")
+    .refine((v) => /[0-9]/.test(v), "Password harus mengandung minimal 1 angka"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -154,7 +158,7 @@ export function AddOperatorDialog() {
               <Input
                 id="op-password"
                 type="password"
-                placeholder="Minimal 6 karakter"
+                placeholder="Minimal 8 karakter"
                 disabled={busy}
                 {...form.register("password")}
               />
@@ -165,7 +169,7 @@ export function AddOperatorDialog() {
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Gunakan kombinasi huruf & angka agar lebih aman.
+                  Gunakan minimal 8 karakter, 1 huruf besar, dan 1 angka.
                 </p>
               )}
             </div>

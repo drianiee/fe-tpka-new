@@ -5,11 +5,13 @@ import * as React from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Download, ShieldCheck } from "lucide-react";
 
 import { participantsService } from "@/lib/services/participants.service";
 import { authService } from "@/lib/services/auth.service";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
+import { openWithBearer } from "@/lib/utils/download";
 
 import type {
   ParticipantDetailResponse,
@@ -58,21 +60,20 @@ function scheduleStatusLabel(status?: string | null) {
 }
 
 function participantStatusVariant(
-  status?: string | null
+  status?: string | null,
+  explicitVariant?: "muted" | "warning" | "success" | null
 ): "muted" | "warning" | "success" {
+  if (explicitVariant) return explicitVariant;
   const s = normalizeStatus(status);
   if (!s) return "muted";
-  if (s === "peserta belum terdaftar") return "muted";
-  if (s === "peserta terdaftar") return "success";
+  if (s.includes("belum")) return "muted";
+  if (s.includes("berlangsung") || s.includes("sedang")) return "warning";
+  if (s.includes("selesai") || s.includes("telah")) return "success";
   return "muted";
 }
 
 function participantStatusLabel(status?: string | null) {
-  const s = normalizeStatus(status);
-  if (!s) return "-";
-  if (s === "peserta belum terdaftar") return "Peserta Belum Terdaftar";
-  if (s === "peserta terdaftar") return "Peserta Terdaftar";
-  return status ?? "-";
+  return status?.trim() || "-";
 }
 
 function formatDateTimeId(v?: string | null) {
@@ -129,6 +130,11 @@ export default function AdminParticipantDetailPage() {
     onSuccess: (data) => {
       toast.success(data?.message ?? "Link verifikasi berhasil dikirim");
     },
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
+  });
+
+  const downloadCertificateMutation = useMutation({
+    mutationFn: (url: string) => openWithBearer(url),
     onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
   });
 
@@ -191,7 +197,10 @@ export default function AdminParticipantDetailPage() {
           cell: (row) => (
             <div className="flex justify-center">
               <Badge
-                variant={participantStatusVariant(row.participant_status)}
+                variant={participantStatusVariant(
+                  row.participant_status,
+                  row.participant_status_variant,
+                )}
                 className="truncate max-w-45"
               >
                 {participantStatusLabel(row.participant_status)}
@@ -207,6 +216,51 @@ export default function AdminParticipantDetailPage() {
           cell: (row) => (
             <div className="flex justify-center">
               <span className="text-sm">{row.attempt_id ?? "-"}</span>
+            </div>
+          ),
+        },
+        {
+          key: "certificate",
+          header: "Sertifikat",
+          headerClassName: "min-w-[220px] text-center",
+          className: "py-4 px-2 text-center",
+          cell: (row) => (
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-xs text-muted-foreground truncate max-w-52">
+                {row.certificate?.certificate_no ?? "-"}
+              </span>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {row.certificate?.download_url ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      row.certificate?.download_url
+                        ? downloadCertificateMutation.mutate(
+                            row.certificate.download_url,
+                          )
+                        : null
+                    }
+                  >
+                      <Download className="h-4 w-4" />
+                      Unduh
+                  </Button>
+                ) : null}
+
+                {row.certificate?.verify_url ? (
+                  <Button asChild type="button" size="sm" variant="outline">
+                    <a
+                      href={row.certificate.verify_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Verifikasi
+                    </a>
+                  </Button>
+                ) : null}
+              </div>
             </div>
           ),
         },
