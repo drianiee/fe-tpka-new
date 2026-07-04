@@ -300,7 +300,6 @@ export default function AdminPaymentsPage() {
                   value={qText}
                   onChange={(e) => setQText(e.target.value)}
                   placeholder="Cari nama/email peserta…"
-                  disabled={busy}
                   className="w-full"
                 />
               </div>

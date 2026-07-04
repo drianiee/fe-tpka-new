@@ -194,7 +194,6 @@ export function ParticipantsTable() {
               value={qText}
               onChange={(e) => setQText(e.target.value)}
               placeholder="Cari peserta (nama / email)…"
-              disabled={busy}
               className="w-full"
             />
           </div>

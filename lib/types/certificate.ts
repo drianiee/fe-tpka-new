@@ -11,6 +11,9 @@ export type CertificateFieldPlacementText = {
   y: number
   fontSize: number
   align: CertificateTextAlign
+  color?: string
+  fontFamily?: string
+  width?: number
 }
 
 export type CertificateFieldPlacementQr = {
@@ -20,7 +23,18 @@ export type CertificateFieldPlacementQr = {
   size: number
 }
 
-export type CertificateFieldPlacement = CertificateFieldPlacementText | CertificateFieldPlacementQr
+export type CertificateFieldPlacementImage = {
+  type: "image"
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type CertificateFieldPlacement =
+  | CertificateFieldPlacementText
+  | CertificateFieldPlacementQr
+  | CertificateFieldPlacementImage
 
 export type CertificateLayoutJson = {
   canvas: { width: number; height: number }
@@ -40,6 +54,9 @@ export type CertificateFieldPlacementApiText = {
   y: number
   fontSize: number
   align: CertificateTextAlign
+  color?: string
+  fontFamily?: string
+  width?: number
 }
 
 export type CertificateFieldPlacementApiQr = {
@@ -48,7 +65,17 @@ export type CertificateFieldPlacementApiQr = {
   size: number
 }
 
-export type CertificateFieldPlacementApi = CertificateFieldPlacementApiText | CertificateFieldPlacementApiQr
+export type CertificateFieldPlacementApiImage = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type CertificateFieldPlacementApi =
+  | CertificateFieldPlacementApiText
+  | CertificateFieldPlacementApiQr
+  | CertificateFieldPlacementApiImage
 
 export type CertificateLayoutJsonApi = {
   canvas: { width: number; height: number }
@@ -58,13 +85,18 @@ export type CertificateLayoutJsonApi = {
 export type Certificate = {
   id: number
   name: string
-  period: string
+  period?: string | null
   year: number
-  sign_name: string
-  sign_nip: string
+  sign_name?: string | null
+  sign_nip?: string | null
   letter_prefix: string
+  template_file?: string
   template_path: string
   template_url?: string
+  sign_file?: string | null
+  sign_url?: string | null
+  stamp_file?: string | null
+  stamp_url?: string | null
   /**
    * backend return format (tanpa type) tapi kita boleh simpan sebagai Api
    * lalu di page detail kamu normalize ke FE internal
@@ -77,12 +109,13 @@ export type Certificate = {
 
 export type CreateCertificatePayload = {
   name: string
-  period: string
   year: number | string
-  sign_name: string
-  sign_nip: string
+  sign_name?: string
+  sign_nip?: string
   letter_prefix: string
   template: File
+  sign_file?: File | null
+  stamp_file?: File | null
   is_active?: boolean | number | string
 }
 

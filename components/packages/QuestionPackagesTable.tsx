@@ -76,9 +76,8 @@ function buildPages(page: number, lastPage: number) {
 }
 
 function ActiveBadge({ status }: { status: QuestionPackage["status"] }) {
-  if (status === "published") return <Badge variant="success">Published</Badge>;
-  if (status === "archived") return <Badge variant="muted">Archived</Badge>;
-  return <Badge variant="warning">Draft</Badge>;
+  if (status === "published") return <Badge variant="success">Aktif</Badge>;
+  return <Badge variant="muted">Nonaktif</Badge>;
 }
 
 export function QuestionPackagesTable() {
@@ -232,7 +231,6 @@ export function QuestionPackagesTable() {
               value={qText}
               onChange={(e) => setQText(e.target.value)}
               placeholder="Cari nama paket soal..."
-              disabled={busy}
               className="w-full"
             />
           </div>

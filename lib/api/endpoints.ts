@@ -5,6 +5,8 @@ export const API_ENDPOINTS = {
   CERTIFICATES: {
     VERIFY_DATA: (uuid: string | number) => `/api/certificates/data/${uuid}`,
     VERIFY_PDF: (uuid: string | number) => `/api/certificates/pdf/${uuid}`,
+    VERIFY_PDF_INLINE: (uuid: string | number) => `/api/certificates/pdf-inline/${uuid}`,
+    VERIFY_PREVIEW_PNG: (uuid: string | number) => `/api/certificates/preview/${uuid}.png`,
   },
   AUTH: {
     LOGIN: "/api/auth/login",

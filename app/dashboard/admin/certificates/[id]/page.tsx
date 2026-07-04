@@ -10,7 +10,9 @@ import {
   Text as KonvaText,
   Group,
   Image as KonvaImage,
+  Transformer,
 } from "react-konva";
+import Konva from "konva";
 import useImage from "use-image";
 import { ArrowLeft, Save, Power, Plus, Trash2, Loader2 } from "lucide-react";
 
@@ -21,6 +23,7 @@ import type {
   CertificateFieldPlacement,
   CertificateFieldPlacementText,
   CertificateFieldPlacementQr,
+  CertificateFieldPlacementImage,
 } from "@/lib/types/certificate";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
@@ -33,12 +36,57 @@ import { Separator } from "@/components/ui/separator";
 
 const DEFAULT_CANVAS = { width: 2000, height: 1414 };
 const FONT_FAMILY = "Arial";
+const SAMPLE_QR_DATA_URI =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" shape-rendering="crispEdges">
+      <rect width="120" height="120" fill="white"/>
+      <rect x="8" y="8" width="32" height="32" fill="black"/>
+      <rect x="14" y="14" width="20" height="20" fill="white"/>
+      <rect x="20" y="20" width="8" height="8" fill="black"/>
+      <rect x="80" y="8" width="32" height="32" fill="black"/>
+      <rect x="86" y="14" width="20" height="20" fill="white"/>
+      <rect x="92" y="20" width="8" height="8" fill="black"/>
+      <rect x="8" y="80" width="32" height="32" fill="black"/>
+      <rect x="14" y="86" width="20" height="20" fill="white"/>
+      <rect x="20" y="92" width="8" height="8" fill="black"/>
+      <rect x="50" y="10" width="8" height="8" fill="black"/>
+      <rect x="62" y="10" width="8" height="8" fill="black"/>
+      <rect x="50" y="22" width="8" height="8" fill="black"/>
+      <rect x="62" y="22" width="8" height="8" fill="black"/>
+      <rect x="44" y="44" width="8" height="8" fill="black"/>
+      <rect x="56" y="44" width="8" height="8" fill="black"/>
+      <rect x="68" y="44" width="8" height="8" fill="black"/>
+      <rect x="80" y="44" width="8" height="8" fill="black"/>
+      <rect x="44" y="56" width="8" height="8" fill="black"/>
+      <rect x="68" y="56" width="8" height="8" fill="black"/>
+      <rect x="92" y="56" width="8" height="8" fill="black"/>
+      <rect x="44" y="68" width="8" height="8" fill="black"/>
+      <rect x="56" y="68" width="8" height="8" fill="black"/>
+      <rect x="80" y="68" width="8" height="8" fill="black"/>
+      <rect x="92" y="68" width="8" height="8" fill="black"/>
+      <rect x="50" y="80" width="8" height="8" fill="black"/>
+      <rect x="62" y="80" width="8" height="8" fill="black"/>
+      <rect x="74" y="80" width="8" height="8" fill="black"/>
+      <rect x="86" y="80" width="8" height="8" fill="black"/>
+      <rect x="50" y="92" width="8" height="8" fill="black"/>
+      <rect x="74" y="92" width="8" height="8" fill="black"/>
+      <rect x="98" y="92" width="8" height="8" fill="black"/>
+    </svg>
+  `);
+const DEFAULT_IMAGE_FIELD_SIZES = {
+  sign_image: { width: 260, height: 120 },
+  stamp_image: { width: 180, height: 180 },
+} as const;
 
 type ApiTextField = {
   x: number;
   y: number;
   fontSize: number;
   align?: string;
+  color?: string;
+  fontFamily?: string;
+  width?: number;
 };
 
 type ApiQrField = {
@@ -47,7 +95,19 @@ type ApiQrField = {
   size: number;
 };
 
-type ApiFieldValue = ApiTextField | ApiQrField;
+type ApiImageField = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type TransformerAnchor = NonNullable<
+  React.ComponentProps<typeof Transformer>["enabledAnchors"]
+>[number];
+type CanvasNode = Konva.Group | Konva.Text | Konva.Image;
+
+type ApiFieldValue = ApiTextField | ApiQrField | ApiImageField;
 type ApiFieldsRecord = Record<string, ApiFieldValue>;
 
 const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
@@ -57,6 +117,8 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     y: 600,
     fontSize: 72,
     align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
   },
   certificate_no: {
     type: "text",
@@ -64,6 +126,8 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     y: 220,
     fontSize: 28,
     align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
   },
   exam_date: {
     type: "text",
@@ -71,6 +135,8 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     y: 720,
     fontSize: 34,
     align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
   },
   score_verbal: {
     type: "text",
@@ -78,6 +144,8 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     y: 300,
     fontSize: 30,
     align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
   },
   score_kuantitatif: {
     type: "text",
@@ -85,6 +153,8 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     y: 360,
     fontSize: 30,
     align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
   },
   score_logika: {
     type: "text",
@@ -92,6 +162,8 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     y: 420,
     fontSize: 30,
     align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
   },
   score_spasial: {
     type: "text",
@@ -99,6 +171,8 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     y: 480,
     fontSize: 30,
     align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
   },
   score_total: {
     type: "text",
@@ -106,6 +180,40 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     y: 540,
     fontSize: 34,
     align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
+  },
+  sign_name: {
+    type: "text",
+    x: 1350,
+    y: 1080,
+    fontSize: 34,
+    align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
+  },
+  sign_nip: {
+    type: "text",
+    x: 1350,
+    y: 1130,
+    fontSize: 28,
+    align: "left",
+    color: "#0f172a",
+    fontFamily: FONT_FAMILY,
+  },
+  sign_image: {
+    type: "image",
+    x: 1350,
+    y: 950,
+    width: 260,
+    height: 120,
+  },
+  stamp_image: {
+    type: "image",
+    x: 1600,
+    y: 980,
+    width: 180,
+    height: 180,
   },
   qr_code: {
     type: "qr",
@@ -115,12 +223,16 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
   },
 };
 
-function previewText(key: string) {
+function proxiedAssetUrl(src?: string | null) {
+  return src ? `/api/certificate-assets?src=${encodeURIComponent(src)}` : null;
+}
+
+function previewText(key: string, cert?: Certificate | null) {
   switch (key) {
     case "participant_name":
       return "Nama Peserta";
     case "certificate_no":
-      return "001/TPKA/I/2026/1/2026";
+      return cert?.letter_prefix ? `${cert.letter_prefix}/${cert.year}/1` : "TPKA/2026/1";
     case "exam_date":
       return "22 april 2026";
     case "score_verbal":
@@ -133,6 +245,10 @@ function previewText(key: string) {
       return "74";
     case "score_total":
       return "77";
+    case "sign_name":
+      return cert?.sign_name || "Nama Penandatangan";
+    case "sign_nip":
+      return cert?.sign_nip ? `NIP ${cert.sign_nip}` : "NIP 123456789";
     default:
       return key;
   }
@@ -155,6 +271,17 @@ function measureTextWidth(text: string, fontSize: number, fontFamily = FONT_FAMI
   return Math.max(160, Math.ceil(metrics.width));
 }
 
+function estimateTextBoxHeight(
+  text: string,
+  fontSize: number,
+  width: number,
+  fontFamily = FONT_FAMILY
+) {
+  const measured = measureTextWidth(text, fontSize, fontFamily);
+  const lines = Math.max(1, Math.ceil(measured / Math.max(40, width)));
+  return Math.max(fontSize * 1.25, lines * fontSize * 1.25);
+}
+
 function isTextField(
   v: CertificateFieldPlacement
 ): v is CertificateFieldPlacementText {
@@ -165,6 +292,12 @@ function isQrField(
   v: CertificateFieldPlacement
 ): v is CertificateFieldPlacementQr {
   return v.type === "qr";
+}
+
+function isImageField(
+  v: CertificateFieldPlacement
+): v is CertificateFieldPlacementImage {
+  return v.type === "image";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -189,10 +322,20 @@ function isApiTextField(v: unknown): v is ApiTextField {
   );
 }
 
+function isApiImageField(v: unknown): v is ApiImageField {
+  if (!isRecord(v)) return false;
+  return (
+    typeof v.x === "number" &&
+    typeof v.y === "number" &&
+    typeof v.width === "number" &&
+    typeof v.height === "number"
+  );
+}
+
 function isApiFieldsRecord(v: unknown): v is ApiFieldsRecord {
   if (!isRecord(v)) return false;
   for (const val of Object.values(v)) {
-    if (!isApiQrField(val) && !isApiTextField(val)) return false;
+    if (!isApiQrField(val) && !isApiTextField(val) && !isApiImageField(val)) return false;
   }
   return true;
 }
@@ -209,13 +352,21 @@ function normalizeFieldsFromApi(
       continue;
     }
 
+    if (isApiImageField(v)) {
+      out[k] = { type: "image", x: v.x, y: v.y, width: v.width, height: v.height };
+      continue;
+    }
+
     if (isApiTextField(v)) {
       out[k] = {
         type: "text",
         x: v.x,
         y: v.y,
         fontSize: v.fontSize,
-        align: "left",
+        align: v.align === "center" || v.align === "right" ? v.align : "left",
+        color: typeof v.color === "string" ? v.color : "#0f172a",
+        fontFamily: typeof v.fontFamily === "string" ? v.fontFamily : FONT_FAMILY,
+        width: typeof v.width === "number" ? v.width : undefined,
       };
     }
   }
@@ -231,8 +382,18 @@ function toApiFieldsPayload(
   for (const [k, v] of Object.entries(fields)) {
     if (isQrField(v)) {
       out[k] = { x: v.x, y: v.y, size: v.size };
+    } else if (isImageField(v)) {
+      out[k] = { x: v.x, y: v.y, width: v.width, height: v.height };
     } else {
-      out[k] = { x: v.x, y: v.y, fontSize: v.fontSize, align: "left" };
+      out[k] = {
+        x: v.x,
+        y: v.y,
+        fontSize: v.fontSize,
+        align: v.align,
+        color: v.color,
+        fontFamily: v.fontFamily,
+        width: v.width,
+      };
     }
   }
 
@@ -252,6 +413,8 @@ export default function AdminCertificateLayoutPage() {
   });
 
   const wrapperRef = React.useRef<HTMLDivElement | null>(null);
+  const transformerRef = React.useRef<Konva.Transformer | null>(null);
+  const nodeRefs = React.useRef<Record<string, CanvasNode | null>>({});
 
   const [canvasW, setCanvasW] = React.useState(DEFAULT_CANVAS.width);
   const [canvasH, setCanvasH] = React.useState(DEFAULT_CANVAS.height);
@@ -303,8 +466,105 @@ export default function AdminCertificateLayoutPage() {
     return () => ro.disconnect();
   }, []);
 
-  const templateUrl = certQ.data?.template_url ?? null;
+  const templateUrl = proxiedAssetUrl(certQ.data?.template_url ?? null);
+  const signUrl = proxiedAssetUrl(certQ.data?.sign_url ?? null);
+  const stampUrl = proxiedAssetUrl(certQ.data?.stamp_url ?? null);
   const [bgImg] = useImage(templateUrl ?? "", "anonymous");
+  const [signImg] = useImage(signUrl ?? "", "anonymous");
+  const [stampImg] = useImage(stampUrl ?? "", "anonymous");
+  const [sampleQrImg] = useImage(SAMPLE_QR_DATA_URI, "anonymous");
+
+  React.useEffect(() => {
+    if (!bgImg || certQ.data?.layout_json) return;
+    const width = bgImg.naturalWidth || bgImg.width;
+    const height = bgImg.naturalHeight || bgImg.height;
+    if (width > 0 && height > 0) {
+      setCanvasW(width);
+      setCanvasH(height);
+    }
+  }, [bgImg, certQ.data?.layout_json]);
+
+  React.useEffect(() => {
+    if (!selectedKey) {
+      transformerRef.current?.nodes([]);
+      transformerRef.current?.getLayer()?.batchDraw();
+      return;
+    }
+
+    const field = fields[selectedKey];
+    const node = nodeRefs.current[selectedKey];
+
+    if (!field || !node) {
+      transformerRef.current?.nodes([]);
+      transformerRef.current?.getLayer()?.batchDraw();
+      return;
+    }
+
+    transformerRef.current?.nodes([node]);
+    transformerRef.current?.getLayer()?.batchDraw();
+  }, [fields, selectedKey]);
+
+  React.useEffect(() => {
+    if (!signImg || certQ.data?.layout_json) return;
+
+    setFields((prev) => {
+      const current = prev.sign_image;
+      if (!current || !isImageField(current)) return prev;
+
+      const nextWidth = signImg.naturalWidth || signImg.width;
+      const nextHeight = signImg.naturalHeight || signImg.height;
+      const defaults = DEFAULT_IMAGE_FIELD_SIZES.sign_image;
+
+      if (
+        nextWidth <= 0 ||
+        nextHeight <= 0 ||
+        current.width !== defaults.width ||
+        current.height !== defaults.height
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        sign_image: {
+          ...current,
+          width: nextWidth,
+          height: nextHeight,
+        },
+      };
+    });
+  }, [signImg, certQ.data?.layout_json]);
+
+  React.useEffect(() => {
+    if (!stampImg || certQ.data?.layout_json) return;
+
+    setFields((prev) => {
+      const current = prev.stamp_image;
+      if (!current || !isImageField(current)) return prev;
+
+      const nextWidth = stampImg.naturalWidth || stampImg.width;
+      const nextHeight = stampImg.naturalHeight || stampImg.height;
+      const defaults = DEFAULT_IMAGE_FIELD_SIZES.stamp_image;
+
+      if (
+        nextWidth <= 0 ||
+        nextHeight <= 0 ||
+        current.width !== defaults.width ||
+        current.height !== defaults.height
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        stamp_image: {
+          ...current,
+          width: nextWidth,
+          height: nextHeight,
+        },
+      };
+    });
+  }, [stampImg, certQ.data?.layout_json]);
 
   function upsertField(key: string, val: CertificateFieldPlacement) {
     setFields((prev) => ({ ...prev, [key]: val }));
@@ -335,6 +595,8 @@ export default function AdminCertificateLayoutPage() {
       y: 300,
       fontSize: 48,
       align: "left",
+      color: "#0f172a",
+      fontFamily: FONT_FAMILY,
     });
 
     setSelectedKey(k);
@@ -355,6 +617,26 @@ export default function AdminCertificateLayoutPage() {
     });
 
     setSelectedKey(k);
+  }
+
+  function addImageField(key: "sign_image" | "stamp_image") {
+    if (fields[key]) {
+      setSelectedKey(key);
+      return;
+    }
+
+    const image = key === "sign_image" ? signImg : stampImg;
+    const fallback = DEFAULT_IMAGE_FIELD_SIZES[key];
+
+    upsertField(key, {
+      type: "image",
+      x: key === "sign_image" ? 1350 : 1600,
+      y: key === "sign_image" ? 950 : 980,
+      width: image ? image.naturalWidth || image.width : fallback.width,
+      height: image ? image.naturalHeight || image.height : fallback.height,
+    });
+
+    setSelectedKey(key);
   }
 
   const saveM = useMutation({
@@ -408,11 +690,35 @@ export default function AdminCertificateLayoutPage() {
 
   const stageW = Math.round(canvasW * previewScale);
   const stageH = Math.round(canvasH * previewScale);
+  const transformerAnchors = React.useMemo(() => {
+    const cornerAnchors: TransformerAnchor[] = [
+      "top-left",
+      "top-right",
+      "bottom-left",
+      "bottom-right",
+    ];
+
+    if (!selected) return cornerAnchors;
+    if (isTextField(selected.val)) {
+      return [
+        "top-left",
+        "top-center",
+        "top-right",
+        "middle-left",
+        "middle-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right",
+      ] satisfies TransformerAnchor[];
+    }
+
+    return cornerAnchors;
+  }, [selected]);
 
   return (
     <PageHeaderLayout
       title={cert ? `Layout Certificate — ${cert.name}` : "Layout Certificate"}
-      description="Drag teks/QR untuk mengatur posisi. Klik Simpan untuk menyimpan layout_json."
+      // description="Drag teks/QR untuk mengatur posisi. Klik Simpan untuk menyimpan layout_json."
       showBack={false}
     >
       <div className="space-y-4">
@@ -523,6 +829,13 @@ export default function AdminCertificateLayoutPage() {
                         return (
                           <Group
                             key={key}
+                            ref={(node) => {
+                              if (node) {
+                                nodeRefs.current[key] = node;
+                              } else {
+                                delete nodeRefs.current[key];
+                              }
+                            }}
                             x={x}
                             y={y}
                             draggable
@@ -539,6 +852,23 @@ export default function AdminCertificateLayoutPage() {
                                 size: fp.size,
                               });
                             }}
+                            onTransformEnd={(ev) => {
+                              const node = ev.target;
+                              const scale = Math.max(node.scaleX(), node.scaleY());
+                              const nx = node.x() / previewScale;
+                              const ny = node.y() / previewScale;
+                              const size = Math.max(20, Math.round(fp.size * scale));
+
+                              node.scaleX(1);
+                              node.scaleY(1);
+
+                              upsertField(key, {
+                                type: "qr",
+                                x: Math.round(nx),
+                                y: Math.round(ny),
+                                size,
+                              });
+                            }}
                           >
                             {isSel ? (
                               <Rect
@@ -552,32 +882,158 @@ export default function AdminCertificateLayoutPage() {
                               />
                             ) : null}
 
-                            <Rect
-                              x={0}
-                              y={0}
-                              width={size}
-                              height={size}
-                              stroke="#0f172a"
-                              strokeWidth={2}
-                            />
+                            {sampleQrImg ? (
+                              <KonvaImage
+                                image={sampleQrImg}
+                                x={0}
+                                y={0}
+                                width={size}
+                                height={size}
+                              />
+                            ) : (
+                              <>
+                                <Rect
+                                  x={0}
+                                  y={0}
+                                  width={size}
+                                  height={size}
+                                  stroke="#0f172a"
+                                  strokeWidth={2}
+                                />
 
-                            <KonvaText
-                              text="QR"
-                              x={0}
-                              y={Math.max(0, size / 2 - 14)}
-                              width={size}
-                              align="center"
-                              fontSize={Math.max(12, size * 0.18)}
-                              fontFamily={FONT_FAMILY}
-                              fill={isSel ? "#1d4ed8" : "#0f172a"}
-                            />
+                                <KonvaText
+                                  text="QR"
+                                  x={0}
+                                  y={Math.max(0, size / 2 - 14)}
+                                  width={size}
+                                  align="center"
+                                  fontSize={Math.max(12, size * 0.18)}
+                                  fontFamily={FONT_FAMILY}
+                                  fill={isSel ? "#1d4ed8" : "#0f172a"}
+                                />
+                              </>
+                            )}
                           </Group>
                         );
                       }
 
-                      const text = previewText(key);
+                      if (isImageField(fp)) {
+                        const x = fp.x * previewScale;
+                        const y = fp.y * previewScale;
+                        const width = Math.max(16, fp.width * previewScale);
+                        const height = Math.max(16, fp.height * previewScale);
+                        const image = key === "sign_image" ? signImg : stampImg;
+                        const label = key === "sign_image" ? "TTD" : "Stempel";
+
+                        return (
+                          <Group
+                            key={key}
+                            ref={(node) => {
+                              if (node) {
+                                nodeRefs.current[key] = node;
+                              } else {
+                                delete nodeRefs.current[key];
+                              }
+                            }}
+                            x={x}
+                            y={y}
+                            draggable
+                            onClick={() => setSelectedKey(key)}
+                            onTap={() => setSelectedKey(key)}
+                            onDragEnd={(ev) => {
+                              const nx = ev.target.x() / previewScale;
+                              const ny = ev.target.y() / previewScale;
+
+                              upsertField(key, {
+                                type: "image",
+                                x: Math.round(nx),
+                                y: Math.round(ny),
+                                width: fp.width,
+                                height: fp.height,
+                              });
+                            }}
+                            onTransformEnd={(ev) => {
+                              const node = ev.target;
+                              const scaleX = node.scaleX();
+                              const scaleY = node.scaleY();
+                              const nx = node.x() / previewScale;
+                              const ny = node.y() / previewScale;
+                              const width = Math.max(20, Math.round(fp.width * scaleX));
+                              const height = Math.max(20, Math.round(fp.height * scaleY));
+
+                              node.scaleX(1);
+                              node.scaleY(1);
+
+                              upsertField(key, {
+                                type: "image",
+                                x: Math.round(nx),
+                                y: Math.round(ny),
+                                width,
+                                height,
+                              });
+                            }}
+                          >
+                            {isSel ? (
+                              <Rect
+                                x={-8}
+                                y={-8}
+                                width={width + 16}
+                                height={height + 16}
+                                stroke="#2563eb"
+                                strokeWidth={2}
+                                dash={[6, 4]}
+                              />
+                            ) : null}
+
+                            {image ? (
+                              <KonvaImage
+                                image={image}
+                                x={0}
+                                y={0}
+                                width={width}
+                                height={height}
+                              />
+                            ) : (
+                              <Rect
+                                x={0}
+                                y={0}
+                                width={width}
+                                height={height}
+                                stroke="#94a3b8"
+                                dash={[6, 4]}
+                              />
+                            )}
+
+                            {!image ? (
+                              <KonvaText
+                                text={label}
+                                x={0}
+                                y={Math.max(0, height / 2 - 12)}
+                                width={width}
+                                align="center"
+                                fontSize={Math.max(12, Math.min(18, height * 0.22))}
+                                fontFamily={FONT_FAMILY}
+                                fill="#64748b"
+                              />
+                            ) : null}
+                          </Group>
+                        );
+                      }
+
+                      const text = previewText(key, certQ.data);
                       const fontSize = Math.max(10, fp.fontSize * previewScale);
-                      const textW = measureTextWidth(text, fontSize, FONT_FAMILY);
+                      const baseWidth = Math.max(
+                        40,
+                        fp.width ?? measureTextWidth(text, fp.fontSize, fp.fontFamily ?? FONT_FAMILY)
+                      );
+                      const textW = baseWidth * previewScale;
+                      const textH =
+                        estimateTextBoxHeight(
+                          text,
+                          fp.fontSize,
+                          baseWidth,
+                          fp.fontFamily ?? FONT_FAMILY
+                        ) * previewScale;
 
                       const x = fp.x * previewScale;
                       const y = fp.y * previewScale;
@@ -585,6 +1041,13 @@ export default function AdminCertificateLayoutPage() {
                       return (
                         <Group
                           key={key}
+                          ref={(node) => {
+                            if (node) {
+                              nodeRefs.current[key] = node;
+                            } else {
+                              delete nodeRefs.current[key];
+                            }
+                          }}
                           x={x}
                           y={y}
                           draggable
@@ -599,7 +1062,31 @@ export default function AdminCertificateLayoutPage() {
                               x: Math.round(nx),
                               y: Math.round(ny),
                               fontSize: fp.fontSize,
-                              align: "left",
+                              align: fp.align,
+                              color: fp.color,
+                              fontFamily: fp.fontFamily,
+                              width: fp.width,
+                            });
+                          }}
+                          onTransformEnd={(ev) => {
+                            const node = ev.target;
+                            const scaleX = node.scaleX();
+                            const nx = node.x() / previewScale;
+                            const ny = node.y() / previewScale;
+                            const width = Math.max(40, Math.round(baseWidth * scaleX));
+
+                            node.scaleX(1);
+                            node.scaleY(1);
+
+                            upsertField(key, {
+                              type: "text",
+                              x: Math.round(nx),
+                              y: Math.round(ny),
+                              fontSize: fp.fontSize,
+                              align: fp.align,
+                              color: fp.color,
+                              fontFamily: fp.fontFamily,
+                              width,
                             });
                           }}
                         >
@@ -608,7 +1095,7 @@ export default function AdminCertificateLayoutPage() {
                               x={-8}
                               y={-8}
                               width={textW + 16}
-                              height={fontSize + 16}
+                              height={textH + 16}
                               stroke="#2563eb"
                               strokeWidth={2}
                               dash={[6, 4]}
@@ -619,13 +1106,34 @@ export default function AdminCertificateLayoutPage() {
                             text={text}
                             x={0}
                             y={0}
+                            width={textW}
+                            align={fp.align}
                             fontSize={fontSize}
-                            fontFamily={FONT_FAMILY}
-                            fill={isSel ? "#1d4ed8" : "#0f172a"}
+                            fontFamily={fp.fontFamily ?? FONT_FAMILY}
+                            fill={isSel ? "#1d4ed8" : fp.color ?? "#0f172a"}
+                            wrap="word"
                           />
                         </Group>
                       );
                     })}
+
+                    <Transformer
+                      ref={transformerRef}
+                      enabledAnchors={transformerAnchors}
+                      rotateEnabled={false}
+                      ignoreStroke
+                      borderStroke="#2563eb"
+                      anchorStroke="#2563eb"
+                      anchorFill="#ffffff"
+                      anchorSize={10}
+                      boundBoxFunc={(oldBox, newBox) => {
+                        if (newBox.width < 20 || newBox.height < 20) {
+                          return oldBox;
+                        }
+
+                        return newBox;
+                      }}
+                    />
                   </Layer>
                 </Stage>
               </div>
@@ -753,6 +1261,48 @@ export default function AdminCertificateLayoutPage() {
                     type="button"
                     variant="outline"
                     disabled={busy}
+                    onClick={() => addTextField("sign_name")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nama TTD
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => addTextField("sign_nip")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    NIP TTD
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy || !signUrl}
+                    onClick={() => addImageField("sign_image")}
+                    title={signUrl ? "Tambahkan gambar TTD" : "Template ini belum punya file TTD"}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Gambar TTD
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy || !stampUrl}
+                    onClick={() => addImageField("stamp_image")}
+                    title={stampUrl ? "Tambahkan gambar stempel" : "Template ini belum punya file stempel"}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Stempel
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
                     onClick={addQrField}
                   >
                     <Plus className="h-4 w-4" />
@@ -798,7 +1348,18 @@ export default function AdminCertificateLayoutPage() {
                               x,
                               y: v.y,
                               fontSize: v.fontSize,
-                              align: "left",
+                              align: v.align,
+                              color: v.color,
+                              fontFamily: v.fontFamily,
+                              width: v.width,
+                            });
+                          } else if (isImageField(v)) {
+                            upsertField(selected.key, {
+                              type: "image",
+                              x,
+                              y: v.y,
+                              width: v.width,
+                              height: v.height,
                             });
                           } else {
                             upsertField(selected.key, {
@@ -827,7 +1388,18 @@ export default function AdminCertificateLayoutPage() {
                               x: v.x,
                               y,
                               fontSize: v.fontSize,
-                              align: "left",
+                              align: v.align,
+                              color: v.color,
+                              fontFamily: v.fontFamily,
+                              width: v.width,
+                            });
+                          } else if (isImageField(v)) {
+                            upsertField(selected.key, {
+                              type: "image",
+                              x: v.x,
+                              y,
+                              width: v.width,
+                              height: v.height,
                             });
                           } else {
                             upsertField(selected.key, {
@@ -860,11 +1432,130 @@ export default function AdminCertificateLayoutPage() {
                             x: v.x,
                             y: v.y,
                             fontSize,
-                            align: "left",
+                            align: v.align,
+                            color: v.color,
+                            fontFamily: v.fontFamily,
+                            width: v.width,
                           });
                         }}
                         disabled={busy}
                       />
+                    </div>
+                  ) : null}
+
+                  {isTextField(selected.val) ? (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">Lebar Box</div>
+                      <Input
+                        value={String(
+                          selected.val.width ??
+                            measureTextWidth(
+                              previewText(selected.key, certQ.data),
+                              selected.val.fontSize,
+                              selected.val.fontFamily ?? FONT_FAMILY
+                            )
+                        )}
+                        onChange={(e) => {
+                          const width = Number(e.target.value || 0);
+                          const v = selected.val;
+                          if (!isTextField(v)) return;
+
+                          upsertField(selected.key, {
+                            type: "text",
+                            x: v.x,
+                            y: v.y,
+                            fontSize: v.fontSize,
+                            align: v.align,
+                            color: v.color,
+                            fontFamily: v.fontFamily,
+                            width: Math.max(40, width),
+                          });
+                        }}
+                        disabled={busy}
+                        placeholder="420"
+                      />
+                    </div>
+                  ) : null}
+
+                  {isTextField(selected.val) ? (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">Align</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(["left", "center", "right"] as const).map((align) => (
+                          <Button
+                            key={align}
+                            type="button"
+                            variant={
+                              isTextField(selected.val) && selected.val.align === align
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => {
+                              const v = selected.val;
+                              if (!isTextField(v)) return;
+
+                              upsertField(selected.key, {
+                                type: "text",
+                                x: v.x,
+                                y: v.y,
+                                fontSize: v.fontSize,
+                                align,
+                                color: v.color,
+                                fontFamily: v.fontFamily,
+                                width: v.width,
+                              });
+                            }}
+                          >
+                            {align === "left" ? "Left" : align === "center" ? "Center" : "Right"}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {isTextField(selected.val) ? (
+                    <div className="grid grid-cols-[72px_1fr] items-end gap-2">
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          Warna
+                        </div>
+                        <Input
+                          type="color"
+                          value={selected.val.color ?? "#0f172a"}
+                          onChange={(e) => {
+                            const v = selected.val;
+                            if (!isTextField(v)) return;
+
+                            upsertField(selected.key, {
+                              ...v,
+                              color: e.target.value,
+                            });
+                          }}
+                          disabled={busy}
+                          className="h-10 p-1"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          Font Family
+                        </div>
+                        <Input
+                          value={selected.val.fontFamily ?? FONT_FAMILY}
+                          onChange={(e) => {
+                            const v = selected.val;
+                            if (!isTextField(v)) return;
+
+                            upsertField(selected.key, {
+                              ...v,
+                              fontFamily: e.target.value || FONT_FAMILY,
+                            });
+                          }}
+                          disabled={busy}
+                          placeholder={FONT_FAMILY}
+                        />
+                      </div>
                     </div>
                   ) : null}
 
@@ -888,6 +1579,54 @@ export default function AdminCertificateLayoutPage() {
                         disabled={busy}
                         placeholder="220"
                       />
+                    </div>
+                  ) : null}
+
+                  {isImageField(selected.val) ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">Lebar</div>
+                        <Input
+                          value={String(selected.val.width)}
+                          onChange={(e) => {
+                            const width = Number(e.target.value || 0);
+                            const v = selected.val;
+                            if (!isImageField(v)) return;
+
+                            upsertField(selected.key, {
+                              type: "image",
+                              x: v.x,
+                              y: v.y,
+                              width,
+                              height: v.height,
+                            });
+                          }}
+                          disabled={busy}
+                          placeholder="260"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">Tinggi</div>
+                        <Input
+                          value={String(selected.val.height)}
+                          onChange={(e) => {
+                            const height = Number(e.target.value || 0);
+                            const v = selected.val;
+                            if (!isImageField(v)) return;
+
+                            upsertField(selected.key, {
+                              type: "image",
+                              x: v.x,
+                              y: v.y,
+                              width: v.width,
+                              height,
+                            });
+                          }}
+                          disabled={busy}
+                          placeholder="120"
+                        />
+                      </div>
                     </div>
                   ) : null}
                 </div>

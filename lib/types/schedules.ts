@@ -65,6 +65,7 @@ export type ScheduleParticipantScores = {
 };
 
 export type ScheduleParticipant = {
+  registration_id?: number;
   id: number;
   name: string;
   email: string;
@@ -77,7 +78,11 @@ export type ScheduleParticipant = {
   question_package?: { id: number; name: string } | null;
 
   scores?: ScheduleParticipantScores | null;
+  certificate_no?: string | null;
+  certificate_issued_at?: string | null;
+  certificate_revoked_at?: string | null;
   certificate_download_url?: string | null;
+  can_retake?: boolean;
 
   scores_debug?: unknown;
 };

@@ -9,6 +9,7 @@ import type {
 
 export type ListParticipantsParams = {
   q?: string;
+  verified?: boolean;
   per_page?: number;
   page?: number;
 };

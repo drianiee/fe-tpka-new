@@ -33,12 +33,13 @@ export default function AdminCertificatesPage() {
 
   const [form, setForm] = React.useState<CreateCertificatePayload>({
     name: "",
-    period: "1",
     year: 2026,
     sign_name: "",
     sign_nip: "",
     letter_prefix: "001/TPKA/I/2026",
     template: null as unknown as File,
+    sign_file: null,
+    stamp_file: null,
     is_active: 1,
   })
 
@@ -62,7 +63,7 @@ export default function AdminCertificatesPage() {
     if (!qq) return src
 
     return src.filter((r) => {
-      const text = `${r.name} ${r.year} ${r.period} ${r.letter_prefix} ${r.sign_name} ${r.sign_nip}`.toLowerCase()
+      const text = `${r.name} ${r.year} ${r.letter_prefix} ${r.sign_name ?? ""} ${r.sign_nip ?? ""}`.toLowerCase()
       return text.includes(qq)
     })
   }, [listQ.data, q])
@@ -85,7 +86,7 @@ export default function AdminCertificatesPage() {
           <div className="space-y-0.5">
             <div className="font-medium">{row.name}</div>
             <div className="text-xs text-muted-foreground">
-              Periode {row.period} • {row.year}
+              {row.year}
             </div>
           </div>
         ),
@@ -117,8 +118,8 @@ export default function AdminCertificatesPage() {
         className: "py-4 px-2",
         cell: (row) => (
           <div className="space-y-0.5">
-            <div className="font-medium">{row.sign_name}</div>
-            <div className="text-xs text-muted-foreground">NIP: {row.sign_nip}</div>
+            <div className="font-medium">{row.sign_name || "-"}</div>
+            <div className="text-xs text-muted-foreground">NIP: {row.sign_nip || "-"}</div>
           </div>
         ),
       },
@@ -141,7 +142,7 @@ export default function AdminCertificatesPage() {
   return (
     <PageHeaderLayout
       title="Certificate"
-      description="Kelola template sertifikat dan atur layout (react-konva)."
+      // description="Kelola template sertifikat dan atur layout (react-konva)."
       showBack={false}
     >
       <div className="h-full min-h-0 rounded-xl border overflow-hidden flex flex-col bg-white">
@@ -151,7 +152,7 @@ export default function AdminCertificatesPage() {
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Cari… (nama/tahun/periode/prefix/penandatangan)"
+                placeholder="Cari… (nama/tahun/prefix/penandatangan)"
                 disabled={busy}
               />
             </div>
@@ -213,16 +214,6 @@ export default function AdminCertificatesPage() {
             </div>
 
             <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Periode</div>
-              <Input
-                value={String(form.period)}
-                onChange={(e) => setForm((p) => ({ ...p, period: e.target.value }))}
-                disabled={createM.isPending}
-                placeholder="3"
-              />
-            </div>
-
-            <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Tahun</div>
               <Input
                 value={String(form.year)}
@@ -233,7 +224,7 @@ export default function AdminCertificatesPage() {
             </div>
 
             <div className="space-y-1 sm:col-span-2">
-              <div className="text-xs text-muted-foreground">Nama Penandatangan</div>
+              <div className="text-xs text-muted-foreground">Nama Penandatangan (opsional)</div>
               <Input
                 value={form.sign_name}
                 onChange={(e) => setForm((p) => ({ ...p, sign_name: e.target.value }))}
@@ -242,7 +233,7 @@ export default function AdminCertificatesPage() {
             </div>
 
             <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">NIP</div>
+              <div className="text-xs text-muted-foreground">NIP (opsional)</div>
               <Input
                 value={form.sign_nip}
                 onChange={(e) => setForm((p) => ({ ...p, sign_nip: e.target.value }))}
@@ -271,6 +262,30 @@ export default function AdminCertificatesPage() {
                 }}
               />
             </div>
+
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">TTD Penandatangan (opsional)</div>
+              <Input
+                type="file"
+                accept="image/*"
+                disabled={createM.isPending}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, sign_file: e.target.files?.[0] ?? null }))
+                }}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">Stempel (opsional)</div>
+              <Input
+                type="file"
+                accept="image/*"
+                disabled={createM.isPending}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, stamp_file: e.target.files?.[0] ?? null }))
+                }}
+              />
+            </div>
           </div>
 
           {createM.isError ? (
@@ -288,10 +303,7 @@ export default function AdminCertificatesPage() {
               disabled={
                 createM.isPending ||
                 !form.name ||
-                !form.period ||
                 !String(form.year) ||
-                !form.sign_name ||
-                !form.sign_nip ||
                 !form.letter_prefix ||
                 !form.template
               }

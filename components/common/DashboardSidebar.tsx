@@ -73,7 +73,6 @@ function navByRole(role: UserRole): NavItem[] {
   return [
     { key: "dashboard", label: "Beranda", href: "/dashboard/peserta", icon: LayoutGrid, exact: true },
     { key: "my-schedules", label: "Jadwal Tes", href: "/dashboard/peserta/my-schedules", icon: CalendarCheck },
-    { key: "certificates", label: "Certificate", href: "/dashboard/peserta/certificates", icon: Award },
   ]
 }
 

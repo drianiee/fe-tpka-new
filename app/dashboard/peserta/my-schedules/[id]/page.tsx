@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CreditCard, Play } from "lucide-react";
+import { CreditCard, Download, Play, ShieldCheck } from "lucide-react";
 
 import { schedulesService } from "@/lib/services/schedules.service";
 import type { ParticipantMyScheduleDetail } from "@/lib/types/participant-my-schedules";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
 import { formatDateId } from "@/lib/utils/datetime";
+import { openWithBearer } from "@/lib/utils/download";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,6 +163,11 @@ function DetailRow({
   );
 }
 
+function scoreCell(v?: number | null) {
+  if (v === null || v === undefined) return "-";
+  return String(v);
+}
+
 export default function ParticipantMyScheduleDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
@@ -173,6 +179,7 @@ export default function ParticipantMyScheduleDetailPage() {
     queryFn: () => schedulesService.participantMyScheduleDetail(id as string),
     enabled: Boolean(id),
     staleTime: 30_000,
+    refetchOnMount: "always",
   });
 
   const d = query.data;
@@ -181,6 +188,8 @@ export default function ParticipantMyScheduleDetailPage() {
     normalizeText(d?.payment_status ?? "") === "pending_payment";
   const testStatus = testStatusLabel(d);
   const isFinished = normalizeText(testStatus) === "selesai";
+  const hasResult = Boolean(d?.scores);
+  const hasCertificate = Boolean(d?.certificate?.download_url);
 
   const startMutation = useMutation({
     mutationFn: () => examService.start(id as string),
@@ -191,11 +200,16 @@ export default function ParticipantMyScheduleDetailPage() {
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
 
+  const downloadCertificateMutation = useMutation({
+    mutationFn: (url: string) => openWithBearer(url),
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
   const canStart = Boolean(d?.can_start) || Boolean(d?.attempt_id);
 
   return (
     <PageHeaderLayout
-      title={`Detail Jadwal #${id ?? "-"}`}
+      title={`Detail Jadwal`}
       description="Informasi jadwal dan akses tes"
       showBack
       onBack={() => router.push("/dashboard/peserta/my-schedules/")}
@@ -235,8 +249,12 @@ export default function ParticipantMyScheduleDetailPage() {
 
                   <Badge
                     variant={participantStatusBadgeVariant(d)}
-                    className="truncate max-w-44"
-                    title={d.participant_status_label ?? d.payment_status ?? undefined}
+                    className="truncate max-w-48"
+                    title={
+                      d.participant_status_label ??
+                      d.payment_status ??
+                      undefined
+                    }
                   >
                     {participantStatusLabel(d)}
                   </Badge>
@@ -253,12 +271,15 @@ export default function ParticipantMyScheduleDetailPage() {
                 label="Partner"
                 value={d.partner?.name ?? (d.is_partner ? "Partner" : "-")}
               />
-              <DetailRow label="Order ID" value={d.order_id ?? "-"} />
-              <DetailRow label="Payment Type" value={d.payment_type ?? "-"} />
-              <DetailRow label="Paid At" value={d.paid_at ?? "-"} />
-              <DetailRow label="Paket Soal" value={d.question_package?.name ?? "-"} />
-              <DetailRow label="Jumlah Soal" value={d.question_package?.total_questions ?? 0} />
-              <DetailRow label="Durasi" value={`${d.question_package?.total_duration_minutes ?? 0} menit`} />
+              {/* <DetailRow label="Order ID" value={d.order_id ?? "-"} /> */}
+              {/* <DetailRow label="Payment Type" value={d.payment_type ?? "-"} /> */}
+              {/* <DetailRow label="Paid At" value={d.paid_at ?? "-"} /> */}
+              {/* <DetailRow label="Paket Soal" value={d.question_package?.name ?? "-"} /> */}
+              {/* <DetailRow label="Jumlah Soal" value={d.question_package?.total_questions ?? 0} /> */}
+              <DetailRow
+                label="Durasi"
+                value={`${d.question_package?.total_duration_minutes ?? 0} menit`}
+              />
 
               <div className="pt-3 items-center flex flex-col space-y-2 justify-center">
                 {canContinuePayment && d.payment?.snap_redirect_url ? (
@@ -283,7 +304,9 @@ export default function ParticipantMyScheduleDetailPage() {
                     className="gap-2"
                   >
                     <Play className="h-4 w-4" />
-                    {startMutation.isPending ? "Menyiapkan Tes..." : "Mulai Tes"}
+                    {startMutation.isPending
+                      ? "Menyiapkan Tes..."
+                      : "Mulai Tes"}
                   </Button>
                 ) : null}
                 {!isFinished && !canStart ? (
@@ -310,6 +333,134 @@ export default function ParticipantMyScheduleDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {hasResult || hasCertificate ? (
+            <Card className="rounded-xl lg:col-span-3">
+              <CardHeader className="border-b">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-sm">
+                      Hasil Ujian & Sertifikat
+                    </CardTitle>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Nilai akhir dan akses unduh sertifikat untuk jadwal ini.
+                    </div>
+                  </div>
+
+                  {d.certificate?.certificate_no ? (
+                    <Badge variant="success" className="max-w-72 truncate">
+                      {d.certificate.certificate_no}
+                    </Badge>
+                  ) : null}
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-4 space-y-4">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  <Card className="rounded-xl border shadow-none">
+                    <CardContent className="p-4">
+                      <div className="text-xs text-muted-foreground">
+                        Verbal
+                      </div>
+                      <div className="mt-1 text-lg font-semibold">
+                        {scoreCell(d.scores?.verbal)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl border shadow-none">
+                    <CardContent className="p-4">
+                      <div className="text-xs text-muted-foreground">
+                        Kuantitatif
+                      </div>
+                      <div className="mt-1 text-lg font-semibold">
+                        {scoreCell(d.scores?.kuantitatif)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl border shadow-none">
+                    <CardContent className="p-4">
+                      <div className="text-xs text-muted-foreground">
+                        Logika
+                      </div>
+                      <div className="mt-1 text-lg font-semibold">
+                        {scoreCell(d.scores?.logika)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl border shadow-none">
+                    <CardContent className="p-4">
+                      <div className="text-xs text-muted-foreground">
+                        Spasial
+                      </div>
+                      <div className="mt-1 text-lg font-semibold">
+                        {scoreCell(d.scores?.spasial)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl border border-blue-200 bg-blue-50 shadow-none">
+                    <CardContent className="p-4">
+                      <div className="text-xs text-blue-700">Total</div>
+                      <div className="mt-1 text-xl font-semibold text-blue-900">
+                        {scoreCell(d.scores?.total)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* <div className="grid gap-3 md:grid-cols-2">
+                  <DetailRow
+                    label="Nama Partner"
+                    value={d.partner?.name ?? (d.is_partner ? "Partner" : "-")}
+                  />
+                  <DetailRow
+                    label="Nomor Sertifikat"
+                    value={d.certificate?.certificate_no ?? "-"}
+                  />
+                </div> */}
+
+                <div className="flex w-full items-center justify-center">
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      d.certificate?.download_url
+                        ? downloadCertificateMutation.mutate(
+                            d.certificate.download_url,
+                          )
+                        : null
+                    }
+                    disabled={
+                      !d.certificate?.download_url ||
+                      downloadCertificateMutation.isPending
+                    }
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {downloadCertificateMutation.isPending
+                      ? "Membuka Sertifikat..."
+                      : "Unduh Sertifikat"}
+                  </Button>
+
+                  {/* {d.certificate?.verify_url ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() =>
+                        window.open(
+                          d.certificate?.verify_url,
+                          "_blank",
+                          "noopener,noreferrer",
+                        )
+                      }
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Verifikasi Sertifikat
+                    </Button>
+                  ) : null} */}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Dialog
             open={startConfirmOpen}

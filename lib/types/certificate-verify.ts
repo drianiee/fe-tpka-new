@@ -9,6 +9,9 @@ export type CertificateVerifyData = {
   certificate_name: string | null
   period: string | null
   year: number | null
+  status?: "valid" | "revoked" | string
+  issued_at?: string | null
+  pdf_available?: boolean
 }
 
 export type CertificateVerifyResponse = {

@@ -78,6 +78,9 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
     () => (activeSection ? (attempt?.questions ?? []).filter((question) => question.section_id === activeSection.id) : []),
     [activeSection, attempt?.questions]
   );
+  const scheduleDetailHref = attempt
+    ? `/dashboard/peserta/my-schedules/${attempt.schedule.id}`
+    : "/dashboard/peserta/my-schedules?status=all";
 
   const submit = React.useCallback(async () => {
     if (submitting) return;
@@ -91,13 +94,14 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
       if (document.fullscreenElement) {
         await document.exitFullscreen().catch(() => undefined);
       }
-      router.replace("/dashboard/peserta/certificates");
+      router.replace(scheduleDetailHref);
+      router.refresh();
     } catch (error) {
       toast.error(getApiErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
-  }, [attemptId, router, submitting]);
+  }, [attemptId, router, scheduleDetailHref, submitting]);
 
   const activateFullscreen = React.useCallback(async (silent = false) => {
     setFullscreenLoading(true);
@@ -267,9 +271,10 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
   React.useEffect(() => {
     if (!attempt || result) return;
     if (attempt.status !== "in_progress") {
-      router.replace("/dashboard/peserta/certificates");
+      router.replace(scheduleDetailHref);
+      router.refresh();
     }
-  }, [attempt, result, router]);
+  }, [attempt, result, router, scheduleDetailHref]);
 
   React.useEffect(() => {
     if (!attempt || attempt.status !== "in_progress" || !strictArmed) return;
@@ -315,7 +320,7 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
   if (query.isLoading) return <div className="p-8 text-sm text-muted-foreground">Memuat attempt...</div>;
   if (query.isError || !attempt) return <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{getApiErrorMessage(query.error)}</div>;
   if (result || attempt.status !== "in_progress") {
-    return <div className="p-8 text-sm text-muted-foreground">Mengalihkan ke sertifikat...</div>;
+    return <div className="p-8 text-sm text-muted-foreground">Memuat hasil terbaru...</div>;
   }
 
   const current = activeQuestions.find((question) => question.id === currentId) ?? activeQuestions[0] ?? null;

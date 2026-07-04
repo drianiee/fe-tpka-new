@@ -41,16 +41,15 @@ export const certificateService = {
   async create(payload: CreateCertificatePayload): Promise<CreateCertificateResponse> {
     const fd = new FormData()
     fd.append("name", payload.name)
-    fd.append("period", String(payload.period))
     fd.append("year", String(payload.year))
 
-    // ✅ pastikan key sesuai backend kamu
-    // kalau backend kamu pakai sign_name & sign_nip (bukan signer_name)
-    fd.append("sign_name", payload.sign_name)
-    fd.append("sign_nip", payload.sign_nip)
+    if (payload.sign_name) fd.append("sign_name", payload.sign_name)
+    if (payload.sign_nip) fd.append("sign_nip", payload.sign_nip)
 
     fd.append("letter_prefix", payload.letter_prefix)
     fd.append("template", payload.template)
+    if (payload.sign_file) fd.append("sign_file", payload.sign_file)
+    if (payload.stamp_file) fd.append("stamp_file", payload.stamp_file)
     if (payload.is_active !== undefined) fd.append("is_active", String(payload.is_active))
 
     const res = await http.post(API_ENDPOINTS.ADMIN.CERTIFICATES.ROOT, fd, {

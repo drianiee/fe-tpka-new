@@ -448,12 +448,18 @@ export default function AdminScheduleDetailPage() {
         className: "text-center whitespace-nowrap",
         cell: (row) => {
           const pending = retakingUserId === row.id && retakeMut.isPending;
+          const certificateIssued = Boolean(row.certificate_issued_at);
 
           return (
             <Button
               size="sm"
               variant="red"
-              disabled={pending}
+              disabled={pending || certificateIssued || row.can_retake === false}
+              title={
+                certificateIssued
+                  ? "Sertifikat sudah terbit, peserta tidak dapat mengulang tes."
+                  : undefined
+              }
               onClick={() => handleOpenRetakeDialog(row)}
             >
               {pending ? "Memproses..." : "Ulangi Tes"}

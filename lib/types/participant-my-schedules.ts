@@ -96,6 +96,19 @@ export type ParticipantMyScheduleDetail = {
   has_attempt: boolean;
   attempt_id: number | null;
   attempt_status?: string | null;
+  scores?: {
+    verbal: number | null;
+    kuantitatif: number | null;
+    logika: number | null;
+    spasial: number | null;
+    total: number | null;
+  } | null;
+  certificate?: {
+    certificate_no: string;
+    verify_url: string;
+    download_url: string;
+    public_pdf_url?: string | null;
+  } | null;
   question_package: {
     id: number;
     name: string;

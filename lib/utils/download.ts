@@ -1,11 +1,18 @@
 // lib/utils/download.ts
 import { getToken } from "@/lib/utils/storage";
+import { API_BASE_URL } from "@/lib/api/client";
+
+function resolveDownloadUrl(url: string) {
+  if (/^https?:\/\//i.test(url)) return url;
+
+  return `${(API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "")}${url.startsWith("/") ? url : `/${url}`}`;
+}
 
 export async function openWithBearer(url: string) {
   const token = getToken();
   if (!token) throw new Error("Token tidak ditemukan. Silakan login ulang.");
 
-  const res = await fetch(url, {
+  const res = await fetch(resolveDownloadUrl(url), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -44,7 +51,7 @@ export async function downloadWithBearer(
   const token = getToken();
   if (!token) throw new Error("Token tidak ditemukan. Silakan login ulang.");
 
-  const res = await fetch(url, {
+  const res = await fetch(resolveDownloadUrl(url), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

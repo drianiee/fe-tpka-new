@@ -205,7 +205,6 @@ export function OperatorsTable() {
               value={qText}
               onChange={(e) => setQText(e.target.value)}
               placeholder="Cari operator (nama / email)…"
-              disabled={busy}
               className="w-full"
             />
           </div>

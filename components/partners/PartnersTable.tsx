@@ -182,7 +182,6 @@ export function PartnersTable() {
               value={qText}
               onChange={(e) => setQText(e.target.value)}
               placeholder="Cari mitra (nama)…"
-              disabled={busy}
               className="w-full"
             />
           </div>

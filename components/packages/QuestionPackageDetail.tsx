@@ -26,9 +26,8 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
 
 function StatusBadge({ status }: { status: QuestionPackage["status"] }) {
-  if (status === "published") return <Badge variant="success">Published</Badge>;
-  if (status === "archived") return <Badge variant="muted">Archived</Badge>;
-  return <Badge variant="warning">Draft</Badge>;
+  if (status === "published") return <Badge variant="success">Aktif</Badge>;
+  return <Badge variant="muted">Nonaktif</Badge>;
 }
 
 function QuestionPreview({ question }: { question: QuestionAdmin }) {
@@ -261,7 +260,7 @@ export function QuestionPackageDetail({
                 disabled={statusMutation.isPending}
                 onClick={() => statusMutation.mutate(nextStatus)}
               >
-                {item.status === "published" ? "Unpublish" : "Publish"}
+                {item.status === "published" ? "Nonaktifkan" : "Aktifkan"}
               </Button>
               <Button
                 type="button"

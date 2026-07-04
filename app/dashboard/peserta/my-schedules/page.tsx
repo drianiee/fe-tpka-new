@@ -87,7 +87,7 @@ function participantStatusLabel(row: ParticipantMyScheduleListItem) {
 }
 
 function participantStatusBadgeVariant(
-  row: ParticipantMyScheduleListItem
+  row: ParticipantMyScheduleListItem,
 ): "muted" | "warning" | "success" {
   const key = normalizeText(row.participant_status_key ?? "");
   if (
@@ -111,7 +111,7 @@ function participantStatusBadgeVariant(
 }
 
 function paymentBadgeVariant(
-  ps?: string | null
+  ps?: string | null,
 ): "muted" | "warning" | "success" {
   const s = normalizeText(ps ?? "");
   if (!s) return "muted";
@@ -137,7 +137,7 @@ function paymentBadgeVariant(
 }
 
 function statusVariant(
-  status?: string | null
+  status?: string | null,
 ): "muted" | "warning" | "success" {
   const s = normalizeText(status ?? "");
   if (!s) return "muted";
@@ -182,7 +182,10 @@ function testStatusLabel(row: ParticipantMyScheduleListItem) {
 
 function canContinuePayment(row: ParticipantMyScheduleListItem) {
   const s = normalizeText(row.payment_status ?? "");
-  return (s === "pending" || s === "pending_payment") && Boolean(row.payment?.snap_redirect_url);
+  return (
+    (s === "pending" || s === "pending_payment") &&
+    Boolean(row.payment?.snap_redirect_url)
+  );
 }
 
 export default function ParticipantMySchedulesPage() {
@@ -235,9 +238,19 @@ function ParticipantMySchedulesPageContent() {
     if (!q) return src;
 
     return src.filter((r) => {
-      const text = `${formatDateId(r.date)} ${hhmm(r.start_time)} ${hhmm(
-        r.end_time
-      )} ${r.status ?? ""} ${participantStatusLabel(r)}`.toLowerCase();
+      const text = [
+        r.title ?? "",
+        formatDateId(r.date),
+        hhmm(r.start_time),
+        hhmm(r.end_time),
+        `${hhmm(r.start_time)} - ${hhmm(r.end_time)} WIB`,
+        testStatusLabel(r),
+        participantStatusLabel(r),
+        r.payment_status ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
       return text.includes(q);
     });
   }, [query.data, qText]);
@@ -260,7 +273,7 @@ function ParticipantMySchedulesPageContent() {
 
       router.push(`/dashboard/peserta/my-schedules/${row.id}`);
     },
-    [isMobileDevice, router]
+    [isMobileDevice, router],
   );
 
   const statusLabelText =
@@ -269,7 +282,7 @@ function ParticipantMySchedulesPageContent() {
   const blockedScheduleLabel = React.useMemo(() => {
     if (!blockedSchedule) return "";
     return `${formatDateId(blockedSchedule.date)} ${hhmm(
-      blockedSchedule.start_time
+      blockedSchedule.start_time,
     )} - ${hhmm(blockedSchedule.end_time)} WIB`;
   }, [blockedSchedule]);
 
@@ -316,7 +329,7 @@ function ParticipantMySchedulesPageContent() {
       },
       {
         key: "payment",
-        header: "Status Peserta",
+        header: "Status Pendaftaran",
         headerClassName: "w-56 text-center",
         className: "py-4 px-2 text-center",
         cell: (row) => (
@@ -369,20 +382,27 @@ function ParticipantMySchedulesPageContent() {
   return (
     <PageHeaderLayout
       title="Jadwal Tes Saya"
-      description="Daftar jadwal yang sudah Anda miliki. Klik detail untuk melihat tombol mulai tes"
+      description="Daftar jadwal yang sudah Anda miliki"
       showBack={false}
     >
       <div className="h-full min-h-0 rounded-xl border overflow-hidden flex flex-col bg-white">
         <div className="p-4 space-y-2">
           <div className="flex flex-col sm:flex-row gap-3 lg:items-center">
             <div className="flex-1">
-              <Input
+              {/* <Input
                 value={qText}
                 onChange={(e) => setQText(e.target.value)}
                 placeholder="Cari… (tanggal/jam/status)"
                 disabled={busy}
                 className="w-full"
-              />
+              /> */}
+              <div className="text-xs text-muted-foreground">
+                Menampilkan{" "}
+                <span className="font-medium text-foreground">
+                  {rows.length}
+                </span>{" "}
+                jadwal
+              </div>
             </div>
 
             <div className="flex gap-3 items-center">
@@ -451,11 +471,11 @@ function ParticipantMySchedulesPageContent() {
             </div>
           ) : null}
 
-          <div className="text-xs text-muted-foreground">
+          {/* <div className="text-xs text-muted-foreground">
             Menampilkan{" "}
             <span className="font-medium text-foreground">{rows.length}</span>{" "}
             jadwal
-          </div>
+          </div> */}
         </div>
 
         <div className="flex-1 min-h-0 overflow-auto border-t">

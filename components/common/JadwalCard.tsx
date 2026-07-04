@@ -103,7 +103,6 @@ export const JadwalCard = ({ item }: { item: LandingScheduleItem }) => {
       return;
     }
 
-    // ✅ schedule id = item.id (dari backend)
     registerMutation.mutate(item.id);
   };
 
