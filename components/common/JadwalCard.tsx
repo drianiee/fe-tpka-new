@@ -46,7 +46,8 @@ function hhmm(time: string) {
 }
 
 function toRupiahFromPriceString(price: string) {
-  const n = Number(String(price).replace(/[^\d]/g, ""));
+  const normalized = String(price).trim().replace(/,/g, "");
+  const n = Number(normalized);
   const safe = Number.isFinite(n) ? n : 0;
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -67,14 +68,15 @@ type BadgeVariant =
 
 function getStatusBadge(item: LandingScheduleItem): { label: string; variant: BadgeVariant } {
   const full = item.current_participants >= item.capacity;
+  const normalizedStatus = item.status?.trim().toLowerCase().replace(/[_\s]+/g, "-");
 
   if (full) return { label: "Kuota Penuh", variant: "destructive" };
 
-  if (item.status?.toLowerCase() === "tes belum dimulai") {
-    return { label: item.status, variant: "muted" };
+  if (normalizedStatus === "tes-belum-dimulai" || normalizedStatus === "belum-dimulai") {
+    return { label: "Belum Dimulai", variant: "muted" };
   }
 
-  return { label: item.status || "Tersedia", variant: "success" };
+  return { label: "Tersedia", variant: "success" };
 }
 
 export const JadwalCard = ({ item }: { item: LandingScheduleItem }) => {
@@ -118,7 +120,9 @@ export const JadwalCard = ({ item }: { item: LandingScheduleItem }) => {
         </div>
 
         <div className="flex items-center w-full justify-between">
-          <p className="font-semibold text-xl">{price}</p>
+          <div>
+            <p className="font-semibold text-xl">{price}</p>
+          </div>
 
           <CardAction>
             <AlertDialog>

@@ -514,7 +514,7 @@ function RegisterPageContent() {
                     </div>
 
                     <p className={hintClass(Boolean(passConfErr))}>
-                      {fieldHint(passConfErr, "Harus sama persis dengan password di atas.")}
+                      {fieldHint(passConfErr, "Password harus sama persis dengan password di atas.")}
                     </p>
                   </div>
 

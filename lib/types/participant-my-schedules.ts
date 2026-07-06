@@ -46,6 +46,20 @@ export type ParticipantRegistrationStatus =
   | "selesai-tes"
   | string;
 
+export type ParticipantAssignedQuestionPackageSection = {
+  code?: string | null;
+  name: string;
+  duration_minutes: number;
+  question_count: number;
+  target_question_count: number;
+};
+
+export type ParticipantAssignedQuestionPackage = {
+  total_duration_minutes: number;
+  total_questions: number;
+  sections?: ParticipantAssignedQuestionPackageSection[];
+};
+
 export type ParticipantMyScheduleListItem = {
   id: number;
   date: string;
@@ -63,6 +77,7 @@ export type ParticipantMyScheduleListItem = {
   attempt_status?: string | null;
   registration?: ParticipantRegistrationInfo;
   payment?: ParticipantPaymentInfo | null;
+  question_package?: ParticipantAssignedQuestionPackage | null;
 };
 
 export type ParticipantMySchedulesResponse = {
@@ -109,10 +124,5 @@ export type ParticipantMyScheduleDetail = {
     download_url: string;
     public_pdf_url?: string | null;
   } | null;
-  question_package: {
-    id: number;
-    name: string;
-    total_duration_minutes: number;
-    total_questions: number;
-  } | null;
+  question_package: ParticipantAssignedQuestionPackage | null;
 };

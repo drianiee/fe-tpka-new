@@ -46,10 +46,7 @@ type StatusOption = { label: string; value: string };
 
 const STATUS_OPTIONS: StatusOption[] = [
   { label: "Semua Status", value: "" },
-  { label: "Tes Belum Dimulai", value: "Tes Belum Dimulai" },
-  { label: "Tes Akan Segera Dimulai", value: "Tes Akan Segera Dimulai" },
-  { label: "Tes Sedang Berlangsung", value: "Tes Sedang Berlangsung" },
-  { label: "Tes Telah Selesai", value: "Tes Telah Selesai" },
+  { label: "Pendaftaran Dibuka", value: "published" },
 ];
 
 function normalizeText(s: string) {
@@ -66,7 +63,7 @@ function isRegistered(row: ParticipantScheduleListItem) {
 
 function isClosedByStatus(row: ParticipantScheduleListItem) {
   const s = normalizeText(row.status ?? "");
-  return s === "tes sedang berlangsung" || s === "tes telah selesai";
+  return s === "tes sedang berlangsung" || s === "tes telah selesai" || s === "closed";
 }
 
 function isLocked(row: ParticipantScheduleListItem) {
@@ -77,6 +74,7 @@ function rowStatusText(row: ParticipantScheduleListItem) {
   if (isFull(row)) return "Kuota penuh";
   if (isRegistered(row)) return "Anda telah terdaftar pada jadwal ini";
   if (isClosedByStatus(row)) return "Jadwal telah berlangsung, tidak dapat daftar";
+  if (normalizeText(row.status ?? "") === "published") return "Pendaftaran dibuka";
   return row.status || "-";
 }
 
@@ -87,6 +85,7 @@ function statusVariantForRow(row: ParticipantScheduleListItem): "muted" | "warni
 
   const s = normalizeText(row.status ?? "");
   if (!s) return "muted";
+  if (s === "published") return "success";
   if (s === "tes belum dimulai") return "muted";
   if (s === "tes akan segera dimulai") return "warning";
   if (s === "tes sedang berlangsung") return "warning";
@@ -160,6 +159,7 @@ export default function PesertaDashboardPage() {
         !q ||
         String(r.id).includes(q) ||
         normalizeText(r.status).includes(q) ||
+        normalizeText(rowStatusText(r)).includes(q) ||
         normalizeText(formatDateId(r.date)).includes(q) ||
         normalizeText(hhmm(r.start_time)).includes(q);
 

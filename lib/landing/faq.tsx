@@ -12,9 +12,11 @@ export const FAQS: FAQ[] = [
     question: "Bagaimana cara mendaftar TPKA?",
     answer: (
       <>
-        Anda dapat mendaftar melalui halaman <strong>Pendaftaran</strong>, isi
-        data diri, pilih jadwal tes, lalu selesaikan pembayaran. Bukti dan tiket
-        akan dikirim ke email.
+        Buat akun terlebih dahulu, verifikasi email, lalu lengkapi profil
+        peserta seperti identitas, tanggal lahir, dan nomor HP. Setelah itu
+        pilih jadwal yang masih tersedia dan lanjutkan pembayaran melalui
+        Midtrans. Jadwal akan masuk ke dashboard setelah pembayaran berhasil
+        dikonfirmasi oleh sistem.
       </>
     ),
   },
@@ -33,8 +35,9 @@ export const FAQS: FAQ[] = [
     question: "Berapa lama durasi pelaksanaan tes?",
     answer: (
       <>
-        Bisa, maksimal <em>H-3</em> dari tanggal tes melalui dashboard peserta,
-        selama kuota jadwal baru masih tersedia.
+        Durasi tes mengikuti pengaturan paket soal pada jadwal yang dipilih.
+        Secara umum tes dibagi menjadi empat sesi: Verbal, Kuantitatif, Logika,
+        dan Spasial. Waktu setiap sesi berjalan sesuai jadwal server, peserta perlu masuk tepat waktu agar durasi tidak terpotong.
       </>
     ),
   },
@@ -43,8 +46,9 @@ export const FAQS: FAQ[] = [
     question: "Apa saja materi yang diujikan?",
     answer: (
       <>
-        Hasil tes biasanya keluar <strong>2–3 hari kerja</strong> setelah
-        pelaksanaan dan dapat diunduh di dashboard.
+        Materi TPKA terdiri dari empat bagian utama, yaitu Verbal,
+        Kuantitatif, Logika, dan Spasial. Setiap bagian dikerjakan dalam sesi
+        terpisah sesuai durasi yang sudah ditentukan pada paket soal.
       </>
     ),
   },
@@ -53,8 +57,33 @@ export const FAQS: FAQ[] = [
     question: "Kapan hasil tes diumumkan?",
     answer: (
       <>
-        Hasil tes biasanya keluar <strong>2–3 hari kerja</strong> setelah
-        pelaksanaan dan dapat diunduh di dashboard.
+        Hasil dihitung otomatis setelah peserta menyelesaikan seluruh sesi
+        ujian. Nilai dan sertifikat dapat dilihat melalui dashboard peserta
+        pada detail jadwal tes yang sudah selesai.
+      </>
+    ),
+  },
+  {
+    id: "jadwal",
+    question: "Mengapa jadwal tertentu tidak muncul di halaman utama?",
+    answer: (
+      <>
+        Halaman utama hanya menampilkan jadwal umum yang belum dimulai dan
+        masih berada dalam periode pendaftaran. Jika batas pendaftaran sudah
+        lewat, kuota penuh, atau jadwal tersebut khusus mitra, jadwal tidak
+        ditampilkan di halaman utama.
+      </>
+    ),
+  },
+  {
+    id: "pembayaran",
+    question: "Kapan pembayaran dianggap berhasil?",
+    answer: (
+      <>
+        Pembayaran dianggap berhasil setelah sistem menerima konfirmasi resmi
+        dari Midtrans. Jika sudah membayar tetapi status belum berubah,
+        tunggu beberapa saat dan cek kembali menu <strong>Jadwal Tes</strong>{" "}
+        di dashboard peserta.
       </>
     ),
   },

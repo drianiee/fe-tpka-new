@@ -18,8 +18,8 @@ export default function FaqSection() {
       <div className="w-full space-y-2 text-primarytpka">
         <p className="text-base md:text-lg font-medium italic text-slate-700">FAQ</p>
         <div className="flex space-y-1 items-baseline flex-col md:flex-row md:space-x-2">
-          <p className="text-2xl md:text-4xl font-semibold">Frequently Asked Questions</p>
-          <p className="text-base font-medium">(Daftar Pertanyaan Umum)</p>
+          <p className="text-2xl md:text-4xl font-semibold">Pertanyaan Umum</p>
+          <p className="text-base font-medium">(FAQ)</p>
         </div>
       </div>
 

@@ -435,7 +435,7 @@ function PartnerOnboardingPageContent() {
                   </div>
 
                   <p className={hintClass(Boolean(passwordConfErr))}>
-                    {fieldHint(passwordConfErr, "Harus sama persis dengan password di atas.")}
+                    {fieldHint(passwordConfErr, "Password harus sama persis dengan password di atas.")}
                   </p>
                 </div>
 

@@ -4,10 +4,11 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Filter } from "lucide-react";
+import { Filter, Info } from "lucide-react";
 
 import { schedulesService } from "@/lib/services/schedules.service";
 import type {
+  ParticipantAssignedQuestionPackage,
   ParticipantMyScheduleListItem,
   ParticipantMySchedulesResponse,
   ParticipantMySchedulesStatusFilter,
@@ -19,8 +20,12 @@ import { formatDateId } from "@/lib/utils/datetime";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import {
   Dialog,
@@ -57,6 +62,107 @@ const STATUS_OPTIONS: StatusOption[] = [
 
 function normalizeText(s: string) {
   return s.trim().toLowerCase();
+}
+
+function safeNumber(v: unknown) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function packageSections(pack?: ParticipantAssignedQuestionPackage | null) {
+  if (!pack?.sections?.length) return [];
+
+  return pack.sections.map((section) => ({
+    name: section.name,
+    questions: safeNumber(
+      section.question_count || section.target_question_count,
+    ),
+    minutes: safeNumber(section.duration_minutes),
+  }));
+}
+
+function TestCompositionInfo({
+  pack,
+}: {
+  pack?: ParticipantAssignedQuestionPackage | null;
+}) {
+  const sections = packageSections(pack);
+  const [open, setOpen] = React.useState(false);
+
+  const openPopover = () => setOpen(true);
+  const closePopover = () => setOpen(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-blue-700 transition hover:bg-blue-100"
+          aria-label="Lihat rincian sesi"
+          onClick={(event) => event.stopPropagation()}
+          onMouseEnter={openPopover}
+          onMouseLeave={closePopover}
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="center"
+        sideOffset={8}
+        className="w-64 p-3"
+        onClick={(event) => event.stopPropagation()}
+        onMouseEnter={openPopover}
+        onMouseLeave={closePopover}
+      >
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-foreground">
+            Rincian Sesi
+          </div>
+          {sections.length ? (
+            <div className="space-y-1.5 text-sm text-muted-foreground">
+              {sections.map((section) => (
+                <div
+                  key={`${section.name}-${section.questions}-${section.minutes}`}
+                  className="flex items-start justify-between gap-3"
+                >
+                  <span className="font-medium text-foreground">
+                    {section.name}
+                  </span>
+                  <span className="text-right">
+                    {section.questions} soal / {section.minutes} menit
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              Rincian sesi belum tersedia.
+            </div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function TestComposition({
+  pack,
+}: {
+  pack?: ParticipantAssignedQuestionPackage | null;
+}) {
+  if (!pack) {
+    return <span className="text-muted-foreground">-</span>;
+  }
+
+  return (
+    <div className="inline-flex items-center justify-center gap-1.5">
+      <span className="text-sm font-medium text-foreground">
+        {safeNumber(pack.total_questions)} soal /{" "}
+        {safeNumber(pack.total_duration_minutes)} menit
+      </span>
+      <TestCompositionInfo pack={pack} />
+    </div>
+  );
 }
 
 function paymentStatusLabel(ps?: string | null) {
@@ -182,9 +288,27 @@ function testStatusLabel(row: ParticipantMyScheduleListItem) {
 
 function canContinuePayment(row: ParticipantMyScheduleListItem) {
   const s = normalizeText(row.payment_status ?? "");
+  const scheduleStatus = normalizeText(testStatusLabel(row));
+
   return (
     (s === "pending" || s === "pending_payment") &&
+    scheduleStatus === "belum dimulai" &&
     Boolean(row.payment?.snap_redirect_url)
+  );
+}
+
+function isExpiredRegistration(row: ParticipantMyScheduleListItem) {
+  const key = normalizeText(row.participant_status_key ?? "");
+  const paymentStatus = normalizeText(row.payment_status ?? "");
+  const registrationStatus = normalizeText(row.registration?.status ?? "");
+  const label = normalizeText(row.participant_status_label ?? "");
+
+  return (
+    key === "payment_expired" ||
+    paymentStatus === "expire" ||
+    paymentStatus === "expired" ||
+    registrationStatus === "expired" ||
+    label.includes("kedaluwarsa")
   );
 }
 
@@ -232,7 +356,7 @@ function ParticipantMySchedulesPageContent() {
   const busy = query.isFetching;
 
   const rows = React.useMemo(() => {
-    const src = query.data?.data ?? [];
+    const src = (query.data?.data ?? []).filter((row) => !isExpiredRegistration(row));
     const q = normalizeText(qText);
 
     if (!q) return src;
@@ -247,6 +371,13 @@ function ParticipantMySchedulesPageContent() {
         testStatusLabel(r),
         participantStatusLabel(r),
         r.payment_status ?? "",
+        r.question_package
+          ? `${r.question_package.total_questions} soal ${r.question_package.total_duration_minutes} menit`
+          : "",
+        ...(r.question_package?.sections ?? []).map(
+          (section) =>
+            `${section.name} ${section.question_count || section.target_question_count} soal ${section.duration_minutes} menit`,
+        ),
       ]
         .join(" ")
         .toLowerCase();
@@ -286,6 +417,8 @@ function ParticipantMySchedulesPageContent() {
     )} - ${hhmm(blockedSchedule.end_time)} WIB`;
   }, [blockedSchedule]);
 
+  const showPackageColumn = rows.some((row) => Boolean(row.question_package));
+
   const columns = React.useMemo<
     DataTableColumn<ParticipantMyScheduleListItem>[]
   >(() => {
@@ -311,6 +444,19 @@ function ParticipantMySchedulesPageContent() {
         className: "py-4 px-2 text-center",
         cell: (row) => `${hhmm(row.start_time)} - ${hhmm(row.end_time)} WIB`,
       },
+      ...(showPackageColumn
+        ? [
+            {
+              key: "test_composition",
+              header: "Jumlah Soal",
+              headerClassName: "w-56 text-center",
+              className: "py-4 px-2 text-center",
+              cell: (row: ParticipantMyScheduleListItem) => (
+                <TestComposition pack={row.question_package} />
+              ),
+            } satisfies DataTableColumn<ParticipantMyScheduleListItem>,
+          ]
+        : []),
       {
         key: "test_status",
         header: "Status Tes",
@@ -377,7 +523,7 @@ function ParticipantMySchedulesPageContent() {
         ),
       },
     ];
-  }, [handleDetailClick]);
+  }, [handleDetailClick, showPackageColumn]);
 
   return (
     <PageHeaderLayout

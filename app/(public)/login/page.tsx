@@ -176,10 +176,6 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
-
-              <p className={hintClass(Boolean(passErr))}>
-                {fieldHint(passErr, "Pastikan caps lock tidak aktif.")}
-              </p>
             </div>
 
             <Button className="w-full" type="submit" disabled={loading}>
