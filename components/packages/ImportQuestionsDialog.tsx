@@ -12,7 +12,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function ImportQuestionsDialog({ packageId }: { packageId: number }) {
+export function ImportQuestionsDialog({
+  packageId,
+  disabled = false,
+}: {
+  packageId: number;
+  disabled?: boolean;
+}) {
   const [open, setOpen] = React.useState(false);
   const [file, setFile] = React.useState<File | null>(null);
   const [result, setResult] = React.useState<ImportQuestionsResponse | null>(null);
@@ -53,7 +59,9 @@ export function ImportQuestionsDialog({ packageId }: { packageId: number }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline">Import Soal</Button>
+        <Button type="button" variant="outline" disabled={disabled}>
+          Import Soal
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>

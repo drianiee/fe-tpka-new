@@ -210,6 +210,12 @@ export function QuestionPackageDetail({
     sections[0] ??
     null;
   const questions = questionsQuery.data?.data ?? [];
+  const activeSectionLimit = activeSection?.target_question_count ?? 0;
+  const activeSectionCount = activeSection?.question_count ?? 0;
+  const isActiveSectionFull =
+    Boolean(activeSection) &&
+    activeSectionLimit > 0 &&
+    activeSectionCount >= activeSectionLimit;
   const nextStatus = item.status === "published" ? "archived" : "published";
   const parsedBaseScore = Math.max(0, Number(baseScoreInput) || 0);
   const parsedCorrectAnswerScore = Math.max(
@@ -339,7 +345,9 @@ export function QuestionPackageDetail({
                 Soal {activeSection?.name ?? ""}
               </div>
               <div className="text-sm text-muted-foreground">
-                Kelola soal untuk section aktif.
+                {activeSection
+                  ? `Kelola soal untuk section aktif. ${activeSectionCount}/${activeSectionLimit} soal terisi.`
+                  : "Kelola soal untuk section aktif."}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -347,12 +355,26 @@ export function QuestionPackageDetail({
                 <QuestionFormDialog
                   packageId={item.id}
                   section={activeSection}
-                  trigger={<Button type="button">Tambah Soal</Button>}
+                  trigger={
+                    <Button type="button" disabled={isActiveSectionFull}>
+                      Tambah Soal
+                    </Button>
+                  }
                 />
               ) : null}
-              <ImportQuestionsDialog packageId={item.id} />
+              <ImportQuestionsDialog
+                packageId={item.id}
+                disabled={isActiveSectionFull}
+              />
             </div>
           </div>
+
+          {isActiveSectionFull ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Section {activeSection?.name} sudah penuh. Maksimal{" "}
+              {activeSectionLimit} soal.
+            </div>
+          ) : null}
 
           {questionsQuery.isLoading ? (
             <div className="text-sm text-muted-foreground">Memuat soal...</div>

@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CreditCard, Download, Info, Play } from "lucide-react";
+import { AlertTriangle, CreditCard, Download, Info, Play } from "lucide-react";
 
 import { schedulesService } from "@/lib/services/schedules.service";
 import type {
@@ -22,6 +22,11 @@ import { openWithBearer } from "@/lib/utils/download";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import {
   Popover,
   PopoverContent,
@@ -295,6 +300,19 @@ export default function ParticipantMyScheduleDetailPage() {
   const id = params?.id;
   const router = useRouter();
   const [startConfirmOpen, setStartConfirmOpen] = React.useState(false);
+  const [isSmallDevice, setIsSmallDevice] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsSmallDevice(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener("change", update);
+
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
 
   const query = useQuery<ParticipantMyScheduleDetail>({
     queryKey: [API_ENDPOINTS.PARTICIPANT.MY_SCHEDULE_DETAIL(id ?? "none")],
@@ -330,6 +348,7 @@ export default function ParticipantMyScheduleDetailPage() {
   });
 
   const canStart = Boolean(d?.can_start) || Boolean(d?.attempt_id);
+  const canStartOnThisDevice = canStart && !isSmallDevice;
 
   return (
     <PageHeaderLayout
@@ -405,6 +424,34 @@ export default function ParticipantMyScheduleDetailPage() {
                 value={<TestComposition pack={d.question_package} />}
               />
 
+              {!isFinished ? (
+                <Alert className="border-red-200 bg-red-50 text-red-700 [&_div[data-slot=alert-description]]:text-red-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>
+                    Perhatian sebelum memulai tes
+                  </AlertTitle>
+                  <AlertDescription>
+                    Anda akan diarahkan ke window baru saat tes dimulai.
+                    Perpindahan window, pindah tab, minimize browser, atau
+                    keluar fullscreen dapat langsung terdeteksi sebagai
+                    pelanggaran dan ujian akan segera dihentikan.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {isSmallDevice ? (
+                <Alert className="border-red-200 bg-red-50 text-red-700 [&_div[data-slot=alert-description]]:text-red-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>
+                    Ujian hanya bisa dibuka di perangkat besar
+                  </AlertTitle>
+                  <AlertDescription>
+                    Akses ujian dari HP tidak diizinkan. Silakan gunakan laptop
+                    atau desktop agar tombol mulai tes bisa digunakan.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
               <div className="pt-3 items-center flex flex-col space-y-2 justify-center">
                 {canContinuePayment && d.payment?.snap_redirect_url ? (
                   <Button
@@ -419,7 +466,7 @@ export default function ParticipantMyScheduleDetailPage() {
                 ) : null}
                 {!isFinished ? (
                   <Button
-                    disabled={!canStart}
+                    disabled={!canStartOnThisDevice}
                     onClick={() =>
                       d.attempt_id
                         ? router.push(`/exams/${d.attempt_id}`)
@@ -447,6 +494,12 @@ export default function ParticipantMyScheduleDetailPage() {
                     <span className="font-medium text-foreground">
                       {hhmm(d.start_time)}
                     </span>
+                  </div>
+                ) : null}
+                {!isFinished && canStart && isSmallDevice ? (
+                  <div className="text-xs text-red-600">
+                    Tombol mulai tes dinonaktifkan di perangkat kecil. Buka
+                    dari laptop atau desktop.
                   </div>
                 ) : null}
                 {isFinished ? (
@@ -596,8 +649,8 @@ export default function ParticipantMyScheduleDetailPage() {
               <DialogHeader>
                 <DialogTitle>Tes akan dimulai</DialogTitle>
                 <DialogDescription>
-                  Pastikan Anda sudah siap sebelum memulai. Sistem akan masuk
-                  fullscreen dan mode pengawasan ketat akan aktif selama ujian.
+                  Setelah Anda menekan tombol mulai, sistem akan membuka ujian
+                  di window baru dan mode pengawasan akan langsung aktif.
                 </DialogDescription>
               </DialogHeader>
 
@@ -613,9 +666,9 @@ export default function ParticipantMyScheduleDetailPage() {
               </div>
 
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                Jangan pindah tab, pindah window, minimize browser, membuka
-                aplikasi lain, atau keluar fullscreen. Pelanggaran pertama akan
-                langsung mengakhiri ujian.
+                Ujian akan dibuka di window baru. Pindah tab atau window dapat
+                langsung terdeteksi sebagai pelanggaran dan ujian akan
+                dihentikan. Gunakan laptop atau desktop.
               </div>
 
               <DialogFooter className="gap-2">
@@ -630,7 +683,7 @@ export default function ParticipantMyScheduleDetailPage() {
                 <Button
                   type="button"
                   onClick={() => startMutation.mutate()}
-                  disabled={startMutation.isPending}
+                  disabled={startMutation.isPending || isSmallDevice}
                   className="gap-2"
                 >
                   <Play className="h-4 w-4" />
