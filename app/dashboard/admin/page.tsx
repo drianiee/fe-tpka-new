@@ -387,7 +387,7 @@ export default function DashboardPage() {
 
   return (
     <PageHeaderLayout
-      title="Beranda Admin"
+      title="Beranda"
       description="Ringkasan peserta, pembayaran, dan jadwal ujian terbaru."
       showBack={false}
     >

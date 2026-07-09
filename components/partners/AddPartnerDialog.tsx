@@ -114,7 +114,7 @@ export function AddPartnerDialog() {
               </div>
               <Input
                 id="partner-name"
-                placeholder="Contoh: Deli Park"
+                placeholder="Contoh: Mitra Kita"
                 disabled={busy}
                 {...form.register("name")}
               />
@@ -139,7 +139,7 @@ export function AddPartnerDialog() {
                 <Label htmlFor="pic-name">Nama PIC</Label>
                 <Input
                   id="pic-name"
-                  placeholder="Contoh: Andrian"
+                  placeholder="Contoh: Indah Kusuma"
                   disabled={busy}
                   {...form.register("contact_name")}
                 />
@@ -170,7 +170,7 @@ export function AddPartnerDialog() {
                 <Input
                   id="pic-email"
                   type="email"
-                  placeholder="Contoh: andrian@mitra.co.id"
+                  placeholder="Contoh: mitra@mitra.co.id"
                   disabled={busy}
                   {...form.register("contact_email")}
                 />

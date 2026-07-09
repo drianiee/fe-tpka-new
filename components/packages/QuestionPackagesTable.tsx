@@ -182,11 +182,9 @@ export function QuestionPackagesTable() {
         className: "py-4 px-2",
         cell: (row) => (
           <div className="text-xs leading-5">
-            <div>Template: {row.base_score}</div>
-            <div>Benar: +{row.correct_answer_score}/soal</div>
-            <div>
-              Maks: {row.base_score + (row.target_total_questions ?? 0) * row.correct_answer_score}
-            </div>
+            <div>Dasar: {row.base_score}</div>
+            <div>Maksimum: {row.max_score}</div>
+            <div>Total: rata-rata 4 subtes</div>
           </div>
         ),
       },

@@ -19,6 +19,7 @@ import { ArrowLeft, Save, Power, Plus, Trash2, Loader2 } from "lucide-react";
 import { certificateService } from "@/lib/services/certificate.service";
 import type {
   Certificate,
+  CertificateFontWeight,
   CertificateLayoutJson,
   CertificateFieldPlacement,
   CertificateFieldPlacementText,
@@ -35,7 +36,15 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 const DEFAULT_CANVAS = { width: 2000, height: 1414 };
-const FONT_FAMILY = "Arial";
+const FONT_FAMILY = "Inter";
+const DEFAULT_FONT_WEIGHT: CertificateFontWeight = "normal";
+const FONT_FAMILY_OPTIONS = ["Inter", "Arial", "Helvetica", "DejaVu Sans"] as const;
+const FONT_WEIGHT_OPTIONS: Array<{ label: string; value: CertificateFontWeight; previewClass: string }> = [
+  { label: "Normal", value: "normal", previewClass: "font-normal" },
+  { label: "Medium", value: "medium", previewClass: "font-medium" },
+  { label: "Semi Bold", value: "semibold", previewClass: "font-semibold" },
+  { label: "Bold", value: "bold", previewClass: "font-bold" },
+];
 const SAMPLE_QR_DATA_URI =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(`
@@ -86,6 +95,7 @@ type ApiTextField = {
   align?: string;
   color?: string;
   fontFamily?: string;
+  fontWeight?: string;
   width?: number;
 };
 
@@ -119,6 +129,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   certificate_no: {
     type: "text",
@@ -128,6 +139,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   exam_date: {
     type: "text",
@@ -137,6 +149,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   score_verbal: {
     type: "text",
@@ -146,6 +159,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   score_kuantitatif: {
     type: "text",
@@ -155,6 +169,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   score_logika: {
     type: "text",
@@ -164,6 +179,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   score_spasial: {
     type: "text",
@@ -173,6 +189,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   score_total: {
     type: "text",
@@ -182,6 +199,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   sign_name: {
     type: "text",
@@ -191,6 +209,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   sign_nip: {
     type: "text",
@@ -200,6 +219,7 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
     align: "left",
     color: "#0f172a",
     fontFamily: FONT_FAMILY,
+    fontWeight: DEFAULT_FONT_WEIGHT,
   },
   sign_image: {
     type: "image",
@@ -280,6 +300,145 @@ function estimateTextBoxHeight(
   const measured = measureTextWidth(text, fontSize, fontFamily);
   const lines = Math.max(1, Math.ceil(measured / Math.max(40, width)));
   return Math.max(fontSize * 1.25, lines * fontSize * 1.25);
+}
+
+function normalizeFontWeight(value: unknown): CertificateFontWeight {
+  return value === "medium" || value === "semibold" || value === "bold"
+    ? value
+    : "normal";
+}
+
+function konvaFontStyle(weight?: CertificateFontWeight): "normal" | "bold" {
+  return weight === "bold" || weight === "semibold" ? "bold" : "normal";
+}
+
+function scaleFieldsToCanvas(
+  source: CertificateLayoutJson["fields"],
+  fromCanvas: { width: number; height: number },
+  toCanvas: { width: number; height: number }
+): CertificateLayoutJson["fields"] {
+  const scaleX = toCanvas.width / Math.max(1, fromCanvas.width);
+  const scaleY = toCanvas.height / Math.max(1, fromCanvas.height);
+  const scaleText = Math.min(scaleX, scaleY);
+
+  return Object.fromEntries(
+    Object.entries(source).map(([key, field]) => {
+      if (isQrField(field)) {
+        return [
+          key,
+          {
+            ...field,
+            x: Math.round(field.x * scaleX),
+            y: Math.round(field.y * scaleY),
+            size: Math.max(20, Math.round(field.size * scaleText)),
+          } satisfies CertificateFieldPlacementQr,
+        ];
+      }
+
+      if (isImageField(field)) {
+        return [
+          key,
+          {
+            ...field,
+            x: Math.round(field.x * scaleX),
+            y: Math.round(field.y * scaleY),
+            width: Math.max(20, Math.round(field.width * scaleX)),
+            height: Math.max(20, Math.round(field.height * scaleY)),
+          } satisfies CertificateFieldPlacementImage,
+        ];
+      }
+
+      return [
+        key,
+        {
+          ...field,
+          x: Math.round(field.x * scaleX),
+          y: Math.round(field.y * scaleY),
+          fontSize: Math.max(8, Math.round(field.fontSize * scaleText)),
+          width:
+            typeof field.width === "number"
+              ? Math.max(40, Math.round(field.width * scaleX))
+              : field.width,
+        } satisfies CertificateFieldPlacementText,
+      ];
+    })
+  );
+}
+
+function clampFieldsToCanvas(
+  source: CertificateLayoutJson["fields"],
+  canvas: { width: number; height: number }
+): CertificateLayoutJson["fields"] {
+  return Object.fromEntries(
+    Object.entries(source).map(([key, field]) => {
+      if (isQrField(field)) {
+        const size = Math.max(20, Math.min(field.size, Math.min(canvas.width, canvas.height)));
+        return [
+          key,
+          {
+            ...field,
+            size,
+            x: Math.max(0, Math.min(field.x, canvas.width - size)),
+            y: Math.max(0, Math.min(field.y, canvas.height - size)),
+          } satisfies CertificateFieldPlacementQr,
+        ];
+      }
+
+      if (isImageField(field)) {
+        const width = Math.max(20, Math.min(field.width, canvas.width));
+        const height = Math.max(20, Math.min(field.height, canvas.height));
+        return [
+          key,
+          {
+            ...field,
+            width,
+            height,
+            x: Math.max(0, Math.min(field.x, canvas.width - width)),
+            y: Math.max(0, Math.min(field.y, canvas.height - height)),
+          } satisfies CertificateFieldPlacementImage,
+        ];
+      }
+
+      const width = typeof field.width === "number"
+        ? Math.max(40, Math.min(field.width, canvas.width))
+        : field.width;
+
+      return [
+        key,
+        {
+          ...field,
+          width,
+          x: Math.max(0, Math.min(field.x, canvas.width - 40)),
+          y: Math.max(0, Math.min(field.y, canvas.height - field.fontSize)),
+        } satisfies CertificateFieldPlacementText,
+      ];
+    })
+  );
+}
+
+function fitImageToFrame(
+  frameWidth: number,
+  frameHeight: number,
+  imageWidth?: number,
+  imageHeight?: number
+) {
+  const safeFrameWidth = Math.max(20, frameWidth);
+  const safeFrameHeight = Math.max(20, frameHeight);
+  const safeImageWidth = Math.max(1, imageWidth ?? safeFrameWidth);
+  const safeImageHeight = Math.max(1, imageHeight ?? safeFrameHeight);
+  const scale = Math.min(
+    safeFrameWidth / safeImageWidth,
+    safeFrameHeight / safeImageHeight
+  );
+  const width = Math.max(1, Math.round(safeImageWidth * scale));
+  const height = Math.max(1, Math.round(safeImageHeight * scale));
+
+  return {
+    width,
+    height,
+    offsetX: Math.round((safeFrameWidth - width) / 2),
+    offsetY: Math.round((safeFrameHeight - height) / 2),
+  };
 }
 
 function isTextField(
@@ -366,6 +525,7 @@ function normalizeFieldsFromApi(
         align: v.align === "center" || v.align === "right" ? v.align : "left",
         color: typeof v.color === "string" ? v.color : "#0f172a",
         fontFamily: typeof v.fontFamily === "string" ? v.fontFamily : FONT_FAMILY,
+        fontWeight: normalizeFontWeight(v.fontWeight),
         width: typeof v.width === "number" ? v.width : undefined,
       };
     }
@@ -392,6 +552,7 @@ function toApiFieldsPayload(
         align: v.align,
         color: v.color,
         fontFamily: v.fontFamily,
+        fontWeight: v.fontWeight,
         width: v.width,
       };
     }
@@ -430,21 +591,28 @@ export default function AdminCertificateLayoutPage() {
 
     const lj = cert.layout_json;
     if (!lj) {
-      setCanvasW(DEFAULT_CANVAS.width);
-      setCanvasH(DEFAULT_CANVAS.height);
+      const nextCanvas = { width: DEFAULT_CANVAS.width, height: DEFAULT_CANVAS.height };
+      setCanvasW(nextCanvas.width);
+      setCanvasH(nextCanvas.height);
       setFields({ ...DEFAULT_FIELDS });
       setSelectedKey(null);
       return;
     }
 
-    setCanvasW(lj.canvas?.width ?? DEFAULT_CANVAS.width);
-    setCanvasH(lj.canvas?.height ?? DEFAULT_CANVAS.height);
+    const nextCanvas = {
+      width: lj.canvas?.width ?? DEFAULT_CANVAS.width,
+      height: lj.canvas?.height ?? DEFAULT_CANVAS.height,
+    };
+    setCanvasW(nextCanvas.width);
+    setCanvasH(nextCanvas.height);
 
     const rawFields = (lj as unknown as { fields?: unknown }).fields;
     const normalized = normalizeFieldsFromApi(rawFields);
 
     setFields(
-      Object.keys(normalized).length > 0 ? normalized : { ...DEFAULT_FIELDS }
+      Object.keys(normalized).length > 0
+        ? clampFieldsToCanvas(normalized, nextCanvas)
+        : clampFieldsToCanvas({ ...DEFAULT_FIELDS }, nextCanvas)
     );
 
     setSelectedKey(null);
@@ -481,6 +649,13 @@ export default function AdminCertificateLayoutPage() {
     if (width > 0 && height > 0) {
       setCanvasW(width);
       setCanvasH(height);
+      setFields((prev) =>
+        scaleFieldsToCanvas(
+          prev,
+          { width: DEFAULT_CANVAS.width, height: DEFAULT_CANVAS.height },
+          { width, height }
+        )
+      );
     }
   }, [bgImg, certQ.data?.layout_json]);
 
@@ -570,6 +745,21 @@ export default function AdminCertificateLayoutPage() {
     setFields((prev) => ({ ...prev, [key]: val }));
   }
 
+  function resizeCanvas(nextWidth: number, nextHeight: number) {
+    const safeWidth = Math.max(1, nextWidth);
+    const safeHeight = Math.max(1, nextHeight);
+
+    setFields((prev) =>
+      scaleFieldsToCanvas(
+        prev,
+        { width: canvasW, height: canvasH },
+        { width: safeWidth, height: safeHeight }
+      )
+    );
+    setCanvasW(safeWidth);
+    setCanvasH(safeHeight);
+  }
+
   function removeSelected() {
     if (!selectedKey) return;
     setFields((prev) => {
@@ -591,12 +781,13 @@ export default function AdminCertificateLayoutPage() {
 
     upsertField(k, {
       type: "text",
-      x: 300,
-      y: 300,
-      fontSize: 48,
+      x: Math.round(canvasW * 0.15),
+      y: Math.round(canvasH * 0.2),
+      fontSize: Math.max(16, Math.round(Math.min(canvasW, canvasH) * 0.03)),
       align: "left",
       color: "#0f172a",
       fontFamily: FONT_FAMILY,
+      fontWeight: DEFAULT_FONT_WEIGHT,
     });
 
     setSelectedKey(k);
@@ -611,9 +802,9 @@ export default function AdminCertificateLayoutPage() {
 
     upsertField(k, {
       type: "qr",
-      x: 1700,
-      y: 1100,
-      size: 220,
+      x: Math.max(20, Math.round(canvasW * 0.82)),
+      y: Math.max(20, Math.round(canvasH * 0.78)),
+      size: Math.max(80, Math.round(Math.min(canvasW, canvasH) * 0.11)),
     });
 
     setSelectedKey(k);
@@ -630,8 +821,8 @@ export default function AdminCertificateLayoutPage() {
 
     upsertField(key, {
       type: "image",
-      x: key === "sign_image" ? 1350 : 1600,
-      y: key === "sign_image" ? 950 : 980,
+      x: key === "sign_image" ? Math.round(canvasW * 0.67) : Math.round(canvasW * 0.8),
+      y: key === "sign_image" ? Math.round(canvasH * 0.67) : Math.round(canvasH * 0.69),
       width: image ? image.naturalWidth || image.width : fallback.width,
       height: image ? image.naturalHeight || image.height : fallback.height,
     });
@@ -660,7 +851,12 @@ export default function AdminCertificateLayoutPage() {
         setCanvasW(lj.canvas.width);
         setCanvasH(lj.canvas.height);
         const rawFields = (lj as unknown as { fields?: unknown }).fields;
-        setFields(normalizeFieldsFromApi(rawFields));
+        setFields(
+          clampFieldsToCanvas(normalizeFieldsFromApi(rawFields), {
+            width: lj.canvas.width,
+            height: lj.canvas.height,
+          })
+        );
       }
       setSelectedKey(null);
     },
@@ -924,6 +1120,12 @@ export default function AdminCertificateLayoutPage() {
                         const height = Math.max(16, fp.height * previewScale);
                         const image = key === "sign_image" ? signImg : stampImg;
                         const label = key === "sign_image" ? "TTD" : "Stempel";
+                        const fitted = fitImageToFrame(
+                          width,
+                          height,
+                          image?.naturalWidth || image?.width,
+                          image?.naturalHeight || image?.height
+                        );
 
                         return (
                           <Group
@@ -955,11 +1157,24 @@ export default function AdminCertificateLayoutPage() {
                             onTransformEnd={(ev) => {
                               const node = ev.target;
                               const scaleX = node.scaleX();
-                              const scaleY = node.scaleY();
                               const nx = node.x() / previewScale;
                               const ny = node.y() / previewScale;
-                              const width = Math.max(20, Math.round(fp.width * scaleX));
-                              const height = Math.max(20, Math.round(fp.height * scaleY));
+                              const width = Math.max(
+                                20,
+                                Math.round(fp.width * scaleX)
+                              );
+                              const sourceWidth =
+                                image?.naturalWidth || image?.width || fp.width;
+                              const sourceHeight =
+                                image?.naturalHeight || image?.height || fp.height;
+                              const aspectRatio =
+                                sourceWidth > 0 && sourceHeight > 0
+                                  ? sourceHeight / sourceWidth
+                                  : fp.height / Math.max(1, fp.width);
+                              const height = Math.max(
+                                20,
+                                Math.round(width * aspectRatio)
+                              );
 
                               node.scaleX(1);
                               node.scaleY(1);
@@ -988,10 +1203,10 @@ export default function AdminCertificateLayoutPage() {
                             {image ? (
                               <KonvaImage
                                 image={image}
-                                x={0}
-                                y={0}
-                                width={width}
-                                height={height}
+                                x={fitted.offsetX}
+                                y={fitted.offsetY}
+                                width={fitted.width}
+                                height={fitted.height}
                               />
                             ) : (
                               <Rect
@@ -1065,6 +1280,7 @@ export default function AdminCertificateLayoutPage() {
                               align: fp.align,
                               color: fp.color,
                               fontFamily: fp.fontFamily,
+                              fontWeight: fp.fontWeight,
                               width: fp.width,
                             });
                           }}
@@ -1086,6 +1302,7 @@ export default function AdminCertificateLayoutPage() {
                               align: fp.align,
                               color: fp.color,
                               fontFamily: fp.fontFamily,
+                              fontWeight: fp.fontWeight,
                               width,
                             });
                           }}
@@ -1110,6 +1327,7 @@ export default function AdminCertificateLayoutPage() {
                             align={fp.align}
                             fontSize={fontSize}
                             fontFamily={fp.fontFamily ?? FONT_FAMILY}
+                            fontStyle={konvaFontStyle(fp.fontWeight)}
                             fill={isSel ? "#1d4ed8" : fp.color ?? "#0f172a"}
                             wrap="word"
                           />
@@ -1120,6 +1338,10 @@ export default function AdminCertificateLayoutPage() {
                     <Transformer
                       ref={transformerRef}
                       enabledAnchors={transformerAnchors}
+                      keepRatio={
+                        Boolean(selectedKey) &&
+                        Boolean(selectedKey && isImageField(fields[selectedKey]))
+                      }
                       rotateEnabled={false}
                       ignoreStroke
                       borderStroke="#2563eb"
@@ -1156,7 +1378,9 @@ export default function AdminCertificateLayoutPage() {
                   <div className="text-xs text-muted-foreground">Canvas W</div>
                   <Input
                     value={String(canvasW)}
-                    onChange={(e) => setCanvasW(Number(e.target.value || 0))}
+                    onChange={(e) =>
+                      resizeCanvas(Number(e.target.value || 0), canvasH)
+                    }
                     disabled={busy}
                   />
                 </div>
@@ -1165,7 +1389,9 @@ export default function AdminCertificateLayoutPage() {
                   <div className="text-xs text-muted-foreground">Canvas H</div>
                   <Input
                     value={String(canvasH)}
-                    onChange={(e) => setCanvasH(Number(e.target.value || 0))}
+                    onChange={(e) =>
+                      resizeCanvas(canvasW, Number(e.target.value || 0))
+                    }
                     disabled={busy}
                   />
                 </div>
@@ -1351,6 +1577,7 @@ export default function AdminCertificateLayoutPage() {
                               align: v.align,
                               color: v.color,
                               fontFamily: v.fontFamily,
+                              fontWeight: v.fontWeight,
                               width: v.width,
                             });
                           } else if (isImageField(v)) {
@@ -1391,6 +1618,7 @@ export default function AdminCertificateLayoutPage() {
                               align: v.align,
                               color: v.color,
                               fontFamily: v.fontFamily,
+                              fontWeight: v.fontWeight,
                               width: v.width,
                             });
                           } else if (isImageField(v)) {
@@ -1435,6 +1663,7 @@ export default function AdminCertificateLayoutPage() {
                             align: v.align,
                             color: v.color,
                             fontFamily: v.fontFamily,
+                            fontWeight: v.fontWeight,
                             width: v.width,
                           });
                         }}
@@ -1468,6 +1697,7 @@ export default function AdminCertificateLayoutPage() {
                             align: v.align,
                             color: v.color,
                             fontFamily: v.fontFamily,
+                            fontWeight: v.fontWeight,
                             width: Math.max(40, width),
                           });
                         }}
@@ -1504,6 +1734,7 @@ export default function AdminCertificateLayoutPage() {
                                 align,
                                 color: v.color,
                                 fontFamily: v.fontFamily,
+                                fontWeight: v.fontWeight,
                                 width: v.width,
                               });
                             }}
@@ -1541,7 +1772,7 @@ export default function AdminCertificateLayoutPage() {
                         <div className="text-xs text-muted-foreground">
                           Font Family
                         </div>
-                        <Input
+                        <select
                           value={selected.val.fontFamily ?? FONT_FAMILY}
                           onChange={(e) => {
                             const v = selected.val;
@@ -1553,8 +1784,49 @@ export default function AdminCertificateLayoutPage() {
                             });
                           }}
                           disabled={busy}
-                          placeholder={FONT_FAMILY}
-                        />
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                          {FONT_FAMILY_OPTIONS.map((font) => (
+                            <option key={font} value={font}>
+                              {font}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {isTextField(selected.val) ? (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">
+                        Font Weight
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {FONT_WEIGHT_OPTIONS.map((option) => (
+                          <Button
+                            key={option.value}
+                            type="button"
+                            variant={
+                              (selected.val.fontWeight ?? DEFAULT_FONT_WEIGHT) === option.value
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            disabled={busy}
+                            className={option.previewClass}
+                            onClick={() => {
+                              const v = selected.val;
+                              if (!isTextField(v)) return;
+
+                              upsertField(selected.key, {
+                                ...v,
+                                fontWeight: option.value,
+                              });
+                            }}
+                          >
+                            {option.label}
+                          </Button>
+                        ))}
                       </div>
                     </div>
                   ) : null}

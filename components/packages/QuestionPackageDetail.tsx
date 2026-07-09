@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, ExternalLink, Trash } from "lucide-react";
+import { Edit, ExternalLink, Settings2, Trash } from "lucide-react";
 import { MathText } from "@/components/common/MathText";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
@@ -21,6 +21,14 @@ import { ImportQuestionsDialog } from "@/components/packages/ImportQuestionsDial
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -78,8 +86,9 @@ export function QuestionPackageDetail({
   const [activeSectionId, setActiveSectionId] = React.useState<number | null>(
     null,
   );
+  const [isScoringDialogOpen, setIsScoringDialogOpen] = React.useState(false);
   const [baseScoreInput, setBaseScoreInput] = React.useState("200");
-  const [correctAnswerScoreInput, setCorrectAnswerScoreInput] = React.useState("2");
+  const [scoreSpanInput, setScoreSpanInput] = React.useState("600");
 
   const detailQuery = useQuery({
     queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.DETAIL(packageId)],
@@ -101,8 +110,8 @@ export function QuestionPackageDetail({
 
   React.useEffect(() => {
     if (!item) return;
-    setBaseScoreInput(String(item.base_score));
-    setCorrectAnswerScoreInput(String(item.correct_answer_score));
+    setBaseScoreInput(String(item.base_score ?? 200));
+    setScoreSpanInput(String(item.score_span ?? 600));
   }, [item]);
 
   const questionsQuery = useQuery({
@@ -159,29 +168,22 @@ export function QuestionPackageDetail({
     onError: (e) => toast.error(getApiErrorMessage(e)),
   });
 
-  const updateScoringMutation = useMutation({
-    mutationFn: () => {
-      if (!item) throw new Error("Paket tidak ditemukan.");
-
-      return questionPackagesService.update(packageId, {
-        name: item.name,
-        total_duration_minutes: item.total_duration_minutes,
-        target_total_questions: item.target_total_questions,
+  const scoringMutation = useMutation({
+    mutationFn: () =>
+      questionPackagesService.update(packageId, {
+        name: item?.name ?? "",
+        total_duration_minutes: item?.total_duration_minutes ?? 0,
+        target_total_questions: item?.target_total_questions ?? 0,
         base_score: Math.max(0, Number(baseScoreInput) || 0),
-        correct_answer_score: Math.max(0, Number(correctAnswerScoreInput) || 0),
+        score_span: Math.max(0, Number(scoreSpanInput) || 0),
         sections: sections.map((section) => ({
-          code: section.code as
-            | "verbal"
-            | "kuantitatif"
-            | "logika"
-            | "spasial",
+          code: section.code as "verbal" | "kuantitatif" | "logika" | "spasial",
           duration_minutes: section.duration_minutes,
           target_question_count: section.target_question_count,
         })),
-      });
-    },
+      }),
     onSuccess: (res) => {
-      toast.success(res.message ?? "Pengaturan nilai diperbarui");
+      toast.success(res.message ?? "Konfigurasi skor diperbarui");
       qc.invalidateQueries({
         queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.BASE],
       });
@@ -227,14 +229,9 @@ export function QuestionPackageDetail({
     activeSectionLimit > 0 &&
     activeSectionCount >= activeSectionLimit;
   const nextStatus = item.status === "published" ? "archived" : "published";
-  const parsedBaseScore = Math.max(0, Number(baseScoreInput) || 0);
-  const parsedCorrectAnswerScore = Math.max(
-    0,
-    Number(correctAnswerScoreInput) || 0,
-  );
-  const maxScore =
-    parsedBaseScore +
-    (item.target_total_questions ?? 0) * parsedCorrectAnswerScore;
+  const baseScore = Math.max(0, Number(baseScoreInput) || 0);
+  const scoreSpan = Math.max(0, Number(scoreSpanInput) || 0);
+  const maxScore = baseScore + scoreSpan;
 
   return (
     <PageHeaderLayout
@@ -270,6 +267,109 @@ export function QuestionPackageDetail({
                   <ExternalLink className="w-4 h-4" />
                 </Link>
               </Button>
+              <Dialog
+                open={isScoringDialogOpen}
+                onOpenChange={setIsScoringDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" className="gap-2">
+                    <Settings2 className="h-4 w-4" />
+                    Settings
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Konfigurasi Skor TPKA</DialogTitle>
+                    <DialogDescription>
+                      Atur nilai dasar dan rentang kenaikan skor untuk semua
+                      subtes. Perhitungan tetap dilakukan di backend saat submit
+                      ujian.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4">
+                    <div className="rounded-xl border p-4">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium">
+                            Konfigurasi Skor TPKA
+                          </div>
+                          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                            <div>
+                              Setiap subtes dihitung dari nilai dasar ditambah
+                              proporsi jawaban benar.
+                            </div>
+                            <div>
+                              Skor total dihitung dari rata-rata seluruh skor
+                              subtes, lalu dibulatkan ke bilangan bulat.
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2 lg:min-w-[420px]">
+                          <div className="space-y-2">
+                            <Label>Nilai dasar subtes</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={baseScoreInput}
+                              onChange={(e) =>
+                                setBaseScoreInput(e.target.value)
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Rentang kenaikan skor</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={scoreSpanInput}
+                              onChange={(e) =>
+                                setScoreSpanInput(e.target.value)
+                              }
+                            />
+                          </div>
+                          <div className="rounded-lg border bg-slate-50 p-3 text-sm md:col-span-2">
+                            <div className="font-medium">
+                              Nilai maksimum subtes: {maxScore}
+                            </div>
+                            <div className="mt-1 text-muted-foreground">
+                              Rumus umum:{" "}
+                              <code>{`round(${baseScore} + (benar / total_soal) × ${scoreSpan})`}</code>
+                            </div>
+                          </div>
+                          <div className="md:col-span-2 flex justify-end">
+                            <Button
+                              type="button"
+                              onClick={() => scoringMutation.mutate()}
+                              disabled={scoringMutation.isPending}
+                            >
+                              {scoringMutation.isPending
+                                ? "Menyimpan..."
+                                : "Simpan Konfigurasi Nilai"}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        {sections.map((section) => (
+                          <div
+                            key={section.id}
+                            className="rounded-lg border bg-slate-50 p-3"
+                          >
+                            <div className="font-medium">{section.name}</div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {`round(${baseScore} + (benar / ${section.target_question_count}) × ${scoreSpan})`}
+                            </div>
+                            <div className="mt-2 text-xs text-muted-foreground">
+                              Skor minimum {baseScore}, maksimum {maxScore}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Button
                 type="button"
                 variant={item.status === "published" ? "outline" : "blue"}
@@ -293,39 +393,6 @@ export function QuestionPackageDetail({
           </div>
 
           <Separator />
-
-          <div className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
-            <div className="space-y-2">
-              <Label>Nilai Template</Label>
-              <Input
-                type="number"
-                min={0}
-                value={baseScoreInput}
-                onChange={(e) => setBaseScoreInput(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nilai per Jawaban Benar</Label>
-              <Input
-                type="number"
-                min={0}
-                value={correctAnswerScoreInput}
-                onChange={(e) => setCorrectAnswerScoreInput(e.target.value)}
-              />
-            </div>
-            <Button
-              type="button"
-              className="md:min-w-32"
-              disabled={updateScoringMutation.isPending}
-              onClick={() => updateScoringMutation.mutate()}
-            >
-              {updateScoringMutation.isPending ? "Menyimpan..." : "Simpan Nilai"}
-            </Button>
-            <div className="text-sm text-muted-foreground md:col-span-3">
-              Rumus nilai: {parsedBaseScore} + ({item.target_total_questions ?? 0} x{" "}
-              {parsedCorrectAnswerScore}) = maksimal {maxScore}
-            </div>
-          </div>
 
           <div className="grid gap-3 md:grid-cols-4">
             {sections.map((section: ExamSection) => (

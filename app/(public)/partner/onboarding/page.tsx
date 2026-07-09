@@ -303,7 +303,7 @@ function PartnerOnboardingPageContent() {
       <div className="flex items-center justify-center px-6 py-10">
         <div className="w-full max-w-lg space-y-6">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Onboarding Peserta Mitra</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Onboarding Peserta</h1>
             <p className="text-sm text-muted-foreground">
               {preview?.schedule?.title
                 ? `Jadwal: ${preview.schedule.title}`

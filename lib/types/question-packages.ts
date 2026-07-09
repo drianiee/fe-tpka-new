@@ -21,7 +21,8 @@ export type QuestionPackage = {
   total_questions: number;
   target_total_questions: number;
   base_score: number;
-  correct_answer_score: number;
+  score_span: number;
+  max_score: number;
   sections_count?: number;
   sections?: ExamSection[];
   summary?: Record<string, number>;
@@ -36,7 +37,7 @@ export type CreateQuestionPackageRequest = {
   total_duration_minutes: number;
   target_total_questions?: number;
   base_score?: number;
-  correct_answer_score?: number;
+  score_span?: number;
   sections?: Array<{
     code: SectionCode;
     duration_minutes: number;

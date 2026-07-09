@@ -1,6 +1,7 @@
 // lib/types/certificate.ts
 
 export type CertificateTextAlign = "left" | "center" | "right"
+export type CertificateFontWeight = "normal" | "medium" | "semibold" | "bold"
 
 // =========================
 // FE INTERNAL (discriminated union)
@@ -13,6 +14,7 @@ export type CertificateFieldPlacementText = {
   align: CertificateTextAlign
   color?: string
   fontFamily?: string
+  fontWeight?: CertificateFontWeight
   width?: number
 }
 
@@ -56,6 +58,7 @@ export type CertificateFieldPlacementApiText = {
   align: CertificateTextAlign
   color?: string
   fontFamily?: string
+  fontWeight?: CertificateFontWeight
   width?: number
 }
 
