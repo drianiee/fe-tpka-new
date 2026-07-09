@@ -18,8 +18,9 @@ export const footerLinks = [
   {
     title: "Informasi Penting",
     links: [
-      { name: "Jadwal Tes", href: "/" },
-      { name: "FAQ", href: "/" },
+      { name: "Jadwal Tes", href: "/home#jadwal" },
+      { name: "Panduan Peserta", href: "/panduan/panduan-pendaftaran-dan-pelaksanaan-peserta.pdf" },
+      { name: "FAQ", href: "/home#faq" },
     ],
   },
 ];
@@ -41,4 +42,3 @@ export const socialLinks = [
     icon: Facebook,
   },
 ];
-

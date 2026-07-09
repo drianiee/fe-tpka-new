@@ -4,7 +4,14 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CreditCard, Download, Info, Play } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpenText,
+  CreditCard,
+  Download,
+  Info,
+  Play,
+} from "lucide-react";
 
 import { schedulesService } from "@/lib/services/schedules.service";
 import type {
@@ -453,6 +460,21 @@ export default function ParticipantMyScheduleDetailPage() {
               ) : null}
 
               <div className="pt-3 items-center flex flex-col space-y-2 justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() =>
+                    window.open(
+                      "/panduan/panduan-pelaksanaan-peserta.pdf",
+                      "_blank",
+                      "noopener,noreferrer",
+                    )
+                  }
+                >
+                  <BookOpenText className="h-4 w-4" />
+                  Baca Panduan Peserta
+                </Button>
                 {canContinuePayment && d.payment?.snap_redirect_url ? (
                   <Button
                     onClick={() => {

@@ -8,6 +8,7 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { questionsService } from "@/lib/services/questions.service";
 import { cn } from "@/lib/utils";
 import { apiAssetUrl } from "@/lib/utils/api-asset";
+import { MathText } from "@/components/common/MathText";
 import type { ExamSection } from "@/lib/types/question-packages";
 import type {
   QuestionAdmin,
@@ -26,6 +27,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const LABELS = ["A", "B", "C", "D"] as const;
+
+function hasIncompleteInlineLatex(value?: string | null) {
+  const text = value ?? "";
+  const dollarMatches = text.match(/\$/g) ?? [];
+
+  return dollarMatches.length % 2 !== 0;
+}
 
 function emptyOptions(): QuestionOptionAdmin[] {
   return LABELS.map((label, index) => ({
@@ -218,7 +226,7 @@ export function QuestionFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>
             {question ? "Edit" : "Tambah"} Soal {section.name}
@@ -226,27 +234,59 @@ export function QuestionFormDialog({
         </DialogHeader>
 
         <div className="grid gap-4">
-          <div className="space-y-2">
-            <Label>Teks Soal</Label>
-            <textarea
-              className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
-              value={form.question_text ?? ""}
-              onChange={(e) =>
-                setForm((x) => ({ ...x, question_text: e.target.value }))
-              }
-            />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Teks Soal</Label>
+                <textarea
+                  className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  value={form.question_text ?? ""}
+                  onChange={(e) =>
+                    setForm((x) => ({ ...x, question_text: e.target.value }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Gunakan <code>$...$</code> untuk rumus inline dan <code>$$...$$</code>{" "}
+                  untuk rumus besar. Contoh: <code>$81^n = 27^4$</code> atau{" "}
+                  <code>{"$\\sqrt{x}$"}</code>.
+                </p>
+              </div>
+              <UploadedImageField
+                label="Gambar Soal"
+                value={form.question_image}
+                disabled={uploadMutation.isPending}
+                onUpload={(file) =>
+                  upload(file, (url) =>
+                    setForm((x) => ({ ...x, question_image: url })),
+                  )
+                }
+                onClear={() => setForm((x) => ({ ...x, question_image: null }))}
+              />
+            </div>
+
+            <div className="rounded-lg border bg-slate-50 p-3 lg:sticky lg:top-0">
+              <div className="mb-2 text-xs font-medium text-muted-foreground">
+                Preview soal
+              </div>
+              {form.question_text?.trim() ? (
+                <MathText
+                  value={form.question_text}
+                  className="text-sm leading-7 text-slate-800"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Preview soal akan muncul di sini.
+                </p>
+              )}
+              {form.question_image ? (
+                <img
+                  src={apiAssetUrl(form.question_image)!}
+                  alt="Preview gambar soal"
+                  className="mt-3 max-h-48 rounded border bg-white object-contain"
+                />
+              ) : null}
+            </div>
           </div>
-          <UploadedImageField
-            label="Gambar Soal"
-            value={form.question_image}
-            disabled={uploadMutation.isPending}
-            onUpload={(file) =>
-              upload(file, (url) =>
-                setForm((x) => ({ ...x, question_image: url })),
-              )
-            }
-            onClear={() => setForm((x) => ({ ...x, question_image: null }))}
-          />
 
           <div className="grid gap-3">
             {LABELS.map((label) => {
@@ -288,25 +328,60 @@ export function QuestionFormDialog({
                       {option.is_correct ? "Terpilih" : "Jadikan Kunci"}
                     </Button>
                   </div>
-                  <div className="flex flex-col gap-3">
-                    <Input
-                      value={option.option_text ?? ""}
-                      onChange={(e) =>
-                        setOption(label, { option_text: e.target.value })
-                      }
-                      placeholder={`Teks opsi ${label}`}
-                    />
-                    <UploadedImageField
-                      label={`Gambar Opsi ${label}`}
-                      value={option.option_image}
-                      disabled={uploadMutation.isPending}
-                      onUpload={(file) =>
-                        upload(file, (url) =>
-                          setOption(label, { option_image: url }),
-                        )
-                      }
-                      onClear={() => setOption(label, { option_image: null })}
-                    />
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start">
+                    <div className="space-y-3">
+                      <Input
+                        value={option.option_text ?? ""}
+                        onChange={(e) =>
+                          setOption(label, { option_text: e.target.value })
+                        }
+                        placeholder={`Teks opsi ${label}`}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Opsi juga bisa pakai LaTeX. Contoh: <code>{"$x$"}</code>,{" "}
+                        <code>{"$\\sqrt{x}$"}</code>, <code>{"$\\frac{1}{2}$"}</code>.
+                      </p>
+                      {hasIncompleteInlineLatex(option.option_text) ? (
+                        <p className="text-xs text-amber-700">
+                          Format LaTeX belum lengkap. Tutup kembali dengan tanda{" "}
+                          <code>$</code>, misalnya <code>{"$x$"}</code>.
+                        </p>
+                      ) : null}
+                      <UploadedImageField
+                        label={`Gambar Opsi ${label}`}
+                        value={option.option_image}
+                        disabled={uploadMutation.isPending}
+                        onUpload={(file) =>
+                          upload(file, (url) =>
+                            setOption(label, { option_image: url }),
+                          )
+                        }
+                        onClear={() => setOption(label, { option_image: null })}
+                      />
+                    </div>
+
+                    <div className="rounded-md border bg-slate-50 px-3 py-2">
+                      <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+                        Preview opsi {label}
+                      </div>
+                      {option.option_text?.trim() ? (
+                        <MathText
+                          value={option.option_text}
+                          className="text-sm leading-6 text-slate-800"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Preview opsi akan muncul di sini.
+                        </p>
+                      )}
+                      {option.option_image ? (
+                        <img
+                          src={apiAssetUrl(option.option_image)!}
+                          alt={`Preview gambar opsi ${label}`}
+                          className="mt-3 max-h-36 rounded border bg-white object-contain"
+                        />
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               );

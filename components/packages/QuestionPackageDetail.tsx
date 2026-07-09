@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit, ExternalLink, Trash } from "lucide-react";
+import { MathText } from "@/components/common/MathText";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { questionPackagesService } from "@/lib/services/questionPackages.service";
@@ -33,8 +34,13 @@ function StatusBadge({ status }: { status: QuestionPackage["status"] }) {
 function QuestionPreview({ question }: { question: QuestionAdmin }) {
   return (
     <div>
-      <div className="font-medium">
-        #{question.order_number} {question.question_text || "(Soal gambar)"}
+      <div className="font-medium space-y-1">
+        <div>#{question.order_number}</div>
+        {question.question_text ? (
+          <MathText value={question.question_text} className="text-sm" />
+        ) : (
+          <div className="text-sm text-muted-foreground">(Soal gambar)</div>
+        )}
       </div>
       {question.question_image ? (
         <div className="mt-1 text-xs text-muted-foreground">
@@ -43,9 +49,13 @@ function QuestionPreview({ question }: { question: QuestionAdmin }) {
       ) : null}
       <div className="mt-2 grid gap-1 text-xs text-muted-foreground md:grid-cols-2">
         {question.options.map((option) => (
-          <div key={option.option_label} className="truncate">
+          <div key={option.option_label} className="space-y-1">
             <span className="font-semibold">{option.option_label}.</span>{" "}
-            {option.option_text || option.option_image || "-"}
+            {option.option_text ? (
+              <MathText value={option.option_text} inline className="text-xs" />
+            ) : (
+              option.option_image || "-"
+            )}
             {option.is_correct ? (
               <span className="ml-2 text-green-700">(kunci)</span>
             ) : null}

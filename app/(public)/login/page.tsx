@@ -136,9 +136,9 @@ export default function LoginPage() {
                 className={fieldClass(Boolean(emailErr))}
                 {...register("email")}
               />
-              <p className={hintClass(Boolean(emailErr))}>
+              {/* <p className={hintClass(Boolean(emailErr))}>
                 {fieldHint(emailErr, "Gunakan email yang terdaftar di sistem.")}
-              </p>
+              </p> */}
             </div>
 
             <div className="space-y-2">

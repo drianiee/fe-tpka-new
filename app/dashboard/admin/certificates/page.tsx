@@ -1,21 +1,24 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { Plus, RefreshCw } from "lucide-react"
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Plus, RefreshCw } from "lucide-react";
 
-import { certificateService } from "@/lib/services/certificate.service"
-import type { Certificate, CreateCertificatePayload } from "@/lib/types/certificate"
-import { API_ENDPOINTS } from "@/lib/api/endpoints"
-import { getApiErrorMessage } from "@/lib/api/errors"
+import { certificateService } from "@/lib/services/certificate.service";
+import type {
+  Certificate,
+  CreateCertificatePayload,
+} from "@/lib/types/certificate";
+import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
-import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { DataTable, type DataTableColumn } from "@/components/common/DataTable"
+import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import {
   Dialog,
   DialogContent,
@@ -23,13 +26,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
 export default function AdminCertificatesPage() {
-  const router = useRouter()
+  const router = useRouter();
 
-  const [q, setQ] = React.useState("")
-  const [openCreate, setOpenCreate] = React.useState(false)
+  const [q, setQ] = React.useState("");
+  const [openCreate, setOpenCreate] = React.useState(false);
 
   const [form, setForm] = React.useState<CreateCertificatePayload>({
     name: "",
@@ -41,32 +44,34 @@ export default function AdminCertificatesPage() {
     sign_file: null,
     stamp_file: null,
     is_active: 1,
-  })
+  });
 
   const listQ = useQuery({
     queryKey: [API_ENDPOINTS.ADMIN.CERTIFICATES.ROOT],
     queryFn: () => certificateService.list(),
     staleTime: 60_000,
-  })
+  });
 
   const createM = useMutation({
-    mutationFn: (payload: CreateCertificatePayload) => certificateService.create(payload),
+    mutationFn: (payload: CreateCertificatePayload) =>
+      certificateService.create(payload),
     onSuccess: (res) => {
-      setOpenCreate(false)
-      router.push(`/dashboard/admin/certificates/${res.data.id}`)
+      setOpenCreate(false);
+      router.push(`/dashboard/admin/certificates/${res.data.id}`);
     },
-  })
+  });
 
   const rows = React.useMemo(() => {
-    const src = listQ.data ?? []
-    const qq = q.trim().toLowerCase()
-    if (!qq) return src
+    const src = listQ.data ?? [];
+    const qq = q.trim().toLowerCase();
+    if (!qq) return src;
 
     return src.filter((r) => {
-      const text = `${r.name} ${r.year} ${r.letter_prefix} ${r.sign_name ?? ""} ${r.sign_nip ?? ""}`.toLowerCase()
-      return text.includes(qq)
-    })
-  }, [listQ.data, q])
+      const text =
+        `${r.name} ${r.year} ${r.letter_prefix} ${r.sign_name ?? ""} ${r.sign_nip ?? ""}`.toLowerCase();
+      return text.includes(qq);
+    });
+  }, [listQ.data, q]);
 
   const cols = React.useMemo<DataTableColumn<Certificate>[]>(() => {
     return [
@@ -85,9 +90,7 @@ export default function AdminCertificatesPage() {
         cell: (row) => (
           <div className="space-y-0.5">
             <div className="font-medium">{row.name}</div>
-            <div className="text-xs text-muted-foreground">
-              {row.year}
-            </div>
+            <div className="text-xs text-muted-foreground">{row.year}</div>
           </div>
         ),
       },
@@ -119,7 +122,9 @@ export default function AdminCertificatesPage() {
         cell: (row) => (
           <div className="space-y-0.5">
             <div className="font-medium">{row.sign_name || "-"}</div>
-            <div className="text-xs text-muted-foreground">NIP: {row.sign_nip || "-"}</div>
+            <div className="text-xs text-muted-foreground">
+              NIP: {row.sign_nip || "-"}
+            </div>
           </div>
         ),
       },
@@ -134,10 +139,10 @@ export default function AdminCertificatesPage() {
           </Button>
         ),
       },
-    ]
-  }, [])
+    ];
+  }, []);
 
-  const busy = listQ.isFetching || createM.isPending
+  const busy = listQ.isFetching || createM.isPending;
 
   return (
     <PageHeaderLayout
@@ -158,7 +163,12 @@ export default function AdminCertificatesPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" disabled={busy} onClick={() => listQ.refetch()} title="Refresh">
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => listQ.refetch()}
+                title="Refresh"
+              >
                 <RefreshCw className="h-4 w-4" />
               </Button>
 
@@ -176,7 +186,9 @@ export default function AdminCertificatesPage() {
           ) : null}
 
           <div className="text-xs text-muted-foreground">
-            Menampilkan <span className="font-medium text-foreground">{rows.length}</span> sertifikat
+            Menampilkan{" "}
+            <span className="font-medium text-foreground">{rows.length}</span>{" "}
+            sertifikat
           </div>
         </div>
 
@@ -188,7 +200,9 @@ export default function AdminCertificatesPage() {
             loading={listQ.isLoading}
             emptyText="Belum ada sertifikat"
             stickyHeader
-            onRowClick={(r) => router.push(`/dashboard/admin/certificates/${r.id}`)}
+            onRowClick={(r) =>
+              router.push(`/dashboard/admin/certificates/${r.id}`)
+            }
             getRowClassName={() => "cursor-pointer hover:bg-muted/50"}
           />
         </div>
@@ -199,90 +213,117 @@ export default function AdminCertificatesPage() {
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Tambah Sertifikat</DialogTitle>
-            <DialogDescription>Setelah dibuat, langsung diarahkan ke halaman canvas.</DialogDescription>
+            <DialogDescription>
+              Setelah dibuat, langsung diarahkan ke halaman canvas.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1 sm:col-span-2">
-              <div className="text-xs text-muted-foreground">Nama</div>
+              <div className="text-xs text-muted-foreground">Nama<span className="text-destructive">*</span></div>
               <Input
                 value={form.name}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, name: e.target.value }))
+                }
                 disabled={createM.isPending}
                 placeholder="Sertifikat Periode 3"
               />
             </div>
 
             <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Tahun</div>
+              <div className="text-xs text-muted-foreground">Tahun<span className="text-destructive">*</span></div>
               <Input
                 value={String(form.year)}
-                onChange={(e) => setForm((p) => ({ ...p, year: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, year: e.target.value }))
+                }
                 disabled={createM.isPending}
                 placeholder="2026"
               />
             </div>
-
-            <div className="space-y-1 sm:col-span-2">
-              <div className="text-xs text-muted-foreground">Nama Penandatangan (opsional)</div>
-              <Input
-                value={form.sign_name}
-                onChange={(e) => setForm((p) => ({ ...p, sign_name: e.target.value }))}
-                disabled={createM.isPending}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">NIP (opsional)</div>
-              <Input
-                value={form.sign_nip}
-                onChange={(e) => setForm((p) => ({ ...p, sign_nip: e.target.value }))}
-                disabled={createM.isPending}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Letter Prefix</div>
+                        <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">Letter Prefix<span className="text-destructive">*</span></div>
               <Input
                 value={form.letter_prefix}
-                onChange={(e) => setForm((p) => ({ ...p, letter_prefix: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, letter_prefix: e.target.value }))
+                }
                 disabled={createM.isPending}
               />
             </div>
-
             <div className="space-y-1 sm:col-span-2">
-              <div className="text-xs text-muted-foreground">Template (PNG/JPG)</div>
+              <div className="text-xs text-muted-foreground">
+                Template (PNG/JPG)<span className="text-destructive">*</span>
+              </div>
               <Input
                 type="file"
                 accept="image/*"
                 disabled={createM.isPending}
                 onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) setForm((p) => ({ ...p, template: f }))
+                  const f = e.target.files?.[0];
+                  if (f) setForm((p) => ({ ...p, template: f }));
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">
+                Nama Penandatangan
+              </div>
+              <Input
+                value={form.sign_name}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, sign_name: e.target.value }))
+                }
+                disabled={createM.isPending}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">
+                NIP
+              </div>
+              <Input
+                value={form.sign_nip}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, sign_nip: e.target.value }))
+                }
+                disabled={createM.isPending}
+              />
+            </div>
+
+
+
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">
+                TTD Penandatangan
+              </div>
+              <Input
+                type="file"
+                accept="image/*"
+                disabled={createM.isPending}
+                onChange={(e) => {
+                  setForm((p) => ({
+                    ...p,
+                    sign_file: e.target.files?.[0] ?? null,
+                  }));
                 }}
               />
             </div>
 
             <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">TTD Penandatangan (opsional)</div>
+              <div className="text-xs text-muted-foreground">
+                Stempel
+              </div>
               <Input
                 type="file"
                 accept="image/*"
                 disabled={createM.isPending}
                 onChange={(e) => {
-                  setForm((p) => ({ ...p, sign_file: e.target.files?.[0] ?? null }))
-                }}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Stempel (opsional)</div>
-              <Input
-                type="file"
-                accept="image/*"
-                disabled={createM.isPending}
-                onChange={(e) => {
-                  setForm((p) => ({ ...p, stamp_file: e.target.files?.[0] ?? null }))
+                  setForm((p) => ({
+                    ...p,
+                    stamp_file: e.target.files?.[0] ?? null,
+                  }));
                 }}
               />
             </div>
@@ -295,7 +336,11 @@ export default function AdminCertificatesPage() {
           ) : null}
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setOpenCreate(false)} disabled={createM.isPending}>
+            <Button
+              variant="outline"
+              onClick={() => setOpenCreate(false)}
+              disabled={createM.isPending}
+            >
               Batal
             </Button>
             <Button
@@ -314,5 +359,5 @@ export default function AdminCertificatesPage() {
         </DialogContent>
       </Dialog>
     </PageHeaderLayout>
-  )
+  );
 }

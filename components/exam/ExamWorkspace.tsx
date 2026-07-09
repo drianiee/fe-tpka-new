@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { Clock, Flag } from "lucide-react";
+import { MathText } from "@/components/common/MathText";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { apiAssetUrl } from "@/lib/utils/api-asset";
@@ -173,9 +174,10 @@ export function ExamWorkspace({
 
               <div style={{ fontSize: `${fontScale}rem` }} className="space-y-6">
                 {current.question_text ? (
-                  <p className="max-w-5xl whitespace-pre-wrap text-[1.05em] font-normal leading-8 tracking-normal text-slate-800">
-                    {current.question_text}
-                  </p>
+                  <MathText
+                    value={current.question_text}
+                    className="max-w-5xl text-[1.05em] font-normal leading-8 tracking-normal text-slate-800"
+                  />
                 ) : null}
                 {apiAssetUrl(current.question_image) ? (
                   <img src={apiAssetUrl(current.question_image)!} alt="Gambar soal" className="max-h-[420px] rounded-lg border object-contain" />
@@ -206,9 +208,10 @@ export function ExamWorkspace({
                           >
                             {option.option_label}
                           </span>
-                          <span className="pt-0.5 font-normal leading-7 text-slate-800">
-                            {option.option_text}
-                          </span>
+                          <MathText
+                            value={option.option_text}
+                            className="pt-0.5 font-normal leading-7 text-slate-800"
+                          />
                         </span>
                         {imageUrl ? <img src={imageUrl} alt={`Opsi ${option.option_label}`} className="mt-3 max-h-44 rounded border bg-white object-contain" /> : null}
                       </button>

@@ -4,6 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import * as React from "react";
+import { BookOpenText } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -66,12 +67,23 @@ export default function PublicNavbar() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
+              <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+                <Link href="/panduan/panduan-pendaftaran-dan-pelaksanaan-peserta.pdf" target="_blank" rel="noopener noreferrer">
+                  <BookOpenText className="h-4 w-4" />
+                  Panduan Peserta
+                </Link>
+              </Button>
               {hasToken ? (
                 <Button asChild variant="blue" size="sm">
                   <Link href="/dashboard">Dashboard</Link>
                 </Button>
               ) : (
                 <>
+                  <Button asChild variant="outline" size="sm" className="md:hidden">
+                    <Link href="/panduan/panduan-pendaftaran-dan-pelaksanaan-peserta.pdf" target="_blank" rel="noopener noreferrer">
+                      <BookOpenText className="h-4 w-4" />
+                    </Link>
+                  </Button>
                   <Button asChild variant={isLogin ? "default" : "outline"} size="sm">
                     <Link href="/login">Masuk</Link>
                   </Button>

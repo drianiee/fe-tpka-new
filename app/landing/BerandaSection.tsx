@@ -1,4 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
+import { BookOpenText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function BerandaSection() {
   return (
@@ -24,6 +27,26 @@ export default function BerandaSection() {
           <p className="text-white text-xl md:text-3xl mt-2">
             Tes Potensi Kemampuan Akademik ITS
           </p>
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button asChild size="lg" className="min-w-48">
+              <Link href="/register">Daftar Tes Sekarang</Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="min-w-48 border-white/70 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+            >
+              <Link
+                href="/panduan/panduan-pendaftaran-dan-pelaksanaan-peserta.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <BookOpenText className="h-4 w-4" />
+                Lihat Panduan Peserta
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
