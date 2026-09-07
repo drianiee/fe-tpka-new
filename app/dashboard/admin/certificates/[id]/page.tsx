@@ -879,6 +879,13 @@ export default function AdminCertificateLayoutPage() {
     return { key: selectedKey, val: v };
   }, [fields, selectedKey]);
 
+  // Dihitung di luar JSX karena penyempitan tipe lewat isTextField() hilang
+  // begitu nilainya dipakai di dalam callback seperti .map().
+  const selectedFontWeight: CertificateFontWeight =
+    selected && isTextField(selected.val)
+      ? (selected.val.fontWeight ?? DEFAULT_FONT_WEIGHT)
+      : DEFAULT_FONT_WEIGHT;
+
   const previewScale = React.useMemo(() => {
     const s = availableWidth / Math.max(1, canvasW);
     return Math.min(1, s);
@@ -1807,7 +1814,7 @@ export default function AdminCertificateLayoutPage() {
                             key={option.value}
                             type="button"
                             variant={
-                              (selected.val.fontWeight ?? DEFAULT_FONT_WEIGHT) === option.value
+                              selectedFontWeight === option.value
                                 ? "default"
                                 : "outline"
                             }

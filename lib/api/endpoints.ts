@@ -63,10 +63,12 @@ export const API_ENDPOINTS = {
     STATUS: (id: number | string) => `/api/question-packages/${id}/status`,
     SECTIONS: (id: number | string) => `/api/question-packages/${id}/sections`,
     QUESTIONS: (id: number | string) => `/api/question-packages/${id}/questions`,
-    IMPORT_TEMPLATE: (id: number | string) =>
-      `/api/question-packages/${id}/questions/import-template`,
-    IMPORT: (id: number | string) =>
-      `/api/question-packages/${id}/questions/import`,
+  },
+  SECTIONS: {
+    IMPORT_TEMPLATE: (sectionId: number | string) =>
+      `/api/sections/${sectionId}/questions/import-template`,
+    IMPORT: (sectionId: number | string) =>
+      `/api/sections/${sectionId}/questions/import`,
   },
   QUESTIONS: {
     DETAIL: (id: number | string) => `/api/questions/${id}`,

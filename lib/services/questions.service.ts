@@ -32,18 +32,25 @@ export const questionsService = {
     return http.delete(API_ENDPOINTS.QUESTIONS.DETAIL(questionId)).then((r) => r.data);
   },
 
-  importCsv(packageId: number | string, file: File) {
+  importFile(sectionId: number | string, file: File) {
     const form = new FormData();
     form.append("file", file);
     return http
-      .post<ImportQuestionsResponse>(API_ENDPOINTS.QUESTION_PACKAGES.IMPORT(packageId), form)
+      .post<ImportQuestionsResponse>(API_ENDPOINTS.SECTIONS.IMPORT(sectionId), form)
       .then((r) => r.data);
   },
 
-  downloadTemplate(packageId: number | string) {
+  downloadTemplate(sectionId: number | string) {
     return http
-      .get<Blob>(API_ENDPOINTS.QUESTION_PACKAGES.IMPORT_TEMPLATE(packageId), { responseType: "blob" })
-      .then((r) => r.data);
+      .get<Blob>(API_ENDPOINTS.SECTIONS.IMPORT_TEMPLATE(sectionId), { responseType: "blob" })
+      .then((r) => {
+        const disposition = String(r.headers?.["content-disposition"] ?? "");
+        const matched = /filename="?([^";]+)"?/i.exec(disposition);
+        return {
+          blob: r.data,
+          filename: matched?.[1] ?? "template-soal.xlsx",
+        };
+      });
   },
 
   uploadImage(file: File) {

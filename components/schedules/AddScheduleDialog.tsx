@@ -34,26 +34,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const DEFAULT_SCHEDULE_PRICE = 150000;
+const DEFAULT_SCHEDULE_PRICE = 250000;
 
 const schema = z
   .object({
     is_partner: z.boolean(),
     partner_id: z.number().nullable(),
     start_at: z.string().min(1, "Mulai ujian wajib diisi"),
-    registration_start_at: z.string().min(1, "Buka registrasi wajib diisi"),
     price: z.number().min(0),
     quota: z.number().int().min(1),
   })
-  .refine(
-    (v) =>
-      new Date(v.registration_start_at).getTime() <=
-      new Date(v.start_at).getTime(),
-    {
-      message: "Buka registrasi tidak boleh setelah mulai ujian",
-      path: ["registration_start_at"],
-    },
-  )
   .refine((v) => !v.is_partner || Boolean(v.partner_id), {
     message: "Mitra wajib dipilih untuk jadwal kemitraan",
     path: ["partner_id"],
@@ -104,7 +94,6 @@ export function AddScheduleDialog() {
       is_partner: false,
       partner_id: null,
       start_at: "",
-      registration_start_at: "",
       price: DEFAULT_SCHEDULE_PRICE,
       quota: 50,
     }),
@@ -209,6 +198,14 @@ export function AddScheduleDialog() {
               />
             </div>
 
+            <Field
+              label="Mulai Ujian"
+              type="datetime-local"
+              register={form.register("start_at")}
+              error={errors.start_at?.message}
+              // helper="Registrasi langsung dibuka begitu jadwal disimpan."
+            />
+
             {isPartner ? (
               <div className="space-y-2">
                 <Label>Nama Mitra</Label>
@@ -246,19 +243,6 @@ export function AddScheduleDialog() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="Mulai Ujian"
-              type="datetime-local"
-              register={form.register("start_at")}
-              error={errors.start_at?.message}
-            />
-            <Field
-              label="Buka Registrasi"
-              type="datetime-local"
-              register={form.register("registration_start_at")}
-              error={errors.registration_start_at?.message}
-              // helper="Tutup registrasi akan otomatis diset 30 menit sebelum ujian dimulai."
-            />
             <div className="space-y-2">
               <Label>Harga</Label>
               <Controller

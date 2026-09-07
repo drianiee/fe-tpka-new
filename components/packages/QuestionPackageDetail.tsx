@@ -439,10 +439,13 @@ export function QuestionPackageDetail({
                   }
                 />
               ) : null}
-              <ImportQuestionsDialog
-                packageId={item.id}
-                disabled={isActiveSectionFull}
-              />
+              {activeSection ? (
+                <ImportQuestionsDialog
+                  packageId={item.id}
+                  section={activeSection}
+                  disabled={isActiveSectionFull}
+                />
+              ) : null}
             </div>
           </div>
 
