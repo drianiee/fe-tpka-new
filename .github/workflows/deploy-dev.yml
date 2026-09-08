@@ -4,28 +4,40 @@ on:
   push:
     branches: [dev]
 
+env:
+  DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+
 jobs:
   deploy:
     runs-on: self-hosted
     steps:
       - name: Pull latest code
         run: |
-          cd /var/www/html/tpka-dev/fe-tpka-new
+          cd "$DEPLOY_PATH"
           git pull origin dev
 
       - name: Rebuild and restart
         run: |
-          cd /var/www/html/tpka-dev/fe-tpka-new
+          cd "$DEPLOY_PATH"
           docker compose -f docker-compose.dev.yml up -d --build
 
+  cleanup:
+    needs: deploy
+    if: always()
+    runs-on: self-hosted
+    steps:
       - name: Clean up old build leftovers
         run: |
           docker image prune -f
           docker builder prune -f
 
+  verify:
+    needs: cleanup
+    runs-on: self-hosted
+    steps:
       - name: Check deployment status
         run: |
-          cd /var/www/html/tpka-dev/fe-tpka-new
+          cd "$DEPLOY_PATH"
           docker compose -f docker-compose.dev.yml ps
 
       - name: Check docker storage usage
