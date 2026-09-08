@@ -1,0 +1,33 @@
+name: Deploy dev (self-hosted)
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull latest code
+        run: |
+          cd /var/www/html/tpka-dev/fe-tpka-new
+          git pull origin dev
+
+      - name: Rebuild and restart
+        run: |
+          cd /var/www/html/tpka-dev/fe-tpka-new
+          docker compose -f docker-compose.dev.yml up -d --build
+
+      - name: Clean up old build leftovers
+        run: |
+          docker image prune -f
+          docker builder prune -f
+
+      - name: Check deployment status
+        run: |
+          cd /var/www/html/tpka-dev/fe-tpka-new
+          docker compose -f docker-compose.dev.yml ps
+
+      - name: Check docker storage usage
+        run: |
+          docker system df
