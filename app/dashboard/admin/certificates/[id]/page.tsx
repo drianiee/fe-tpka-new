@@ -243,8 +243,10 @@ const DEFAULT_FIELDS: CertificateLayoutJson["fields"] = {
   },
 };
 
+// Jangan diletakkan di bawah /api: di server produksi seluruh /api diarahkan ke
+// Laravel oleh reverse proxy, sehingga route handler Next.js tidak akan pernah terpanggil.
 function proxiedAssetUrl(src?: string | null) {
-  return src ? `/api/certificate-assets?src=${encodeURIComponent(src)}` : null;
+  return src ? `/certificate-assets?src=${encodeURIComponent(src)}` : null;
 }
 
 function previewText(key: string, cert?: Certificate | null) {
