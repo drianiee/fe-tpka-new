@@ -45,7 +45,7 @@ function formatTimer(ms?: number) {
 }
 
 function sectionLabel(section: ExamSection, index: number) {
-  return `Bagian ${section.order_number || index + 1}`;
+  return `Sesi ${section.order_number || index + 1}`;
 }
 
 export function ExamWorkspace({

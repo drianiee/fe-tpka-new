@@ -40,15 +40,32 @@ export const questionsService = {
       .then((r) => r.data);
   },
 
-  downloadTemplate(sectionId: number | string) {
+  downloadTemplate(sectionId: number | string, fallbackFilename = "template-soal.xlsx") {
     return http
       .get<Blob>(API_ENDPOINTS.SECTIONS.IMPORT_TEMPLATE(sectionId), { responseType: "blob" })
       .then((r) => {
+        // Content-Disposition hanya terbaca kalau backend mengizinkannya lewat
+        // Access-Control-Expose-Headers. Kalau tidak, pakai nama cadangan.
         const disposition = String(r.headers?.["content-disposition"] ?? "");
-        const matched = /filename="?([^";]+)"?/i.exec(disposition);
+        const matched = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
         return {
           blob: r.data,
-          filename: matched?.[1] ?? "template-soal.xlsx",
+          filename: matched?.[1] ? decodeURIComponent(matched[1]) : fallbackFilename,
+        };
+      });
+  },
+
+  exportQuestions(packageId: number | string, fallbackFilename = "soal.xlsx") {
+    return http
+      .get<Blob>(API_ENDPOINTS.QUESTION_PACKAGES.EXPORT_QUESTIONS(packageId), {
+        responseType: "blob",
+      })
+      .then((r) => {
+        const disposition = String(r.headers?.["content-disposition"] ?? "");
+        const matched = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+        return {
+          blob: r.data,
+          filename: matched?.[1] ? decodeURIComponent(matched[1]) : fallbackFilename,
         };
       });
   },

@@ -63,6 +63,8 @@ export const API_ENDPOINTS = {
     STATUS: (id: number | string) => `/api/question-packages/${id}/status`,
     SECTIONS: (id: number | string) => `/api/question-packages/${id}/sections`,
     QUESTIONS: (id: number | string) => `/api/question-packages/${id}/questions`,
+    EXPORT_QUESTIONS: (id: number | string) =>
+      `/api/question-packages/${id}/questions/export`,
   },
   SECTIONS: {
     IMPORT_TEMPLATE: (sectionId: number | string) =>

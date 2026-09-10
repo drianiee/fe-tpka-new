@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, ExternalLink, Settings2, Trash } from "lucide-react";
+import { Download, Edit, ExternalLink, Settings2, Trash } from "lucide-react";
 import { MathText } from "@/components/common/MathText";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
@@ -126,6 +126,34 @@ export function QuestionPackageDetail({
       }),
     enabled: Number.isFinite(packageId) && Boolean(activeSectionId),
   });
+
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "paket";
+
+  const downloadQuestions = async () => {
+    setIsExporting(true);
+    try {
+      const { blob, filename } = await questionsService.exportQuestions(
+        packageId,
+        `soal-${slugify(item?.name ?? "paket")}.xlsx`,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e));
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const statusMutation = useMutation({
     mutationFn: (status: QuestionPackage["status"]) =>
@@ -256,6 +284,21 @@ export function QuestionPackageDetail({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={downloadQuestions}
+                disabled={isExporting || (item.total_questions ?? 0) === 0}
+                title={
+                  (item.total_questions ?? 0) === 0
+                    ? "Belum ada soal di paket ini"
+                    : "Unduh semua soal paket ini dalam format Excel yang siap diimport ulang"
+                }
+              >
+                <Download className="h-4 w-4" />
+                {isExporting ? "Menyiapkan..." : "Unduh Soal"}
+              </Button>
               <Button asChild type="button" variant="outline">
                 <Link
                   href={`/exam-preview/question-packages/${item.id}?back=${encodeURIComponent(`${backHref}/${item.id}`)}`}

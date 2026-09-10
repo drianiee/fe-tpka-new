@@ -13,6 +13,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "subtes";
+}
+
 export function ImportQuestionsDialog({
   packageId,
   section,
@@ -45,7 +52,9 @@ export function ImportQuestionsDialog({
     },
     onSuccess: (res) => {
       setResult(res);
-      toast.success(res.message ?? "Import selesai");
+      // Import atomik per sheet, jadi sebagian sheet bisa gagal walau responsnya 2xx.
+      if (res.errors?.length) toast.warning(res.message ?? "Sebagian sheet ditolak");
+      else toast.success(res.message ?? "Import selesai");
       qc.invalidateQueries({ queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.DETAIL(packageId)] });
       qc.invalidateQueries({ queryKey: [API_ENDPOINTS.QUESTION_PACKAGES.QUESTIONS(packageId)] });
     },
@@ -58,7 +67,10 @@ export function ImportQuestionsDialog({
 
   const downloadTemplate = async () => {
     try {
-      const { blob, filename } = await questionsService.downloadTemplate(section.id);
+      const { blob, filename } = await questionsService.downloadTemplate(
+        section.id,
+        `template-soal-${slugify(section.name)}.xlsx`,
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -103,6 +115,10 @@ export function ImportQuestionsDialog({
                 baris untuk satu soal. Kolom Kunci Jawaban tinggal dipilih dari dropdown.
               </li>
               <li>
+                Mau sekalian subtes lain? Tambahkan sheet baru dan beri nama sesuai subtesnya
+                (Verbal, Kuantitatif, Logika, Spasial). Tiap sheet masuk ke subtesnya sendiri.
+              </li>
+              <li>
                 Sheet <span className="font-medium text-foreground">Petunjuk</span> berisi arti tiap
                 kolom, dan sheet <span className="font-medium text-foreground">Contoh</span> berisi
                 soal jadi sebagai acuan — keduanya diabaikan saat import.
@@ -110,8 +126,8 @@ export function ImportQuestionsDialog({
               <li>Simpan file, lalu unggah di sini.</li>
             </ol>
             <p className="mt-2 text-xs text-muted-foreground">
-              Tidak ada kolom subtes di template. Nama sheet dipakai sistem untuk memastikan file
-              tidak tertukar dengan subtes lain.
+              Tidak ada kolom subtes di template. Nama sheet-lah yang menentukan soal masuk ke
+              subtes mana, jadi tidak mungkin tertukar.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               File ini khusus soal berbentuk teks. Soal bergambar ditambahkan lewat tombol Tambah
@@ -149,13 +165,33 @@ export function ImportQuestionsDialog({
             </Button>
           </div>
 
+          {result?.results?.length ? (
+            <div className="rounded-lg border p-3 text-sm">
+              <div className="font-medium">Rincian per sheet</div>
+              <div className="mt-2 space-y-1">
+                {result.results.map((row) => (
+                  <div key={row.sheet} className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">
+                      Sheet <span className="font-medium text-foreground">{row.sheet}</span> →{" "}
+                      {row.section}
+                    </span>
+                    <span className={row.failed ? "font-medium text-red-700" : "text-foreground"}>
+                      {row.failed ? "ditolak" : `${row.imported} soal`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {result?.errors.length ? (
             <div className="rounded-lg border border-red-200 p-3 text-sm">
               <div className="font-medium text-red-700">Baris yang perlu diperbaiki</div>
               <div className="mt-2 max-h-56 overflow-auto rounded border">
                 {result.errors.map((error, index) => (
-                  <div key={`${error.row}-${error.field}-${index}`} className="border-b p-2 last:border-b-0">
-                    Baris {error.row} — {error.field}: {error.message}
+                  <div key={`${error.sheet}-${error.row}-${error.field}-${index}`} className="border-b p-2 last:border-b-0">
+                    {error.sheet ? `[${error.sheet}] ` : ""}Baris {error.row} — {error.field}:{" "}
+                    {error.message}
                   </div>
                 ))}
               </div>

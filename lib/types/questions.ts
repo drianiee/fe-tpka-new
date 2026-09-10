@@ -46,7 +46,14 @@ export type ImportQuestionsResponse = {
   message: string;
   imported: number;
   failed: number;
-  errors: Array<{ row: number; field: string; message: string }>;
+  errors: Array<{ sheet?: string; row: number; field: string; message: string }>;
+  /** Rincian per sheet: satu file boleh memuat beberapa subtes sekaligus. */
+  results?: Array<{
+    sheet: string;
+    section: string;
+    imported: number;
+    failed: number;
+  }>;
 };
 
 export type UploadedQuestionImage = {
