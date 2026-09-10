@@ -119,6 +119,11 @@ export function ImportQuestionsDialog({
                 (Verbal, Kuantitatif, Logika, Spasial). Tiap sheet masuk ke subtesnya sendiri.
               </li>
               <li>
+                Kalau pilihan jawabannya berupa gambar (biasanya Spasial), isi Pertanyaan dan Kunci
+                Jawaban saja, biarkan kolom pilihan kosong. Gambarnya dilengkapi lewat tombol Edit
+                pada soal itu.
+              </li>
+              <li>
                 Sheet <span className="font-medium text-foreground">Petunjuk</span> berisi arti tiap
                 kolom, dan sheet <span className="font-medium text-foreground">Contoh</span> berisi
                 soal jadi sebagai acuan — keduanya diabaikan saat import.
@@ -130,8 +135,8 @@ export function ImportQuestionsDialog({
               subtes mana, jadi tidak mungkin tertukar.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              File ini khusus soal berbentuk teks. Soal bergambar ditambahkan lewat tombol Tambah
-              Soal, karena gambarnya perlu diunggah satu per satu.
+              File ini tidak punya kolom gambar. Soal yang pertanyaannya sendiri berupa gambar
+              ditambahkan lewat tombol Tambah Soal.
             </p>
           </div>
 
@@ -176,7 +181,9 @@ export function ImportQuestionsDialog({
                       {row.section}
                     </span>
                     <span className={row.failed ? "font-medium text-red-700" : "text-foreground"}>
-                      {row.failed ? "ditolak" : `${row.imported} soal`}
+                      {row.failed
+                        ? "ditolak"
+                        : `${row.imported} soal${row.blank_options ? ` (${row.blank_options} perlu gambar)` : ""}`}
                     </span>
                   </div>
                 ))}

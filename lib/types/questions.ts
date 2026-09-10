@@ -53,6 +53,8 @@ export type ImportQuestionsResponse = {
     section: string;
     imported: number;
     failed: number;
+    /** Soal yang seluruh pilihannya kosong — gambarnya perlu dilengkapi lewat Edit. */
+    blank_options?: number;
   }>;
 };
 
