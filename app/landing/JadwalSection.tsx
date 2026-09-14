@@ -3,7 +3,11 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { CalendarClock } from "lucide-react";
+
 import { JadwalCard } from "@/components/common/JadwalCard";
+// import { Button } from "@/components/ui/button";
+import { TEST_INFO } from "@/lib/landing/contact";
 import { landingService } from "@/lib/services/landing.service";
 import type { LandingScheduleItem } from "@/lib/types/landing";
 import { getApiErrorMessage } from "@/lib/api/errors";
@@ -20,15 +24,27 @@ export default function JadwalSection() {
   return (
     <section
       id="jadwal"
-      className="relative bg-[#FAF7FC] px-6 md:px-12 lg:px-40 py-16 overflow-hidden"
+      className="relative bg-white px-6 md:px-12 lg:px-40 py-16 overflow-hidden"
     >
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-        <div>
-          <div className="w-full space-y-2 text-primarytpka">
-            <p className="text-2xl md:text-4xl font-semibold">Jadwal Tes TPKA</p>
-            <p className="text-base md:text-lg font-medium text-slate-700">
+        <div className="space-y-6 md:sticky md:top-24">
+          <div className="w-full space-y-2">
+            <p className="text-base md:text-lg font-medium italic text-slate-600">Pilih waktu Anda</p>
+            <p className="text-2xl md:text-4xl font-semibold text-primarytpka">Jadwal Tes TPKA</p>
+            <p className="text-base md:text-lg text-slate-700">
               Silakan pilih jadwal tes yang tersedia sesuai dengan waktu yang Anda inginkan.
             </p>
+          </div>
+
+          <div className="flex gap-3 rounded-2xl border border-[#013880]/15 bg-[#013880]/5 p-4">
+            <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-[#013880]" />
+            <div className="space-y-1 text-sm text-slate-700">
+              <p className="font-semibold text-slate-900">
+                {TEST_INFO.onlineSchedule.title}: {TEST_INFO.onlineSchedule.days},{" "}
+                {TEST_INFO.onlineSchedule.hours}
+              </p>
+              <p>{TEST_INFO.onlineSchedule.updateNote}</p>
+            </div>
           </div>
         </div>
 

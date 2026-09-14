@@ -22,9 +22,14 @@ http.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
+      const hadToken = Boolean(getToken())
       clearToken()
       if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-        window.location.assign("/login")
+        // Punya token tapi ditolak = sesi kedaluwarsa. Beri tahu di halaman login.
+        const params = new URLSearchParams()
+        if (hadToken) params.set("reason", "expired")
+        params.set("next", window.location.pathname + window.location.search)
+        window.location.assign(`/login?${params.toString()}`)
       }
     }
     return Promise.reject(error)

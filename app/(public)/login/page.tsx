@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -16,7 +16,7 @@ import { getApiErrorMessage } from "@/lib/api/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Clock, Eye, EyeOff } from "lucide-react";
 
 /* ================= UI HELPERS ================= */
 
@@ -48,7 +48,20 @@ type FormValues = z.infer<typeof schema>;
 /* ================= PAGE ================= */
 
 export default function LoginPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginForm />
+    </React.Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionExpired = searchParams.get("reason") === "expired";
+  // Hanya path internal yang boleh jadi tujuan balik, supaya tidak bisa dipakai mengalihkan ke luar.
+  const nextPath = searchParams.get("next");
+  const redirectTo = nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard";
   const [loading, setLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
 
@@ -70,7 +83,7 @@ export default function LoginPage() {
 
       setToken(res.token);
       toast.success("Login berhasil");
-      router.replace("/dashboard");
+      router.replace(redirectTo);
     } catch (e: unknown) {
       toast.error(getApiErrorMessage(e));
     } finally {
@@ -123,6 +136,18 @@ export default function LoginPage() {
               Masuk untuk mengakses dashboard.
             </p>
           </div>
+
+          {sessionExpired ? (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-medium">Sesi Anda telah berakhir</p>
+                <p className="text-amber-800">
+                  Demi keamanan, sesi ditutup setelah beberapa saat tidak aktif. Silakan masuk kembali.
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             {/* Email */}

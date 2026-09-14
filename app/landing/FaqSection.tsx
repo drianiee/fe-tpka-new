@@ -15,9 +15,9 @@ export default function FaqSection() {
       id="faq"
       className="relative space-y-8 bg-[#FAF7FC] px-6 md:px-12 lg:px-40 py-16 overflow-hidden"
     >
-      <div className="w-full space-y-2 text-primarytpka">
-        <p className="text-base md:text-lg font-medium italic text-slate-700">FAQ</p>
-        <div className="flex space-y-1 items-baseline flex-col md:flex-row md:space-x-2">
+      <div className="w-full space-y-2">
+        <p className="text-base md:text-lg font-medium italic text-slate-600">FAQ</p>
+        <div className="flex space-y-1 items-baseline flex-col md:flex-row md:space-x-2 text-primarytpka">
           <p className="text-2xl md:text-4xl font-semibold">Pertanyaan Umum</p>
           <p className="text-base font-medium">(FAQ)</p>
         </div>
@@ -30,7 +30,7 @@ export default function FaqSection() {
           const buttonId = `faq-button-${item.id}`;
 
           return (
-            <div key={item.id} className="rounded-xl border border-slate-200 bg-white">
+            <div key={item.id} className="rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
               <button
                 id={buttonId}
                 aria-controls={contentId}
