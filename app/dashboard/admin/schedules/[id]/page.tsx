@@ -26,7 +26,7 @@ import type { ParticipantListItem } from "@/lib/types/participants";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatRupiah, hhmm } from "@/lib/utils/format";
-import { formatDateId } from "@/lib/utils/datetime";
+import { formatDateId, formatDateTime } from "@/lib/utils/datetime";
 import { downloadWithBearer, openWithBearer } from "@/lib/utils/download";
 
 import { PageHeaderLayout } from "@/components/layouts/PageHeaderLayout";
@@ -189,6 +189,24 @@ function buildPages(page: number, lastPage: number) {
   return result;
 }
 
+const VIOLATION_REASON_LABEL: Record<string, string> = {
+  tab_hidden: "Pindah tab / minimize browser",
+  fullscreen_exit: "Keluar dari fullscreen",
+  window_blur: "Jendela kehilangan fokus",
+};
+
+function violationReasonLabel(reason?: string | null) {
+  if (!reason) return "-";
+  return VIOLATION_REASON_LABEL[reason] ?? reason;
+}
+
+function formatRemaining(ms: number) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes} menit ${seconds} detik`;
+}
+
 export default function AdminScheduleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
@@ -201,6 +219,9 @@ export default function AdminScheduleDetailPage() {
     React.useState(false);
   const [retakeDialogOpen, setRetakeDialogOpen] = React.useState(false);
   const [retakeCandidate, setRetakeCandidate] =
+    React.useState<ScheduleParticipant | null>(null);
+  const [resumeDialogOpen, setResumeDialogOpen] = React.useState(false);
+  const [resumeCandidate, setResumeCandidate] =
     React.useState<ScheduleParticipant | null>(null);
 
   const [qText, setQText] = React.useState("");
@@ -256,9 +277,23 @@ export default function AdminScheduleDetailPage() {
     onError: (e) => toast.error(getApiErrorMessage(e)),
   });
 
+  const resumeMut = useMutation({
+    mutationFn: (userId: number) => schedulesService.grantResume(scheduleId, userId),
+    onSuccess: (res) => {
+      toast.success(res.message ?? "Peserta diizinkan melanjutkan ujian");
+      qc.invalidateQueries({
+        predicate: (q) =>
+          Array.isArray(q.queryKey) &&
+          q.queryKey[0] === API_ENDPOINTS.SCHEDULES.DETAIL(scheduleId),
+      });
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e)),
+  });
+
   // ✅ per-row loading (biar nggak disable semua tombol)
   const [downloadingUrl, setDownloadingUrl] = React.useState<string | null>(null);
   const [retakingUserId, setRetakingUserId] = React.useState<number | null>(null);
+  const [resumingUserId, setResumingUserId] = React.useState<number | null>(null);
 
   const handleDownloadCert = React.useCallback(
     async (url: string) => {
@@ -279,6 +314,27 @@ export default function AdminScheduleDetailPage() {
     },
     []
   );
+
+  const handleOpenResumeDialog = React.useCallback(
+    (participant: ScheduleParticipant) => {
+      setResumeCandidate(participant);
+      setResumeDialogOpen(true);
+    },
+    []
+  );
+
+  const handleConfirmResume = React.useCallback(async () => {
+    if (!resumeCandidate) return;
+
+    try {
+      setResumingUserId(resumeCandidate.id);
+      await resumeMut.mutateAsync(resumeCandidate.id);
+      setResumeDialogOpen(false);
+      setResumeCandidate(null);
+    } finally {
+      setResumingUserId(null);
+    }
+  }, [resumeCandidate, resumeMut]);
 
   const handleConfirmRetake = React.useCallback(async () => {
     if (!retakeCandidate) return;
@@ -418,26 +474,41 @@ export default function AdminScheduleDetailPage() {
       {
         key: "actions",
         header: "Aksi",
-        headerClassName: "w-32 text-center",
+        headerClassName: "w-56 text-center",
         className: "text-center whitespace-nowrap",
         cell: (row) => {
           const pending = retakingUserId === row.id && retakeMut.isPending;
+          const resumePending = resumingUserId === row.id && resumeMut.isPending;
           const certificateIssued = Boolean(row.certificate_issued_at);
+          const canResume = Boolean(row.can_resume) && !certificateIssued;
 
           return (
-            <Button
-              size="sm"
-              variant="red"
-              disabled={pending || certificateIssued || row.can_retake === false}
-              title={
-                certificateIssued
-                  ? "Sertifikat sudah terbit, peserta tidak dapat mengulang tes."
-                  : undefined
-              }
-              onClick={() => handleOpenRetakeDialog(row)}
-            >
-              {pending ? "Memproses..." : "Ulangi Tes"}
-            </Button>
+            <div className="flex items-center justify-center gap-2">
+              {canResume ? (
+                <Button
+                  size="sm"
+                  variant="blue"
+                  disabled={resumePending || pending}
+                  title="Lanjutkan attempt yang terhenti: jawaban dan sisa waktu dipertahankan."
+                  onClick={() => handleOpenResumeDialog(row)}
+                >
+                  {resumePending ? "Memproses..." : "Lanjutkan Tes"}
+                </Button>
+              ) : null}
+              <Button
+                size="sm"
+                variant="red"
+                disabled={pending || resumePending || certificateIssued || row.can_retake === false}
+                title={
+                  certificateIssued
+                    ? "Sertifikat sudah terbit, peserta tidak dapat mengulang tes."
+                    : undefined
+                }
+                onClick={() => handleOpenRetakeDialog(row)}
+              >
+                {pending ? "Memproses..." : "Ulangi Tes"}
+              </Button>
+            </div>
           );
         },
       },
@@ -448,8 +519,11 @@ export default function AdminScheduleDetailPage() {
     downloadingUrl,
     handleDownloadCert,
     handleOpenRetakeDialog,
+    handleOpenResumeDialog,
     retakeMut,
     retakingUserId,
+    resumeMut,
+    resumingUserId,
   ]);
 
   const detailQuery = useQuery({
@@ -605,6 +679,12 @@ export default function AdminScheduleDetailPage() {
       retakingUserId === retakeCandidate.id &&
       retakeMut.isPending
   );
+  const resumePending = Boolean(
+    resumeCandidate &&
+      resumingUserId === resumeCandidate.id &&
+      resumeMut.isPending
+  );
+  const resumeViolation = resumeCandidate?.last_violation ?? null;
   const scheduleWindowStatus = resolveDetailScheduleWindowStatus(d);
   const scheduleStarted = hasScheduleStarted(d);
 
@@ -951,6 +1031,77 @@ export default function AdminScheduleDetailPage() {
   return (
     <PageHeaderLayout title={title} description={description} actions={actions}>
       <Dialog
+        open={resumeDialogOpen}
+        onOpenChange={(open) => {
+          setResumeDialogOpen(open);
+          if (!open && !resumePending) {
+            setResumeCandidate(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lanjutkan ujian peserta?</DialogTitle>
+            <DialogDescription>
+              {resumeCandidate
+                ? `Attempt ${resumeCandidate.name} yang terhenti akan dibuka kembali. Jawaban yang sudah tersimpan dipertahankan dan sisa waktu saat terhenti dikembalikan. Gunakan ini jika ujian terhenti karena koneksi, listrik, atau salah deteksi, bukan karena kecurangan.`
+                : "Pilih peserta yang ingin dilanjutkan ujiannya."}
+            </DialogDescription>
+          </DialogHeader>
+          {resumeViolation ? (
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                <span className="text-muted-foreground">Penyebab</span>
+                <span>{violationReasonLabel(resumeViolation.reason)}</span>
+                <span className="text-muted-foreground">Waktu kejadian</span>
+                <span>{formatDateTime(resumeViolation.violated_at)}</span>
+                <span className="text-muted-foreground">Sisa waktu</span>
+                <span>{formatRemaining(resumeViolation.remaining_ms)}</span>
+                <span className="text-muted-foreground">Soal terjawab</span>
+                <span>
+                  {resumeViolation.answered_count} dari {resumeViolation.total_questions}
+                </span>
+                <span className="text-muted-foreground">Indikasi koneksi</span>
+                <span>
+                  {resumeViolation.network_suspect ? (
+                    <Badge variant="warning" className="whitespace-nowrap">
+                      Ya
+                      {resumeViolation.heartbeat_gap_seconds != null
+                        ? ` (heartbeat terputus ${resumeViolation.heartbeat_gap_seconds} detik)`
+                        : ""}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">Tidak terdeteksi</span>
+                  )}
+                </span>
+                {resumeViolation.resume_count > 0 ? (
+                  <>
+                    <span className="text-muted-foreground">Pernah dilanjutkan</span>
+                    <span>{resumeViolation.resume_count} kali</span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResumeDialogOpen(false);
+                setResumeCandidate(null);
+              }}
+              disabled={resumePending}
+            >
+              Batal
+            </Button>
+            <Button onClick={handleConfirmResume} disabled={resumePending} variant="blue">
+              {resumePending ? "Memproses..." : "Lanjutkan Ujian"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={retakeDialogOpen}
         onOpenChange={(open) => {
           setRetakeDialogOpen(open);
@@ -964,7 +1115,7 @@ export default function AdminScheduleDetailPage() {
             <DialogTitle>Izinkan peserta mengulang ujian?</DialogTitle>
             <DialogDescription>
               {retakeCandidate
-                ? `Izinkan ${retakeCandidate.name} mengulang ujian dengan waktu baru? Attempt sebelumnya akan ditutup dan peserta akan memakai waktu sesi ulang.`
+                ? `Izinkan ${retakeCandidate.name} mengulang ujian dari awal? Attempt sebelumnya ditutup, jawaban tidak dibawa, soal diacak ulang, dan peserta memakai durasi penuh. Jika ujian terhenti karena koneksi, gunakan Lanjutkan Tes.`
                 : "Pilih peserta yang ingin diizinkan mengulang ujian."}
             </DialogDescription>
           </DialogHeader>

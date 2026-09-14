@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Trash } from "lucide-react";
+import { ChangeOperatorPasswordDialog } from "@/components/operators/ChangeOperatorPasswordDialog";
 
 function StatusBadge({ active }: { active?: boolean | null }) {
   if (active === false) return <Badge variant="muted">Nonaktif</Badge>;
@@ -215,11 +216,17 @@ export default function AdminOperatorDetailPage() {
             <div className="space-y-1">
               <div className="text-sm font-semibold">Aksi</div>
               <div className="text-sm text-muted-foreground">
-                Kelola status operator atau hapus operator (permanen).
+                Ubah password, kelola status, atau hapus operator.
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <ChangeOperatorPasswordDialog
+                operatorId={operator.id}
+                operatorName={operator.name}
+                disabled={busy}
+              />
+
               {isActive ? (
                 <>
                   <Button

@@ -83,8 +83,21 @@ export type ScheduleParticipant = {
   certificate_revoked_at?: string | null;
   certificate_download_url?: string | null;
   can_retake?: boolean;
+  can_resume?: boolean;
+  last_violation?: ScheduleParticipantViolation | null;
 
   scores_debug?: unknown;
+};
+
+export type ScheduleParticipantViolation = {
+  reason: string | null;
+  violated_at: string | null;
+  remaining_ms: number;
+  answered_count: number;
+  total_questions: number;
+  heartbeat_gap_seconds: number | null;
+  network_suspect: boolean;
+  resume_count: number;
 };
 
 export type ScheduleDetail = Omit<ScheduleListItem, "date"> & {

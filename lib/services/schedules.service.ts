@@ -135,6 +135,15 @@ export const schedulesService = {
       .then((r) => r.data);
   },
 
+  grantResume(
+    scheduleId: number | string,
+    userId: number | string
+  ): Promise<GrantRetakeResponse> {
+    return http
+      .post(API_ENDPOINTS.SCHEDULES.PARTICIPANT_RESUME(scheduleId, userId))
+      .then((r) => r.data);
+  },
+
   partnerImport(scheduleId: number | string, file: File): Promise<PartnerImportResponse> {
     const fd = new FormData();
     fd.append("file", file);

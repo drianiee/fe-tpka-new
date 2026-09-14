@@ -35,3 +35,8 @@ export function getApiErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   return "Terjadi kesalahan";
 }
+
+/** True jika request gagal tanpa respons server (offline, timeout, DNS), bukan error dari API. */
+export function isNetworkError(err: unknown): boolean {
+  return axios.isAxiosError(err) && !err.response;
+}

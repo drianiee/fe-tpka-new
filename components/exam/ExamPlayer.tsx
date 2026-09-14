@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getApiErrorMessage } from "@/lib/api/errors";
+import { getApiErrorMessage, isNetworkError } from "@/lib/api/errors";
 import { useAutosaveAnswer } from "@/lib/hooks/useAutosaveAnswer";
 import { useExamAttempt } from "@/lib/hooks/useExamAttempt";
 import { useExamTimer } from "@/lib/hooks/useExamTimer";
@@ -30,9 +30,15 @@ function sectionStorageKey(attemptId: string) {
   return `tpka:attempt:${attemptId}:section-session`;
 }
 
-function attemptAnchorMs(startAt?: string) {
-  return startAt ? new Date(startAt).getTime() : Date.now();
+// Anchor timer section digeser sebesar total jeda (paused_ms) supaya attempt yang
+// dilanjutkan admin masuk ke section yang benar dengan sisa waktu yang benar.
+function attemptAnchorMs(startAt?: string, pausedMs = 0) {
+  return (startAt ? new Date(startAt).getTime() : Date.now()) + pausedMs;
 }
+
+const RECONNECT_POLL_MS = 5_000;
+
+type OfflineEvent = { reason: string; at: string };
 
 function sectionEndMs(sections: ExamSection[], index: number, anchorMs: number) {
   const elapsedBefore = sections
@@ -63,6 +69,12 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
   const [fullscreenLoading, setFullscreenLoading] = React.useState(false);
   const [violationDialogOpen, setViolationDialogOpen] = React.useState(false);
   const [violationMessage, setViolationMessage] = React.useState("");
+  const [connectionLostOpen, setConnectionLostOpen] = React.useState(false);
+  const [reconnected, setReconnected] = React.useState(false);
+  const [resuming, setResuming] = React.useState(false);
+  const onlineRef = React.useRef(true);
+  const offlineSinceRef = React.useRef<number | null>(null);
+  const offlineEventsRef = React.useRef<OfflineEvent[]>([]);
   const initializedAttempt = React.useRef<string | null>(null);
   const autoAdvanceLock = React.useRef(false);
   const strictInitialized = React.useRef<string | null>(null);
@@ -122,29 +134,88 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
     }
   }, []);
 
+  // Koneksi putus bukan pelanggaran: matikan pengawasan, tahan peserta di overlay,
+  // dan catat event yang terjadi selama offline untuk audit admin.
+  const enterConnectionLost = React.useCallback((event?: OfflineEvent) => {
+    if (event) offlineEventsRef.current.push(event);
+    if (offlineSinceRef.current === null) offlineSinceRef.current = Date.now();
+    onlineRef.current = false;
+    setOnline(false);
+    setReconnected(false);
+    setStrictArmed(false);
+    setConnectionLostOpen(true);
+  }, []);
+
   const handleViolation = React.useCallback(
     async (reason: string, context: Record<string, unknown> = {}) => {
       if (violationLock.current) return;
+      const now = new Date().toISOString();
+
+      if (!navigator.onLine || !onlineRef.current) {
+        enterConnectionLost({ reason, at: now });
+        return;
+      }
+
       violationLock.current = true;
       setStrictArmed(false);
 
       try {
-        await examService.violation(attemptId, { reason, context });
-      } catch {
-        // Jika request gagal, peserta tetap harus keluar dari halaman ujian.
-      } finally {
-        window.localStorage.removeItem(sectionStorageKey(attemptId));
-        if (document.fullscreenElement) {
-          await document.exitFullscreen().catch(() => undefined);
+        await examService.violation(attemptId, { reason, context: { ...context, client_time: now } });
+      } catch (error) {
+        if (isNetworkError(error)) {
+          // Laporan tidak sampai ke server: attempt masih berjalan, perlakukan sebagai koneksi putus.
+          violationLock.current = false;
+          enterConnectionLost({ reason, at: now });
+          return;
         }
-        setViolationMessage(
-          "Ujian diakhiri karena pelanggaran mode pengawasan. Anda tidak dapat masuk lagi ke ujian ini. Silakan hubungi admin jika membutuhkan ujian ulang."
-        );
-        setViolationDialogOpen(true);
+        // Server merespons error (mis. attempt sudah berakhir): tetap keluarkan peserta.
       }
+
+      window.localStorage.removeItem(sectionStorageKey(attemptId));
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => undefined);
+      }
+      setViolationMessage(
+        "Ujian diakhiri karena pelanggaran mode pengawasan. Anda tidak dapat masuk lagi ke ujian ini. Silakan hubungi admin jika membutuhkan ujian ulang."
+      );
+      setViolationDialogOpen(true);
     },
-    [attemptId]
+    [attemptId, enterConnectionLost]
   );
+
+  // Setelah koneksi pulih: masuk fullscreen dulu (harus dekat dengan klik user),
+  // lalu kirim jejak offline ke server dan muat ulang attempt.
+  const resumeAfterReconnect = React.useCallback(async () => {
+    setResuming(true);
+    setConnectionLostOpen(false);
+    try {
+      await activateFullscreen().catch(() => undefined);
+      const offlineMs = offlineSinceRef.current ? Date.now() - offlineSinceRef.current : 0;
+      const status = await examService.heartbeat(attemptId, {
+        event: "connection_restored",
+        payload: { offline_ms: offlineMs, offline_events: offlineEventsRef.current },
+      });
+      offlineSinceRef.current = null;
+      offlineEventsRef.current = [];
+      onlineRef.current = true;
+      setOnline(true);
+      if (status.status !== "in_progress") {
+        router.replace(scheduleDetailHref);
+        router.refresh();
+        return;
+      }
+      void query.refetch();
+    } catch (error) {
+      if (isNetworkError(error)) {
+        toast.error("Koneksi belum stabil, coba lagi.");
+        enterConnectionLost();
+      } else {
+        toast.error(getApiErrorMessage(error));
+      }
+    } finally {
+      setResuming(false);
+    }
+  }, [activateFullscreen, attemptId, enterConnectionLost, query, router, scheduleDetailHref]);
 
   const attemptRemaining = useExamTimer(attempt?.server_time, attempt?.expires_at, submit);
 
@@ -154,21 +225,66 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
   }, [attempt]);
 
   React.useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    update();
-    window.addEventListener("online", update);
-    window.addEventListener("offline", update);
-    return () => {
-      window.removeEventListener("online", update);
-      window.removeEventListener("offline", update);
+    const onOffline = () => enterConnectionLost();
+    const onOnline = () => {
+      onlineRef.current = true;
+      setOnline(true);
     };
-  }, []);
+    if (!navigator.onLine) enterConnectionLost();
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [enterConnectionLost]);
 
   React.useEffect(() => {
-    if (!attempt || attempt.status !== "in_progress") return;
-    const id = window.setInterval(() => examService.heartbeat(attemptId).catch(() => setOnline(false)), 30_000);
+    if (!attempt || attempt.status !== "in_progress" || connectionLostOpen) return;
+    const id = window.setInterval(() => {
+      examService
+        .heartbeat(attemptId)
+        .then(() => {
+          onlineRef.current = true;
+          setOnline(true);
+        })
+        .catch((error) => {
+          if (isNetworkError(error)) enterConnectionLost();
+        });
+    }, 30_000);
     return () => window.clearInterval(id);
-  }, [attemptId, attempt]);
+  }, [attemptId, attempt, connectionLostOpen, enterConnectionLost]);
+
+  // Selama overlay koneksi terbuka: poll server sampai bisa dihubungi, dan catat
+  // event tab/fullscreen (tanpa menghentikan ujian) sebagai jejak audit.
+  React.useEffect(() => {
+    if (!connectionLostOpen || reconnected) return;
+
+    const probe = () => {
+      examService
+        .heartbeat(attemptId)
+        .then(() => setReconnected(true))
+        .catch(() => undefined);
+    };
+    probe();
+    const id = window.setInterval(probe, RECONNECT_POLL_MS);
+
+    const record = (reason: string) => () => {
+      if (reason === "tab_hidden" && !document.hidden) return;
+      if (reason === "fullscreen_exit" && document.fullscreenElement) return;
+      offlineEventsRef.current.push({ reason, at: new Date().toISOString() });
+    };
+    const onHidden = record("tab_hidden");
+    const onFullscreen = record("fullscreen_exit");
+    document.addEventListener("visibilitychange", onHidden);
+    document.addEventListener("fullscreenchange", onFullscreen);
+
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onHidden);
+      document.removeEventListener("fullscreenchange", onFullscreen);
+    };
+  }, [attemptId, connectionLostOpen, reconnected]);
 
   React.useEffect(() => {
     if (!attempt || attempt.status !== "in_progress") return;
@@ -199,7 +315,7 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
     }
 
     const serverNow = new Date(attempt.server_time).getTime();
-    const anchorMs = attemptAnchorMs(attempt.started_at);
+    const anchorMs = attemptAnchorMs(attempt.started_at, attempt.paused_ms ?? 0);
     const elapsed = Math.max(0, serverNow - anchorMs);
     let cumulative = 0;
     let index = orderedSections.length - 1;
@@ -237,7 +353,7 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
 
       const nextIndex = activeSectionIndex + 1;
       const attemptEnd = new Date(attempt.expires_at).getTime();
-      const anchorMs = attemptAnchorMs(attempt.started_at);
+      const anchorMs = attemptAnchorMs(attempt.started_at, attempt.paused_ms ?? 0);
       const nextDeadline = Math.min(
         sectionEndMs(orderedSections, nextIndex, anchorMs),
         attemptEnd
@@ -294,18 +410,14 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
       }
     };
 
-    const onWindowBlur = () => {
-      void handleViolation("window_blur", { event: "blur" });
-    };
-
+    // window "blur" sengaja tidak dipakai: notifikasi OS, dialog browser, atau popup
+    // jaringan memicunya tanpa peserta meninggalkan halaman ujian.
     document.addEventListener("visibilitychange", onVisibilityChange);
     document.addEventListener("fullscreenchange", onFullscreenChange);
-    window.addEventListener("blur", onWindowBlur);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
-      window.removeEventListener("blur", onWindowBlur);
     };
   }, [attempt, handleViolation, strictArmed]);
 
@@ -446,7 +558,9 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
           </DialogHeader>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
             Pelanggaran pertama akan langsung mengakhiri ujian dan status
-            peserta dicatat sebagai selesai dengan pelanggaran.
+            peserta dicatat sebagai selesai dengan pelanggaran. Jika koneksi
+            internet terputus, jangan tutup atau refresh halaman ini; ujian
+            akan dilanjutkan otomatis saat koneksi pulih.
           </div>
           <DialogFooter>
             <Button
@@ -462,6 +576,33 @@ export function ExamPlayer({ attemptId }: { attemptId: string }) {
               }}
             >
               Saya Mengerti, Mulai Tes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={connectionLostOpen} onOpenChange={() => undefined}>
+        <DialogContent className="sm:max-w-lg" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>
+              {reconnected ? "Koneksi pulih" : "Koneksi internet terputus"}
+            </DialogTitle>
+            <DialogDescription>
+              {reconnected
+                ? "Server sudah bisa dihubungi kembali. Klik tombol di bawah untuk masuk fullscreen dan melanjutkan ujian. Jawaban yang sudah tersimpan tetap ada."
+                : "Jangan tutup atau refresh halaman ini. Sistem akan mencoba menghubungi server secara otomatis. Waktu ujian tetap berjalan selama koneksi terputus."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => void resumeAfterReconnect()}
+              disabled={!reconnected || resuming}
+            >
+              {resuming
+                ? "Menyambungkan..."
+                : reconnected
+                  ? "Lanjutkan Ujian"
+                  : "Menunggu koneksi..."}
             </Button>
           </DialogFooter>
         </DialogContent>

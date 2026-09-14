@@ -207,7 +207,7 @@ export function AddScheduleDialog() {
             />
 
             {isPartner ? (
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label>Nama Mitra</Label>
                 <Controller
                   control={form.control}

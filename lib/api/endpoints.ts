@@ -37,6 +37,10 @@ export const API_ENDPOINTS = {
       scheduleId: number | string,
       userId: number | string
     ) => `/api/schedules/${scheduleId}/participants/${userId}/retake`,
+    PARTICIPANT_RESUME: (
+      scheduleId: number | string,
+      userId: number | string
+    ) => `/api/schedules/${scheduleId}/participants/${userId}/resume`,
     PARTNER_IMPORT: (scheduleId: number | string) =>
       `/api/schedules/${scheduleId}/partner/import`,
     PARTNER_IMPORT_TEMPLATE: (scheduleId: number | string) =>
@@ -92,6 +96,8 @@ export const API_ENDPOINTS = {
     OPERATOR_STATUS: (id: number | string) =>
       `/api/admin/operators/${id}/status`,
     OPERATOR_DELETE: (id: number | string) => `/api/admin/operators/${id}`,
+    OPERATOR_PASSWORD: (id: number | string) =>
+      `/api/admin/operators/${id}/password`,
 
     CERTIFICATES: {
       ROOT: "/api/admin/certificates",

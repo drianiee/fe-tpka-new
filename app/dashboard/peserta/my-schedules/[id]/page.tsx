@@ -499,8 +499,17 @@ export default function ParticipantMyScheduleDetailPage() {
                     <Play className="h-4 w-4" />
                     {startMutation.isPending
                       ? "Menyiapkan Tes..."
-                      : "Mulai Tes"}
+                      : d.attempt_id
+                        ? "Lanjutkan Tes"
+                        : "Mulai Tes"}
                   </Button>
+                ) : null}
+                {!isFinished && d.attempt_id && (d.attempt_resume_count ?? 0) > 0 ? (
+                  <div className="max-w-md text-center text-xs text-muted-foreground">
+                    Admin telah membuka kembali ujian Anda. Jawaban yang sudah
+                    tersimpan tetap ada dan sisa waktu saat terhenti dikembalikan.
+                    Sisa waktu baru mulai berjalan saat Anda membuka halaman ujian.
+                  </div>
                 ) : null}
                 {!isFinished && !canStart ? (
                   <div className="text-xs text-muted-foreground">

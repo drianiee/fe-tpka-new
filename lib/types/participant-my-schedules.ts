@@ -111,6 +111,7 @@ export type ParticipantMyScheduleDetail = {
   has_attempt: boolean;
   attempt_id: number | null;
   attempt_status?: string | null;
+  attempt_resume_count?: number;
   scores?: {
     verbal: number | null;
     kuantitatif: number | null;

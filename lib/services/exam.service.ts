@@ -2,6 +2,7 @@ import { http } from "@/lib/api/http";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
   ExamAttempt,
+  ExamHeartbeatPayload,
   ExamResult,
   ExamViolationPayload,
   SaveExamAnswer,
@@ -20,8 +21,8 @@ export const examService = {
   saveAnswersBatch(attemptId: number | string, answers: Array<SaveExamAnswer & { question_id: number }>) {
     return http.post(API_ENDPOINTS.PARTICIPANT.ATTEMPT_ANSWERS_BATCH(attemptId), { answers }).then((r) => r.data);
   },
-  sendHeartbeat(attemptId: number | string) {
-    return http.post<{ server_time: string; expires_at: string; status: string }>(API_ENDPOINTS.PARTICIPANT.ATTEMPT_HEARTBEAT(attemptId)).then((r) => r.data);
+  sendHeartbeat(attemptId: number | string, payload?: ExamHeartbeatPayload) {
+    return http.post<{ server_time: string; expires_at: string; status: string }>(API_ENDPOINTS.PARTICIPANT.ATTEMPT_HEARTBEAT(attemptId), payload ?? {}).then((r) => r.data);
   },
   reportViolation(
     attemptId: number | string,
@@ -46,8 +47,8 @@ export const examService = {
   saveBatch(attemptId: number | string, answers: Array<SaveExamAnswer & { question_id: number }>) {
     return this.saveAnswersBatch(attemptId, answers);
   },
-  heartbeat(attemptId: number | string) {
-    return this.sendHeartbeat(attemptId);
+  heartbeat(attemptId: number | string, payload?: ExamHeartbeatPayload) {
+    return this.sendHeartbeat(attemptId, payload);
   },
   violation(attemptId: number | string, payload: ExamViolationPayload) {
     return this.reportViolation(attemptId, payload);

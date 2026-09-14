@@ -24,15 +24,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const schema = z.object({
-  name: z.string().trim().min(1, "Nama wajib diisi"),
-  email: z.string().trim().min(1, "Email wajib diisi").email("Email tidak valid"),
-  password: z
-    .string()
-    .min(8, "Password minimal 8 karakter")
-    .refine((v) => /[A-Z]/.test(v), "Password harus mengandung minimal 1 huruf besar")
-    .refine((v) => /[0-9]/.test(v), "Password harus mengandung minimal 1 angka"),
-});
+const schema = z
+  .object({
+    name: z.string().trim().min(1, "Nama wajib diisi"),
+    email: z.string().trim().min(1, "Email wajib diisi").email("Email tidak valid"),
+    password: z
+      .string()
+      .min(8, "Password minimal 8 karakter")
+      .refine((v) => /[A-Z]/.test(v), "Password harus mengandung minimal 1 huruf besar")
+      .refine((v) => /[0-9]/.test(v), "Password harus mengandung minimal 1 angka"),
+    password_confirmation: z.string().min(1, "Konfirmasi password wajib diisi"),
+  })
+  .refine((v) => v.password === v.password_confirmation, {
+    message: "Konfirmasi password tidak sama",
+    path: ["password_confirmation"],
+  });
 
 type FormValues = z.infer<typeof schema>;
 
@@ -50,6 +56,7 @@ export function AddOperatorDialog() {
       name: "",
       email: "",
       password: "",
+      password_confirmation: "",
     },
     mode: "onSubmit",
   });
@@ -60,6 +67,7 @@ export function AddOperatorDialog() {
         name: toTrimmed(v.name),
         email: toTrimmed(v.email),
         password: v.password,
+        password_confirmation: v.password_confirmation,
       }),
     onSuccess: (res) => {
       toast.success(res.message ?? "Operator berhasil dibuat");
@@ -172,6 +180,22 @@ export function AddOperatorDialog() {
                   Gunakan minimal 8 karakter, 1 huruf besar, dan 1 angka.
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="op-password-confirmation">Konfirmasi Password</Label>
+              <Input
+                id="op-password-confirmation"
+                type="password"
+                placeholder="Ulangi password"
+                disabled={busy}
+                {...form.register("password_confirmation")}
+              />
+              {form.formState.errors.password_confirmation?.message ? (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.password_confirmation.message}
+                </p>
+              ) : null}
             </div>
           </div>
 

@@ -39,6 +39,9 @@ export type ExamAttempt = {
   server_time: string;
   started_at: string;
   expires_at: string;
+  /** Total durasi jeda (ms) saat attempt dilanjutkan admin; menggeser anchor timer section. */
+  paused_ms?: number;
+  resume_count?: number;
   schedule: { id: number; title: string; start_at: string; end_at: string };
   question_package: { id: number; name: string; total_duration_minutes: number; total_questions: number };
   sections: ExamSection[];
@@ -65,4 +68,9 @@ export type ExamResult = {
 export type ExamViolationPayload = {
   reason: string;
   context?: Record<string, unknown>;
+};
+
+export type ExamHeartbeatPayload = {
+  event?: "connection_lost" | "connection_restored";
+  payload?: Record<string, unknown>;
 };

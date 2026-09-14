@@ -40,6 +40,17 @@ export const operatorsService = {
     return res.data;
   },
 
+  updatePassword: async (
+    id: number | string,
+    payload: { password: string; password_confirmation: string },
+  ) => {
+    const res = await http.patch<{ message?: string }>(
+      API_ENDPOINTS.ADMIN.OPERATOR_PASSWORD(id),
+      payload,
+    );
+    return res.data;
+  },
+
   delete: async (id: number | string) => {
     const res = await http.delete<DeleteOperatorResponse>(
       API_ENDPOINTS.ADMIN.OPERATOR_DELETE(id)
